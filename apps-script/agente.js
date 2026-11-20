@@ -138,7 +138,7 @@ function agMsHerr_(nombre, ms, via) {
 }
 /* Destinatario (#583 T5): una sola frase para persona y número en todas las herramientas que escriben a alguien. */
 var AG_DEST_ = { type: 'string', description: 'Nombre o rol («Recepción Ignacio», «socio de 633»): se resuelve solo, con su fuente' }, AG_NUM_ = { type: 'string', description: 'Opcional: WhatsApp con código de país, si no lo tengo' };
-var CAL_ZONA_ = 'America/Guatemala por defecto; «hora de Montana» = America/Denver', CAL_SI_ = { type: 'boolean', description: 'true solo después del sí de Juan' };
+var CAL_ZONA_ = 'Vacío = hora de España (Juan vive allá). Si dice otra («3 p.m. hora de Guatemala»), pon inicio 15:00 y zona Guatemala: el código la convierte a España', CAL_SI_ = { type: 'boolean', description: 'true solo después del sí de Juan' };
 function agHerramientas_() {
   var s = function (d) { return { type: 'string', description: d }; };
   var T = function (name, description, props, req) { return { name: name, description: description, input_schema: { type: 'object', properties: props || {}, required: req || [] } }; };

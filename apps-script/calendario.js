@@ -7,8 +7,10 @@
      qué compartir). «Ponlo en mi agenda» ya es el sí (pedidopersonal.js) y lo creado vuelve con su enlace.
    · Una sola confirmación: sin confirmado = true no se toca el calendario; se devuelve la pregunta lista («¿Lo pongo
      el jueves 5 de noviembre a las 10:00, hora de Guatemala?») y lo que choca. Con el sí de Juan, se hace.
-   · Horas: «AAAA-MM-DD HH:MM» en la zona que diga Juan (Guatemala por defecto; «hora de Montana» = America/Denver),
-     con progFecha_ (programados.js), que ya resuelve el desfase y el cambio de horario.
+   · Horas: «AAAA-MM-DD HH:MM» en la zona que diga Juan, con progFecha_ (programados.js), que ya resuelve el desfase y el
+     cambio de horario. Sin zona = la de Juan (Juan, 20-nov-2026: vive en España → Europe/Madrid; propiedad CALENDARIO_ZONA
+     para cambiarla). Si dice otra («a las 3 p.m. hora de Guatemala»), se convierte a la hora de España: en su calendario
+     sale a las 22:00 y el título lleva la hora original («Reunión (3 p.m. hora de Guatemala)»).
    · Invitados: solo si Juan lo pide («invítala»); entonces se agregan y Google les manda la invitación.
    · Lo que crea Alma lleva la marca «Creado por Alma» en la descripción y la etiqueta privada alma = 1: solo esos
      eventos se pueden mover o cancelar desde aquí. Los demás son de Juan y no se tocan.
@@ -66,13 +68,18 @@ function calendarioEnlace_(evId, calId) {
 function calendarioEstado_() {
   var c = calendarioJuan_(), fijo = !!String(PropertiesService.getScriptProperties().getProperty('CALENDARIO_JUAN') || '').trim();
   if (c.error) return { ok: false, calendario_juan: fijo, error: c.error };
-  return { ok: true, calendario_juan: fijo, cuenta: c.cuenta, calendario: c.cal.getName(), id: c.cal.getId(), zona_del_calendario: c.cal.getTimeZone(), zona_por_defecto: CFG.TZ };
+  return { ok: true, calendario_juan: fijo, cuenta: c.cuenta, calendario: c.cal.getName(), id: c.cal.getId(), zona_del_calendario: c.cal.getTimeZone(), zona_por_defecto: calendarioZonaJuan_() };
 }
 
-/* «hora de Montana», «GT», «America/Denver» → zona IANA. Vacío = Guatemala. '' si no se reconoce. */
+/* La zona donde vive Juan: la de su calendario y la de todo lo que se le dice (Europe/Madrid desde el 20-nov-2026). */
+function calendarioZonaJuan_() {
+  var z = ''; try { z = String(PropertiesService.getScriptProperties().getProperty('CALENDARIO_ZONA') || '').trim(); } catch (e) {}
+  return /^[A-Za-z_]+\/[A-Za-z_\/+-]+$/.test(z) ? z : 'Europe/Madrid';
+}
+/* «hora de Montana», «GT», «America/Denver» → zona IANA. Vacío = la de Juan (España). '' si no se reconoce. */
 function calendarioZona_(z) {
   var t = String(z || '').trim();
-  if (!t) return CFG.TZ;
+  if (!t) return calendarioZonaJuan_();
   if (/^[A-Za-z_]+\/[A-Za-z_\/+-]+$/.test(t)) return t;
   var n = t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   for (var i = 0; i < CALENDARIO_ZONAS_.length; i++) if (CALENDARIO_ZONAS_[i][0].test(n)) return CALENDARIO_ZONAS_[i][1];
@@ -86,11 +93,25 @@ function calendarioDia_(d, tz) {
   return CALENDARIO_DIAS_[new Date(Date.UTC(f[0], f[1] - 1, f[2])).getUTCDay()] + ' ' + f[2] + ' de ' + CALENDARIO_MESES_[f[1] - 1];
 }
 function calendarioHora_(d, tz) { return Utilities.formatDate(d, tz, 'HH:mm'); }
-/* «el jueves 5 de noviembre a las 10:00, hora de Montana (11:00 en Guatemala)» */
+/* Date → «3 p.m.», «10:30 a.m.» (como lo dice Juan). */
+function calendarioHora12_(d, tz) {
+  var p = Utilities.formatDate(d, tz, 'HH:mm').split(':'), h = Number(p[0]), am = h < 12;
+  h = h % 12 || 12;
+  return h + (p[1] !== '00' ? ':' + p[1] : '') + (am ? ' a.m.' : ' p.m.');
+}
+/* Siempre en la hora de Juan; si la pidió en otra zona, también esa:
+   «el jueves 26 de noviembre a las 22:00, hora de España (3 p.m. hora de Guatemala)». */
 function calendarioCuando_(ini, tz) {
-  var t = calendarioDia_(ini, tz) + ' a las ' + calendarioHora_(ini, tz) + ', ' + calendarioZonaNombre_(tz);
-  if (tz !== CFG.TZ) t += ' (' + calendarioHora_(ini, CFG.TZ) + ' en Guatemala' + (calendarioDia_(ini, CFG.TZ) !== calendarioDia_(ini, tz) ? ', ' + calendarioDia_(ini, CFG.TZ) : '') + ')';
+  var zj = calendarioZonaJuan_();
+  var t = calendarioDia_(ini, zj) + ' a las ' + calendarioHora_(ini, zj) + ', ' + calendarioZonaNombre_(zj);
+  if (tz && tz !== zj) t += ' (' + calendarioHora12_(ini, tz) + ' ' + calendarioZonaNombre_(tz) + (calendarioDia_(ini, tz) !== calendarioDia_(ini, zj) ? ', ' + calendarioDia_(ini, tz) : '') + ')';
   return t;
+}
+/* Título en el calendario: si la hora vino en otra zona, la lleva al final, para que Juan la vea tal como la dijo. */
+var CALENDARIO_TITULO_ZONA_ = /\s*\(\d{1,2}(:\d{2})? [ap]\.m\. hora de? [^)]*\)$/;
+function calendarioTitulo_(titulo, ini, tz) {
+  var t = String(titulo || '').replace(CALENDARIO_TITULO_ZONA_, '');
+  return tz && tz !== calendarioZonaJuan_() ? t + ' (' + calendarioHora12_(ini, tz) + ' ' + calendarioZonaNombre_(tz) + ')' : t;
 }
 function calendarioDeAlma_(ev) {
   try { if (String(ev.getTag('alma') || '') === '1') return true; } catch (e) {}
@@ -134,8 +155,9 @@ function calendarioCrear_(o) {
   var malo = invitados.filter(function (x) { return !/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(x); })[0];
   if (malo) return { error: '«' + malo + '» no parece un correo. Pídele a Juan el correo de la persona.' };
   var c = calendarioJuan_(); if (c.error) return c;
-  var cuando = calendarioCuando_(ini, tz), choques = calendarioChoques_(c.cal, ini, fin, tz);
-  if (o.confirmado !== true) return { ok: true, falta_confirmar: true, pregunta: '¿Lo pongo el ' + cuando + '?', hasta: calendarioHora_(fin, tz),
+  titulo = calendarioTitulo_(titulo, ini, tz);
+  var cuando = calendarioCuando_(ini, tz), choques = calendarioChoques_(c.cal, ini, fin, calendarioZonaJuan_());
+  if (o.confirmado !== true) return { ok: true, falta_confirmar: true, pregunta: '¿Lo pongo el ' + cuando + '?', hasta: calendarioHora_(fin, calendarioZonaJuan_()),
     choca_con: choques.length ? choques : undefined, invitara: invitados.length ? invitados : undefined,
     nota: 'Todavía NO está en el calendario. Pregúntaselo a Juan una sola vez (di si choca); con su sí, llama otra vez igual con confirmado = true.' };
   /* Si ya lo puse (un doble sí, un reintento de la llamada), no se duplica. */
@@ -147,7 +169,7 @@ function calendarioCrear_(o) {
   var ev = c.cal.createEvent(titulo, ini, fin, opc);
   try { ev.setTag('alma', '1'); } catch (e) {}
   var enlace = calendarioEnlace_(ev.getId(), c.cal.getId());
-  return { ok: true, creado: true, id: ev.getId(), titulo: titulo, cuando: cuando, hasta: calendarioHora_(fin, tz), calendario: c.cal.getName(), zona: tz, enlace: enlace || undefined,
+  return { ok: true, creado: true, id: ev.getId(), titulo: titulo, cuando: cuando, hasta: calendarioHora_(fin, calendarioZonaJuan_()), calendario: c.cal.getName(), zona: tz, enlace: enlace || undefined,
     invitados: invitados.length ? invitados : undefined, hecho: 'Evento en tu calendario · ' + titulo + ' · ' + cuando + (enlace ? ' · ' + enlace : ''),
     nota: 'Ya está en su calendario. Confírmaselo en una línea con el día, la hora y la zona, y pega el enlace.' };
 }
@@ -189,7 +211,7 @@ function calendarioCambiar_(o, cancelar) {
   if (!calendarioDeAlma_(ev)) return { error: 'Ese evento no lo creé yo: solo muevo o cancelo los míos. Ese lo cambia Juan en su calendario.' };
   var titulo = ev.getTitle();
   if (cancelar) {
-    var cuandoC = calendarioCuando_(ev.getStartTime(), CFG.TZ);
+    var cuandoC = calendarioCuando_(ev.getStartTime(), calendarioZonaJuan_());
     if (o.confirmado !== true) return { ok: true, falta_confirmar: true, pregunta: '¿Cancelo «' + titulo + '» del ' + cuandoC + '?', nota: 'Todavía NO se borró. Con el sí de Juan, otra vez con confirmado = true.' };
     ev.deleteEvent();
     return { ok: true, cancelado: true, titulo: titulo, hecho: 'Evento cancelado · ' + titulo + ' · ' + cuandoC };
@@ -198,8 +220,10 @@ function calendarioCambiar_(o, cancelar) {
   var ini = progFecha_(o.inicio, tz); if (!ini) return { error: 'Necesito el nuevo inicio como AAAA-MM-DD HH:MM.' };
   var fin = calendarioFin_(o, ini, tz, ev.getEndTime().getTime() - ev.getStartTime().getTime()); if (!fin || fin <= ini) return { error: 'El final tiene que ser después del inicio.' };
   if (ini.getTime() < Date.now() - 60000) return { error: 'Esa hora ya pasó.' };
-  var cuando = calendarioCuando_(ini, tz), choques = calendarioChoques_(c.cal, ini, fin, tz, ev.getId());
+  var cuando = calendarioCuando_(ini, tz), choques = calendarioChoques_(c.cal, ini, fin, calendarioZonaJuan_(), ev.getId());
+  var nuevoTitulo = calendarioTitulo_(titulo, ini, tz);
   if (o.confirmado !== true) return { ok: true, falta_confirmar: true, pregunta: '¿Muevo «' + titulo + '» al ' + cuando + '?', choca_con: choques.length ? choques : undefined, nota: 'Todavía NO se movió. Con el sí de Juan, otra vez con confirmado = true.' };
   ev.setTime(ini, fin);
-  return { ok: true, movido: true, id: ev.getId(), titulo: titulo, cuando: cuando, hasta: calendarioHora_(fin, tz), hecho: 'Evento movido · ' + titulo + ' · ' + cuando };
+  if (nuevoTitulo !== titulo) { try { ev.setTitle(nuevoTitulo); titulo = nuevoTitulo; } catch (e) {} }
+  return { ok: true, movido: true, id: ev.getId(), titulo: titulo, cuando: cuando, hasta: calendarioHora_(fin, calendarioZonaJuan_()), hecho: 'Evento movido · ' + titulo + ' · ' + cuando };
 }

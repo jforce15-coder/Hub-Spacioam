@@ -154,11 +154,19 @@ function calCaja(o) {
   ok(X.ppConfirmarAgenda_({ titulo: 'x', inicio: '2026-11-27 18:00' }, FOTO).confirmado !== true, '4 · la invitación sola no confirma: Alma pregunta');
   const r = X.calendarioCrear_(inp);
   ok(r.creado && creados.length === 1 && creados[0].a.toISOString() === '2026-11-27T17:00:00.000Z', '4 · 18:00 hora de España = 17:00 UTC, con la zona explícita (' + (creados[0] && creados[0].a.toISOString()) + ')');
-  ok(r.zona === 'Europe/Madrid' && /hora de España/.test(r.cuando) && /en Guatemala/.test(r.cuando), '4 · dice la zona y la hora de Guatemala: ' + r.cuando);
+  ok(r.zona === 'Europe/Madrid' && /a las 18:00, hora de España$/.test(r.cuando) && r.titulo === 'Salida de padres', '4 · en hora de España no se agrega otra zona: ' + r.cuando);
   const eid = /eid=([\w-]+)$/.exec(r.enlace || '');
   ok(!!eid && Buffer.from(eid[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString() === 'abc123 juan@ejemplo.com' && r.hecho.indexOf(r.enlace) >= 0, '4 · confirma con el enlace del evento');
   const g = X.calendarioCrear_({ titulo: 'Sin zona', inicio: '2026-11-27 18:00', confirmado: true });
-  ok(g.creado && creados[1].a.toISOString() === '2026-11-28T00:00:00.000Z', '4 · sin zona: hora de Guatemala explícita, nunca la del calendario (Madrid)');
+  ok(g.creado && creados[1].a.toISOString() === '2026-11-27T17:00:00.000Z' && /hora de España/.test(g.cuando), '4 · sin zona: hora de España (Juan vive allá, 20-nov-2026)');
+  /* Juan, 20-nov-2026: «coordina una reunión para hoy a las 3 p.m. hora de Guatemala» → en su calendario en hora de España
+     (22:00) y el título con la hora original. */
+  const gt = X.calendarioCrear_({ titulo: 'Reunión', inicio: '2026-11-27 15:00', zona: 'hora de Guatemala', confirmado: true });
+  ok(gt.creado && creados[2].a.toISOString() === '2026-11-27T21:00:00.000Z', '4 · 3 p.m. Guatemala = 21:00 UTC');
+  ok(creados[2].t === 'Reunión (3 p.m. hora de Guatemala)' && /a las 22:00, hora de España \(3 p\.m\. hora de Guatemala\)/.test(gt.cuando), '4 · sale a las 22:00 hora de España y el título dice «3 p.m. hora de Guatemala»: ' + creados[2].t + ' · ' + gt.cuando);
+  ok(X.calendarioTitulo_('Reunión (3 p.m. hora de Guatemala)', new Date('2026-11-27T10:00:00Z'), 'Europe/Madrid') === 'Reunión', '4 · al moverla a hora de España se quita la hora de Guatemala del título');
+  const tarde = X.calendarioCrear_({ titulo: 'Cena', inicio: '2026-11-27 20:30', zona: 'Guatemala', confirmado: true });
+  ok(/sábado 28 de noviembre a las 03:30, hora de España \(8:30 p\.m\. hora de Guatemala, viernes 27 de noviembre\)/.test(tarde.cuando), '4 · si cambia el día, lo dice: ' + tarde.cuando);
 }
 { const { X, creados } = calCaja({ cuenta: 'hub@ejemplo.com' });
   const r = X.calendarioCrear_({ titulo: 'x', inicio: '2026-11-27 18:00', confirmado: true });

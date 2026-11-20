@@ -2242,8 +2242,9 @@ function claude_(modelo, maxTokens, system, user, temp, imagenes, maxFotos) {
   const r = uf_('https://api.anthropic.com/v1/messages', {
     method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-    payload: JSON.stringify({ model: modelo, max_tokens: maxTokens, temperature: temp === undefined ? 0.3 : temp,
-      system: Array.isArray(system) ? system : String(system || '').length > 4000 ? [{ type: 'text', text: String(system), cache_control: { type: 'ephemeral' } }] : system, messages: [{ role: 'user', content: content }] })
+    /* temp === null: los modelos de la familia 5.5 rechazan temperature (400); va sin ella y con esfuerzo bajo (Escritura clara, Página explicativa). */
+    payload: JSON.stringify(Object.assign(temp === null ? { output_config: { effort: 'low' } } : { temperature: temp === undefined ? 0.3 : temp }, { model: modelo, max_tokens: maxTokens,
+      system: Array.isArray(system) ? system : String(system || '').length > 4000 ? [{ type: 'text', text: String(system), cache_control: { type: 'ephemeral' } }] : system, messages: [{ role: 'user', content: content }] }))
   });
   let j = {}; try { j = JSON.parse(r.getContentText()) || {}; } catch (e) {}
   try { registrarUso_({ app: 'ALMA', funcion: funcionIA_(), modelo: modelo, usage: j.usage || {}, ms: Date.now() - t0, ok: r.getResponseCode() === 200, fotos: content.length - 1 }); } catch (e) {}

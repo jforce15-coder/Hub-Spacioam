@@ -1,7 +1,7 @@
 # Alma orquestadora (modelo de negocio · referencia)
 
-> Estado: **referencia para retomar** (Juan, 20-nov-2026). No hay nada de dinero construido. Antes de construir,
-> Juan decide las ramas en niebla de la sección 5.
+> Estado: **en construcción, sin dinero real** (Juan, 20-nov-2026: «Arranca el libro»). T1, el Libro de transacciones,
+> está hecho (#935). Nada cobra ni paga. Las ramas 1 a 3 de la sección 5 ya son tinta; la 4 y la 5 siguen en niebla.
 
 ## 1. La idea (del video que pasó Juan)
 «Quien trae al cliente gana más que quien hace el trabajo.» La organizadora de bodas no cocina: elige al banquetero,
@@ -53,20 +53,24 @@ Ejemplos en Spacio AM:
 - Llaves del medio de pago en Ajustes → Llaves (Propiedades del script), nunca en el repo ni en el chat.
 - La comisión se ve en el Gasto de Alma como **ingreso de Alma**, aparte del Gasto de empresa.
 
-## 5. Árbol de decisiones (todo en niebla: lo decide Juan antes de construir)
-1. **Medio de cobro y pago**: Stripe (cobros con enlace + tarjetas virtuales con Stripe Issuing; España/UE) · un
+## 5. Árbol de decisiones (lo decide Juan antes de construir)
+1. **Medio de cobro y pago** — **tinta (Juan, 20-nov-2026): Stripe.** Stripe (cobros con enlace + tarjetas virtuales con Stripe Issuing; España/UE) · un
    proveedor local de Guatemala para cobrar en quetzales · las dos. *Recomendación: empezar con Stripe en una sola
    moneda (USD) y sumar el local cuando haya volumen en quetzales.*
-2. **¿El cliente ve la comisión?** Visible («tarifa de gestión de Alma») · escondida en el precio (margen).
+2. **¿El cliente ve la comisión?** — **tinta (Juan, 20-nov-2026): visible, «tarifa de gestión de Alma».** Visible («tarifa de gestión de Alma») · escondida en el precio (margen).
    *Recomendación: visible con huéspedes y socios (confianza), margen solo en paquetes cerrados.*
-3. **¿A nombre de quién cobra Alma?** Spacio AM (la empresa) · una empresa nueva para Alma. *Recomendación: Spacio AM
+3. **¿A nombre de quién cobra Alma?** — **tinta (Juan, 20-nov-2026): Spacio AM.** Spacio AM (la empresa) · una empresa nueva para Alma. *Recomendación: Spacio AM
    al principio; separar cuando el modelo se use fuera de Spacio.*
-4. **Riesgo si el proveedor falla**: Alma devuelve y reclama al proveedor · el proveedor responde directo al cliente.
-5. **Cuánto es la comisión** por tipo (margen, referido, gestión) y por cliente.
+4. **Riesgo si el proveedor falla** (niebla): Alma devuelve y reclama al proveedor · el proveedor responde directo al cliente.
+5. **Cuánto es la comisión** por tipo (margen, referido, gestión) y por cliente (niebla). Mientras tanto, el Libro mide
+   con un margen supuesto: `LIBRO_MARGEN_PCT` (Propiedad del script, 10 por defecto).
 
 ## 6. Rebanadas para cuando se retome (cada una se prueba sola)
-1. **Libro de transacciones** (sin dinero real): hoja ALMA_TRANSACCIONES y herramienta para que Alma anote cada
-   compra o contratación que ya pasa hoy (quién, a quién, cuánto, comisión que habría tenido). Sirve para medir.
+1. ✅ **Libro de transacciones** (sin dinero real; #935 T1, `apps-script/libro.js`): hoja ALMA_TRANSACCIONES y
+   herramienta `libro` (anotar · resumen; solo el principal, chat y WhatsApp) para que Alma anote cada compra o
+   contratación que ya pasa hoy (quién, a quién, cuánto, comisión que habría tenido). Una vez al mes, desde el 11, trae
+   de Mi el fee de Spacio (gestión real) y los insumos y reparaciones (comisión supuesta), sin duplicar. Robot:
+   `libro_resumen` (solo lee) y `libro_importar`. Prueba: `.github/libro-transacciones.js`. Sirve para medir.
 2. **Catálogo de proveedores**: tarifa, comisión acordada y calificación en la ficha del contacto.
 3. **Cotización de Alma**: precio al cliente = costo + comisión, con la tarjeta de aprobación.
 4. **Cobro**: enlace de pago al cliente (huésped o socio) y aviso cuando entra.

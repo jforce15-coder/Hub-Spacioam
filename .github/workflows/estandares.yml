@@ -364,6 +364,9 @@ jobs:
       - name: Pedido personal del principal, la invitación y la nota de voz son un pedido, no preguntan por temas de trabajo y «ponlo en mi agenda» lo pone con zona y enlace (dobles)
         # 20-nov: una invitación reenviada recibió «¿Esto es para <envío a huésped> o para <persona>?» y la nota de voz no la agendó.
         run: node .github/pedido-personal.js apps-script
+      - name: Libro de transacciones, sus columnas, anotar con el margen supuesto, Mi sin duplicar y solo el principal (dobles)
+        # 20-nov-2026: Juan dijo «Arranca el libro» (#935 T1, Alma orquestadora): anota y mide la Comisión de Alma, sin dinero real.
+        run: node .github/libro-transacciones.js apps-script
       - name: Tocar un anillo o su notificación manda su id, va a su tema con el estado ya cargado y una pregunta de estado no va a Claude (dobles)
         # 16-nov: el toque del anillo «Cupos Google» mandaba solo el texto y el tema se adivinaba; tres nombres para lo mismo (#583 T1).
         run: node .github/orbita-tema.js apps-script

@@ -572,6 +572,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     case 'ver_vuelos': { if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal ve los vuelos.' }; return viajesParaAlma_(adm); }   // viajes.js
     case 'crear_evento': case 'ver_agenda': case 'mover_evento': case 'cancelar_evento': {   // calendario.js
       if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal usa su calendario.' };
+      if (nombre === 'crear_evento') ppConfirmarAgenda_(inp, AGENTE_TEXTO_);   // «ponlo en mi agenda» ya es el sí (pedidopersonal.js)
       var rCal = calendarioHerramienta_(nombre, inp); if (nombre === 'ver_agenda' && rCal && rCal.ok) tvCandidata_('datos', function () { return tdAgenda_(rCal); }); if (rCal.hecho) ctx.hechas.push({ tipo: 'calendario', resumen: rCal.hecho }); return rCal;
     }
     case 'preparar_uber': { var rU = uberHerramienta_(adm, inp); if (rU.enviado) ctx.hechas.push({ tipo: 'uber', resumen: 'Uber listo por WhatsApp · ' + (rU.destino || rU.origen) }); return rU; }   // uber.js

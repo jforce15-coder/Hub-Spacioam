@@ -71,7 +71,7 @@ function caja() {
     formatearMensaje_: t => t, hubRedactar_: (r, t) => ({ ok: true, texto: t }), hubResponder_: () => ({ ok: true }), preContexto_: () => ({}), textosAlma_: () => []
   };
   vm.createContext(ctx);
-  ['contacto.js', 'relevo.js', 'decisiones.js'].forEach(f => vm.runInContext(fs.readFileSync(path.join(DIR, f), 'utf8'), ctx, { filename: f }));
+  ['contacto.js', 'relevo.js', 'pedidopersonal.js', 'decisiones.js'].forEach(f => vm.runInContext(fs.readFileSync(path.join(DIR, f), 'utf8'), ctx, { filename: f }));
   vm.runInContext(['waEntrante_', 'waCitado_', 'opWaProcesar_'].map(sacar).join('\n'), ctx, { filename: 'Código.js (extracto)' });
   return { ctx, props, cache, enviados, procesados, clasif, wa };
 }

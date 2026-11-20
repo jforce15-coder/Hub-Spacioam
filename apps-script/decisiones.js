@@ -618,6 +618,7 @@ function decisionWaEntrante_(m, wa, ts) {
     if (f.sin_texto) return false;                                  // «no era para…»: hasta que citen el aviso o toquen una opción
     if (!(Date.now() - marca.ts < DEC_WA_MIN_ * 60000)) return false;
     if (decEsOrden_(texto)) return false;                           // una orden para Alma: al agente
+    if (ppClasificar_(texto).personal) return false;                // su agenda, su familia: nunca es para el caso (pedidopersonal.js)
     if (!decEsParaCaso_(f, texto)) return false;                    // la duda: al agente, con el caso como contexto
   }
   if (!mb && !deshacerEscrito && !corrige && !decViva_(f)) { decWaMarcar_(wa, null); return false; }

@@ -31,8 +31,8 @@ var TEMA_COLS_LEER_ = 16;        // sin «hilo» (lo largo): se lee solo el del 
 var TEMA_VIVO_H_ = 72;           // con movimiento en las últimas 72 h: se muestra, se elige y cuenta para la etiqueta
 var TEMA_ACTIVO_H_ = 6;          // en las últimas 6 h: activo (sin Jev gana el más reciente; dos activos y Jev duda → pregunta)
 var TEMA_LISTA_ = 6, TEMA_JEV_MAX_ = 5, TEMA_HILO_ = 6, TEMA_MSGS_ = 12, TEMA_CORTO_MAX_ = 28, TEMA_DUDA_S_ = 1800;
-var TEMA_POR_ = { tarjeta: 'por la tarjeta', socio: 'pedido del socio', cita: 'por cita', aclaracion: 'lo aclaró', nombre: 'por nombre', numero: 'esperaba un número', jev: 'por contexto', reciente: 'el más reciente', orbita: 'tocó su anillo' };
-var TEMA_FIJOS_ = ['tarjeta', 'cita', 'socio', 'orbita'];   // el código ya sabe el tema: la etiqueta de Alma no lo cambia
+var TEMA_POR_ = { tarjeta: 'por la tarjeta', socio: 'pedido del socio', cita: 'por cita', aclaracion: 'lo aclaró', nombre: 'por nombre', numero: 'esperaba un número', jev: 'por contexto', reciente: 'el más reciente', orbita: 'tocó su anillo', personal: 'pedido personal' };
+var TEMA_FIJOS_ = ['tarjeta', 'cita', 'socio', 'orbita', 'personal'];   // el código ya sabe el tema: la etiqueta de Alma no lo cambia
 var TEMA_CANALES_PREGUNTA_ = ['whatsapp', 'hub', 'app', 'llamada', 'calle'];   // donde alguien puede contestar «¿Esto es para A o para B?»
 var TEMA_ACT_ = null;            // el tema de este turno { email, id | nuevo, por, … } (opAgente_); lo leen pendientes, encargos y microproyectos
 var TEMA_PISTA_ = null;          // lo que quien llama ya sabe: { tema } (tarjeta, cita en WhatsApp)
@@ -143,7 +143,7 @@ function temaAbiertos_(email, ahora) {
    el turno abre un tema nuevo, se crea aquí (y el cierre del turno usa ese mismo). '' si el turno no tiene tema. */
 function temaActualId_(adm) {
   var s = TEMA_ACT_; if (!s || s.pregunta || (adm && adm.email && s.email !== adm.email)) return '';
-  if (!s.id && s.nuevo) { var t = temaCrear_(adm || { email: s.email }, { titulo: s.titulo, apartamento: s.apartamento }); s.id = t.id; s.nuevo = false; s.por = s.por || 'nuevo'; }
+  if (!s.id && s.nuevo) { var t = temaCrear_(adm || { email: s.email }, { titulo: s.titulo, apartamento: s.apartamento, tipo: s.tipo }); s.id = t.id; s.nuevo = false; s.por = s.por || 'nuevo'; }
   return s.id || '';
 }
 function temaPersonaSumar_(t, nombre, tel) {
@@ -338,6 +338,14 @@ function temaElegir_(adm, texto, o) {
     if (o.sinPregunta || !temaSePuedePreguntar_(ops)) return Object.assign(con({ id: ops[0].id, por: 'reciente' }), extra || {});
     return Object.assign(con({ pregunta: temaPregunta_(email, texto, ops) }), extra || {});
   };
+  /* Lo personal (agenda, familia, una invitación) va a su propio tema, antes de cualquier duda o pregunta de trabajo: el
+     20-nov una invitación reenviada recibió «¿Esto es para <envío a huésped> o para <otra persona>?» (pedidopersonal.js). */
+  var pp = typeof ppClasificar_ === 'function' ? ppClasificar_(texto) : null;
+  if (pp && pp.personal) {
+    try { CacheService.getScriptCache().remove(temaDudaClave_(email)); } catch (e) {}   // una pregunta de trabajo pendiente ya no aplica
+    var pers = vivos.filter(function (t) { return t.tipo === 'personal' && ahora - t.actualizado < 2 * 3600000; })[0];
+    return pers ? con({ id: pers.id, por: 'personal' }) : con({ nuevo: true, por: 'personal', tipo: 'personal', titulo: temaTitulo_(texto) });
+  }
   var ac = temaDudaResolver_(email, texto, vivos); if (ac) return con(ac);
   var abiertos = temaFilas_().filter(function (t) { return t.estado === 'abierto' && t.admin === email; });
   var nom = temaNombrados_(texto, abiertos);
@@ -422,7 +430,7 @@ function temaCerrarTurno_(adm, texto, resp, ag) {
   if (!t && sel.id) t = temaLeer_(sel.id);
   /* Un tema nuevo nace si hizo algo, si espera algo de Juan o si Alma lo marcó nuevo; una consulta suelta no abre tema. */
   var hizo = ((ag && ag.hechas) || []).some(function (h) { return h && !h.error && h.tipo !== 'consulta'; });
-  if (!t && sel.nuevo && (hizo || temaEspera_(resp) || (tag && tag.nuevo))) t = temaCrear_(adm, { titulo: (tag && tag.titulo) || sel.titulo || texto, apartamento: sel.apartamento });
+  if (!t && sel.nuevo && (hizo || temaEspera_(resp) || (tag && tag.nuevo) || sel.tipo === 'personal')) t = temaCrear_(adm, { titulo: (tag && tag.titulo) || sel.titulo || texto, apartamento: sel.apartamento, tipo: sel.tipo });
   if (!t) return '';
   sel.id = t.id; sel.nuevo = false;   // lo que el cierre del turno crea después (un pedido a Desarrollo) va a este mismo tema
   if (t.estado !== 'abierto') { t.estado = 'abierto'; t.resultado = ''; t.cerrado = ''; }   // un mensaje nuevo en un tema cerrado lo reabre

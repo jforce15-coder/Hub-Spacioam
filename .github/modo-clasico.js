@@ -3,7 +3,8 @@
    1. la regla pide confirmar con «Copiado.» en 1 a 4 palabras, sin sugerencias ni bromas, y deja los encargos completos;
    2. prendido, el chat de Juan lleva la regla y el Modo Weebo en 0; apagado, nada cambia; con el equipo o huéspedes, nada;
    3. la ficha de la llamada saluda corto y lleva la regla aparte (Claudio no la recibe);
-   4. solo el principal lo prende; la herramienta modo_clasico existe en el chat y el interruptor en Ajustes → Personalidad.
+   4. solo el principal lo prende; la herramienta modo_clasico existe en el chat y el interruptor en Ajustes → Personalidad;
+   5. (guardia 20-nov-2026) Alma reconoce «modo táctico» y «modo militar» como el Modo clásico, prendido o apagado.
    node .github/modo-clasico.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -33,9 +34,14 @@ const f = ctx.personalidadFicha_({ email: 'juan@x', principal: true });
 ok(f.clasico === true && /MODO CLÁSICO/.test(f.clasico_regla) && !/MODO CLÁSICO/.test(f.bloque) && f.weebo_nivel === 0, '3 · la ficha lleva la regla aparte (Claudio no la recibe) y Weebo en 0');
 ok(f.saludos.length > 1 && f.saludos.every(s => s.split(/\s+/).length <= 4) && f.first_message === 'Adelante.', '3 · la llamada saluda corto («Adelante.», «Te copio.»)');
 ok(ctx.clasicoHerramienta_({ principal: true }, { encender: false }).clasico === false && !props.ALMA_CLASICO, '4 · la herramienta lo apaga');
-ok(!ctx.personalidadFicha_({ email: 'juan@x', principal: true }).clasico, '3 · apagado, la ficha vuelve a la normal');
+const fa = ctx.personalidadFicha_({ email: 'juan@x', principal: true });
+ok(!fa.clasico && fa.first_message === undefined, '3 · apagado, la ficha vuelve a la normal');
+/* Guardia 20-nov-2026: «ya tenemos activado el modo táctico» y Alma solo se rió. */
+ok(/modo táctico/.test(R) && /modo militar/.test(R) && /Confirmado\./.test(R), '5 · prendido: la regla reconoce «modo táctico» y «modo militar» y confirma «Confirmado.»');
+ok(/MODO CLÁSICO \(apagado\)/.test(fa.clasico_regla) && /modo táctico/.test(fa.clasico_regla) && /activa el modo clásico/.test(fa.clasico_regla) && !/MODO CLÁSICO/.test(fa.bloque), '5 · apagado: la ficha de la llamada reconoce «modo táctico» y lo pide como «activa el modo clásico» (Claudio no lo recibe)');
 
 const ag = fs.readFileSync(path.join(DIR, 'agente.js'), 'utf8'), voz = fs.readFileSync(path.join(DIR, 'voz.js'), 'utf8');
+ok(/T\('modo_clasico', '[^']*modo táctico[^']*modo militar/.test(ag), '5 · la herramienta modo_clasico del chat reconoce «modo táctico» y «modo militar»');
 ok(/T\('modo_clasico'/.test(ag) && /case 'modo_clasico'/.test(ag) && /esAdminPrincipal_\(adm\)\) return \{ error: 'Solo Juan prende o apaga el Modo clásico/.test(ag), '4 · herramienta modo_clasico en el chat, solo Juan');
 ok(/pf\.clasico_regla/.test(voz), '3 · la llamada de Alma suma la regla a la ficha');
 const html = fs.readFileSync(path.join(DIR, '..', 'alma', 'inicio.html'), 'utf8');

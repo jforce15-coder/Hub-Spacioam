@@ -281,7 +281,7 @@ function agHerramientas_() {
     T('dejar_de_vigilar', 'Para «deja de vigilar…»: cancela una vigilancia (por su id o palabras de lo que vigila).', { cual: s('id (vg…) o palabras: «el vuelo», «Marcela»') }, ['cual']),
     T('vigilancias', 'Lo que estás vigilando para Juan ahora.', {}),
     T('cupo_google', 'Cupo de Google: nivel, % y qué lo gasta.', {}),
-    T('modo_clasico', '«Activa/sal del modo clásico». Solo Juan.', { encender: { type: 'boolean' } }, ['encender']),   // clasico.js
+    T('modo_clasico', '«Activa/sal del modo clásico» (o «modo táctico», «modo militar»). Solo Juan.', { encender: { type: 'boolean' } }, ['encender']),   // clasico.js
     T('gasto_alma', 'Gasto de Alma del mes y en qué se va.', {}),
     /* Registro de pruebas del Modo inicio (pruebas.js, Juan 18-nov-2026, #764). */
     T('registro_de_pruebas', 'Registro de las pruebas del Modo inicio: empezar (2 h; luego avisa con el resumen), ver o parar.', { que: { type: 'string', enum: ['empezar', 'ver', 'parar'] }, horas: { type: 'number' } }, ['que']),
@@ -1032,7 +1032,7 @@ var AGENTE_MARGEN_VUELTA_ = 6000, AGENTE_MARGEN_HERR_ = 2500;
    temas, recetas) cuenta en los 15 s y la app deja de esperar a los 25: si ya no alcanza, sigue en segundo plano. */
 var AGENTE_PLAZO_PRIMERA_ = false;
 function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir, yaEspero) {
-  var final = '', usosDe = function (m) { return m && m.role === 'assistant' && Array.isArray(m.content) ? m.content.filter(function (b) { return b.type === 'tool_use'; }) : []; };
+  var final = '', iaUltimaMs = 0, usosDe = function (m) { return m && m.role === 'assistant' && Array.isArray(m.content) ? m.content.filter(function (b) { return b.type === 'tool_use'; }) : []; };
   var vencido = function (margen) { return AGENTE_PLAZO_ && Date.now() + (margen || 0) > AGENTE_PLAZO_; };
   /* Si no se puede guardar para seguir después (candado ocupado, caché llena), no se cae el pedido: se sigue aquí mismo
      (la llamada espera hasta VOZ_SECRETARIA_TIMEOUT_S_). Antes el error subía y Alma decía «error interno» sin hacer nada. */
@@ -1049,8 +1049,10 @@ function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir, yaEspero) 
   for (var vuelta = desde || 0; vuelta < 8; vuelta++) {
     var usos = usosDe(msgs[msgs.length - 1]);
     if (!usos.length) {
-      if ((vuelta > (desde || 0) || yaEspero || AGENTE_PLAZO_PRIMERA_) && vencido(AGENTE_MARGEN_VUELTA_)) { var cv = cortar(); if (cv) return cv; }
-      var j = claudeTools_(CFG.MODELO_REDACTOR, system, msgs, tools, 1600);
+      /* Tras el rápido (yaEspero, guardia 20-nov-2026): la vuelta nueva empieza solo si cabe contando lo que tardó la anterior. */
+      var margenV = yaEspero ? Math.max(AGENTE_MARGEN_VUELTA_, iaUltimaMs) : AGENTE_MARGEN_VUELTA_;
+      if ((vuelta > (desde || 0) || yaEspero || AGENTE_PLAZO_PRIMERA_) && vencido(margenV)) { var cv = cortar(); if (cv) return cv; }
+      var tIa = Date.now(), j = claudeTools_(CFG.MODELO_REDACTOR, system, msgs, tools, 1600); iaUltimaMs = Date.now() - tIa;
       if (!j) { final = 'No pude procesarlo ahora. Intenta de nuevo en un momento.'; break; }
       var bloques = j.content || [];
       msgs.push({ role: 'assistant', content: bloques });

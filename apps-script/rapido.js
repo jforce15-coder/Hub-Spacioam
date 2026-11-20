@@ -79,6 +79,21 @@ var AG_USO_FUNCION_ = '';
 var RAPIDO_PASAR_ = { name: 'pasar_al_completo', description: 'Pasa este pedido al modelo completo, que tiene todas las herramientas. Úsala en vez de responder si el pedido pide hacer algo (enviar, escribir, programar, crear, cambiar, cancelar, guardar, unir), si necesitas una herramienta que no tienes o si no puedes contestarlo con seguridad con lo que leíste.',
   input_schema: { type: 'object', properties: { motivo: { type: 'string', description: 'Por qué, en pocas palabras' } }, required: [] } };
 
+/* Tope del completo tras el rápido (guardia 20-nov-2026): Juan pidió puntos de referencia en la Guía de camino y la
+   secretaria tardó 30,9 s (rapido>completo, ia 19,8 s). El rápido ya gastó hasta 5 s y el completo seguía con el plazo de
+   18 s de la secretaria, más una vuelta del modelo que empezaba justo antes y se pasaba. Ahora, en una llamada de la
+   secretaria (no conferencia ni Modo calle, que tienen su plazo), el completo tiene lo que quede hasta VOZ_TRAS_RAPIDO_MS_
+   contados desde que llegó el pedido (VOZ_T0_), y cada vuelta nueva cuenta lo que tardó la anterior (opAgenteBucle_ con
+   yaEspero). Si no alcanza, lo ya leído sigue en segundo plano (en_proceso) y Alma avisa al terminar, como siempre.
+   El cronómetro guarda tope_completo (ms) en voz_traza. */
+var VOZ_TRAS_RAPIDO_MS_ = 15000;
+function rapidoTopeCompleto_(ms) {
+  if (typeof AGENTE_PLAZO_ === 'undefined' || !AGENTE_PLAZO_ || typeof VOZ_T0_ === 'undefined' || !VOZ_T0_) return;
+  if ((typeof AGENTE_CONF_ !== 'undefined' && AGENTE_CONF_) || (typeof AGENTE_PLAZO_PRIMERA_ !== 'undefined' && AGENTE_PLAZO_PRIMERA_)) return;
+  AGENTE_PLAZO_ = Math.min(AGENTE_PLAZO_, VOZ_T0_ + VOZ_TRAS_RAPIDO_MS_);
+  if (ms) ms.tope_completo = AGENTE_PLAZO_ - VOZ_T0_;
+}
+
 /* ¿El pedido trae un verbo de hacer? Solo las reglas (sin Jev): la usa la medición de A la mano (amano.js). */
 function rapidoPideHacer_(texto) { var n = rapidoNorm_(texto); return VOZ_RAPIDO_HACER_RE_.test(n) || VOZ_RAPIDO_HACER_EXTRA_RE_.test(n); }
 function rapidoMs_() { var n = Number(PropertiesService.getScriptProperties().getProperty('VOZ_RAPIDO_MS') || ''); return n >= 2000 && n <= 15000 ? n : VOZ_RAPIDO_MS_; }
@@ -246,6 +261,7 @@ function rapidoIntentar_(adm, texto, system, msgs, tools, ctx, o) {
   else if (ctx.llamadas) ctx.llamadas.length = llamadas0;
   if (typeof TV_CANDIDATA_ !== 'undefined') TV_CANDIDATA_ = null;   // la tarjeta de la llamada (tarjeta.js) la elige lo que lea el de siempre
   ms.via = 'rapido>completo'; ms.motivo = motivo; ms.modelo = CFG.MODELO_REDACTOR;
+  rapidoTopeCompleto_(ms);
   AG_USO_FUNCION_ = 'Voz · completo tras el rápido';
   console.log('Camino rápido → completo: ' + motivo);
   return false;

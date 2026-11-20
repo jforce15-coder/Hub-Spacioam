@@ -12,6 +12,8 @@
    8. (parte 2, 19-nov 20:29) «Listo, se lo paso a Claudio» sin secretaria y después una secretaria de OTRO tema → sí se
       pide, solo con las palabras de ese turno (lo del otro tema ya salió); si Juan solo asiente («ok») el tramo sigue
       abierto, y una secretaria más tarde con sus palabras lo respalda;
+   9. (guardia 20-nov-2026) en una Guía de camino (guiar_camino) «Sigue guiándome», «dónde queda», «te aviso» no cuentan:
+      la cumple la app; otro tema en la misma llamada sí se revisa;
    7. vozPostCall_ llama a la guardia con un administrador, y un pedido largo pasa completo por la caché (vozSecEncolar_ →
       vozSecProcesar_).
    node .github/guardia.js [carpeta apps-script] */
@@ -120,6 +122,21 @@ const LLAMADA = [
   ok(X.guardiaSinPedir_(t3) === null, 'si lo pidió más tarde con sus palabras (Grow, fotos) → respaldado');
   const t4 = [U(6, GROW), A(11, 'Listo, se lo paso a Claudio.'), U(30, 'Y el candado.'), A(50, '', SECP(false, 'Claudio: la app de Grow no carga las fotos.'))];
   ok(X.guardiaSinPedir_(t4) !== null, 'si esa secretaria volvió con error → no respalda');
+}
+
+/* 9 · Guardia 20-nov-2026: la Guía de camino la cumple la app (guiar_camino), no la secretaria */
+{ const GUIA = (extra) => Object.assign({ tool_calls: [{ request_id: 'g1', tool_name: 'guiar_camino', params_as_json: '{"destino":"Parque Central"}' }], tool_results: [{ request_id: 'g1', tool_name: 'guiar_camino', result_value: '{"ok":true,"primer_paso":"Sal a la 5a Avenida"}' }] }, extra || {});
+  const t = [U(3, '¿Cómo llego al Parque Central?'), A(6, '', GUIA()), A(8, 'Te llevo caminando, son 12 minutos. Sal a la 5a Avenida y yo te aviso dónde cruzar.'),
+    U(200, 'Sigue guiándome, ¿dónde queda la tienda?'), A(204, 'Sigue recto media cuadra; en la esquina te aviso.'), U(260, 'Ok.'), A(262, 'Voy a buscar la siguiente referencia y te aviso.')];
+  const { X, cola, pend } = caja();
+  ok(X.guardiaSinPedir_(t) === null && X.guardiaAlColgar_(ADM, '50255550100', t, 'c9') === false && !cola.length && !pend.length, 'Guía de camino («Sigue guiándome», «dónde queda», «te aviso») → nada: la cumple la app');
+  const t2 = t.concat([U(300, 'Y mándale a recepción el reporte de limpieza.'), A(303, 'Te mando el reporte en un rato.')]);
+  const g2 = X.guardiaSinPedir_(t2);
+  ok(g2 && g2.dichos.length === 1 && g2.dichos[0].seg === 303 && /reporte de limpieza/.test(g2.palabras), 'en la misma llamada, un compromiso de otro tema sí se revisa');
+  const t3 = [U(3, 'Sigue guiándome, ¿dónde queda la tienda?'), A(6, 'Sigue recto, yo te aviso.')];
+  ok(X.guardiaSinPedir_(t3) !== null, 'sin guiar_camino en la llamada, la guardia sigue igual');
+  const t4 = [U(3, '¿Cómo llego al Parque Central?'), A(6, '', GUIA()), U(50, 'Pásame la ruta del día de Sucely.'), A(54, 'Te la mando ahorita.')];
+  ok(X.guardiaSinPedir_(t4) !== null, '«la ruta del día» (la del equipo) no es la guía: se revisa');
 }
 
 /* 7 · El enganche en voz.js */

@@ -200,6 +200,20 @@ const LEER = 'Verificar si Mariana López ya llegó';
 { const c = caja({ rapido: [{ http: 500 }] }); const { r, ms } = c.turno(LEER, { plazo: Date.now() + 1000 });
   ok(r.seguira === true && c.de(SONNET).length === 0 && ms.via === 'rapido>completo', '5 · si el rápido gastó el plazo, el de siempre no empieza otra vuelta: sigue en segundo plano'); }
 
+/* 5b · guardia 20-nov-2026: tras el rápido, el completo tiene hasta 15 s desde que llegó el pedido (VOZ_T0_), no los 18 s
+   de la secretaria, y una vuelta nueva cuenta lo que tardó la anterior (30,9 s pidiendo puntos de referencia). */
+{ const c = caja({ rapido: [{ http: 500 }] }), t = c.X.Date.now(); c.X.VOZ_T0_ = t - 10000;
+  const { r, ms } = c.turno(LEER, { plazo: t + 8000 });
+  ok(r.seguira === true && c.de(SONNET).length === 0 && ms.tope_completo === 15000, '5b · a los 10 s de la llamada, el completo ya no cabe en 15 s: sigue en segundo plano (tope_completo ' + ms.tope_completo + ')'); }
+{ const c = caja({ rapido: [{ http: 500 }] }), t = c.X.Date.now(); c.X.VOZ_T0_ = t - 10000; c.X.AGENTE_CONF_ = true;
+  const { r, ms } = c.turno(LEER, { plazo: t + 35000 }); c.X.AGENTE_CONF_ = false;
+  ok(!r.seguira && c.de(SONNET).length === 1 && !ms.tope_completo, '5b · en modo conferencia el tope no cambia (espera lo de siempre)'); }
+{ const c = caja({ rapido: [{ http: 500 }], sonnet: [{ tools: [{ name: 'buscar_reservas' }] }, { text: 'no debería llegar' }] }), t = c.X.Date.now(), uf = c.X.uf_;
+  c.X.VOZ_T0_ = t - 1000;
+  c.X.uf_ = (u, op) => { const res = uf(u, op); if (JSON.parse(op.payload).model === SONNET) { const ahora = c.X.Date.now(); c.X.Date.now = () => ahora + 7500; } return res; };
+  const { r } = c.turno(LEER, { plazo: t + 17000 });
+  ok(r.seguira === true && c.de(SONNET).length === 1 && c.corridas.join() === 'buscar_reservas', '5b · la vuelta del completo tardó 7,5 s: la siguiente no cabe en lo que queda de los 15 s y sigue en segundo plano'); }
+
 /* 6 · fijo */
 { const c = caja(); const X = c.X; X.AGENTE_APP_ = true;
   const todas = X.agHerramientas_().map((t) => t.name).filter(Boolean);

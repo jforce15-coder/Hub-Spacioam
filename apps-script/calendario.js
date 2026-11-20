@@ -84,6 +84,18 @@ function calendarioZonaJuan_() {
   var z = ''; try { z = String(PropertiesService.getScriptProperties().getProperty('CALENDARIO_ZONA') || '').trim(); } catch (e) {}
   return /^[A-Za-z_]+\/[A-Za-z_\/+-]+$/.test(z) ? z : 'Europe/Madrid';
 }
+/* Robot (acción calendario_fijar): guarda CALENDARIO_JUAN = id del calendario que Juan compartió con la cuenta del Hub,
+   solo si esta cuenta ya lo ve. El id (un correo) llega en el pedido y queda en Propiedades del script, nunca en el repo. */
+function calendarioFijar_(id) {
+  id = String(id || '').trim();
+  if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(id)) return { ok: false, error: 'Falta el id del calendario (el correo).' };
+  var cal = null;
+  try { cal = CalendarApp.getCalendarById(id); } catch (e) {}
+  if (!cal) { try { cal = CalendarApp.subscribeToCalendar(id); } catch (e) {} }
+  if (!cal) return { ok: false, error: 'La cuenta del Hub todavía no ve ese calendario: falta compartirlo con «Hacer cambios en eventos».' };
+  PropertiesService.getScriptProperties().setProperty('CALENDARIO_JUAN', id);
+  return calendarioEstado_();
+}
 /* «hora de Montana», «GT», «America/Denver» → zona IANA. Vacío = la de Juan (España). '' si no se reconoce. */
 function calendarioZona_(z) {
   var t = String(z || '').trim();

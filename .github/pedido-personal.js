@@ -139,7 +139,7 @@ function calCaja(o) {
     createEvent: (t, a, b, op) => { const ev = { t, a, b, op, getId: () => 'abc123@google.com', setTag() {} }; creados.push(ev); return ev; } });
   const ctx = { console: { log() {}, error() {} }, JSON, Date, Math, String, Number, Object, Array, RegExp, Intl,
     CFG: { TZ: 'America/Guatemala' },
-    PropertiesService: { getScriptProperties: () => ({ getProperty: k => (k in props ? props[k] : null) }) },
+    PropertiesService: { getScriptProperties: () => ({ getProperty: k => (k in props ? props[k] : null), setProperty: (k, v) => { props[k] = v; } }) },
     Session: { getEffectiveUser: () => ({ getEmail: () => o.cuenta || 'hub@ejemplo.com' }) },
     CalendarApp: { getDefaultCalendar: () => cal(o.cuenta || 'hub@ejemplo.com', 'Calendario de la cuenta del Hub'), getCalendarById: id => (id === 'juan@ejemplo.com' && !o.sinCompartir ? cal(id, 'Juan') : null), subscribeToCalendar: () => null },
     Utilities: { formatDate: fmt, base64EncodeWebSafe: s => Buffer.from(String(s)).toString('base64').replace(/\+/g, '-').replace(/\//g, '_') },
@@ -182,6 +182,12 @@ function calCaja(o) {
   ok(X.calendarioCrear_({ titulo: 'x', inicio: '2026-11-27 18:00', confirmado: true }).creado && creados.length === 1, '4 · si el Hub corre en la cuenta del principal, su calendario predeterminado sirve');
 }
 
+{ const { X, creados } = calCaja({ cuenta: 'hub@ejemplo.com' });
+  ok(X.calendarioFijar_('otro@ejemplo.com').ok === false, '4 · calendario_fijar no guarda un calendario que la cuenta del Hub no ve');
+  const f = X.calendarioFijar_('juan@ejemplo.com');
+  ok(f.ok && f.calendario_juan === true && f.calendario === 'Juan', '4 · calendario_fijar guarda CALENDARIO_JUAN si ya está compartido');
+  ok(X.calendarioCrear_({ titulo: 'x', inicio: '2026-11-27 18:00', confirmado: true }).calendario === 'Juan' && creados.length === 1, '4 · y Alma escribe ahí');
+}
 /* 5 · Cableado. */
 { const DEC = leer('decisiones.js'), AG = leer('agente.js');
   const iP = DEC.indexOf('if (ppClasificar_(texto).personal) return false;'), iC = DEC.indexOf('if (!decEsParaCaso_(f, texto)) return false;');

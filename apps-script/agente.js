@@ -1039,6 +1039,7 @@ function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir, yaEspero) 
   /* Si no se puede guardar para seguir después (candado ocupado, caché llena), no se cae el pedido: se sigue aquí mismo
      (la llamada espera hasta VOZ_SECRETARIA_TIMEOUT_S_). Antes el error subía y Alma decía «error interno» sin hacer nada. */
   var cortar = function (parcial) {
+    if (AG_MS_) AG_MS_.corte = Date.now();   // Modo calle: cuánto tarda pasar a segundo plano (calleMs_, tras_corte)
     try {
       var id = vozSeguirGuardar_({ email: adm.email, system: system, msgs: msgs, hechas: ctx.hechas, app: AGENTE_APP_, pedido: AGENTE_PEDIDO_, parcial: parcial || null, conf: !!AGENTE_CONF_ });
       return { respuesta: '', hechas: ctx.hechas, seguira: true, id: id };

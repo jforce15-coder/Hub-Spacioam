@@ -12,7 +12,10 @@
       (y fuera del Modo calle, igual que antes);
    6. la voz: lo que se sabe que falla (sin permiso, sin llave) va con vozPausa y calleVoz con pausa; un error suelto no;
       el otro modelo no se intenta si ya pasó el plazo;
-   7. vozClaudio dice por qué no hay conversación en una palabra (no_principal · sin_agente · sin_url).
+   7. vozClaudio dice por qué no hay conversación en una palabra (no_principal · sin_agente · sin_url);
+   8. guardia 20-nov-2026 (Maricarmen, 18-20 s para oír «toma un rato»): el plazo se cuenta desde que el pedido llegó a
+      doPost (PETICION_T0_) y el agente se corta con reserva para pasar a segundo plano; con un corte lento de verdad
+      (opProcesar_ y el bucle reales, cola y hojas que tardan), Juan oye la respuesta antes de los 15 s.
    node .github/calle-rapida.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -153,5 +156,40 @@ function calleCaja(o) {
   mem.CLAUDIO_AGENT_ID = 'agent_claudio'; X.vozUrlFirmada_ = () => ({ ok: false, error: 'ElevenLabs 401' });
   const r = X.claudioWebInicio_({ email: 'juan@x' }, '');
   ok(!r.ok && r.codigo === 'sin_url' && /401/.test(r.error), '7 · ElevenLabs no da la URL firmada: codigo sin_url'); }
+
+/* 8 · los 15 s son de Juan: desde que llegó el pedido, y con reserva para pasar a segundo plano */
+{ const c = calleCaja(), X = c.X;
+  ok(X.CALLE_PLAZO_ - X.CALLE_RESERVA_CORTE_ <= 12000 && X.CALLE_RESERVA_CORTE_ >= 3000, '8 · el agente se corta con al menos 3 s de reserva (pasar a segundo plano también tarda)');
+  ok(/function doPost\(e\) \{\s*PETICION_T0_ = Date\.now\(\)/.test(fs.readFileSync(path.join(DIR, 'Código.js'), 'utf8')), '8 · doPost anota cuándo llegó el pedido en su primera línea');
+  const llego = Date.now() - 2500; X.PETICION_T0_ = llego;
+  X.calle_({ email: 'juan@x' }, { texto: 'Revisa quién llega hoy' });
+  const p = c.procesados[0] || {};
+  ok(p.plazo === llego + X.CALLE_PLAZO_ - X.CALLE_RESERVA_CORTE_, '8 · el plazo cuenta desde que llegó el pedido a doPost, no desde calle_');
+  const c2 = calleCaja(); c2.X.PETICION_T0_ = Date.now() - 120000; c2.X.calle_({ email: 'juan@x' }, { texto: 'Revisa quién llega hoy' });
+  ok((c2.procesados[0] || {}).plazo > Date.now() + 5000, '8 · un PETICION_T0_ viejo (otra ejecución) no cuenta'); }
+
+/* 8 · con un reloj de mentira: lo de antes, el modelo y el corte lento (cola, tema, chat) no pasan de 15 s */
+{ const { X } = caja(); let ahora = 1e12; const avanza = ms => { ahora += ms; };
+  const RD = function () {}; RD.now = () => ahora; X.Date = RD;
+  X.PETICION_T0_ = ahora; avanza(1500);   // doPost y la sesión
+  Object.assign(X, {
+    chatSesAdm_: () => JUAN, esAdminPrincipal_: () => true, calleClaudio_: () => false, guiaPideCamino_: () => false, calleCharla_: () => '',
+    identidadVozDe_: () => '', maricarmenAlter_: () => 'maricarmen', maricarmenVozPedida_: () => false,
+    decisionDesdeChat_: () => null, chatBorradorTurno_: () => null, socioDatosEnMensaje_: () => '', orbitaEstadoPregunta_: () => null, ppNota_: () => '', opNotaNumeros_: () => '',
+    opAgenteActivo_: () => true, adminsOp_: () => [JUAN], opFilas_: () => { avanza(800); return []; }, ahora_: () => new Date(), CFG: { TZ: 'America/Guatemala', MODELO_REDACTOR: 'm' },
+    opGuardar_: (a, de) => { avanza(700); return { id: 'op' + de, ts: new Date(0).toISOString(), de, acciones: [] }; },
+    temaCerrarTurno_: () => { avanza(1200); return ''; }, vozTrabajando_: () => {},
+    vozSeguirGuardar_: () => { avanza(1500); return 'sg1'; },
+    microSacarEtiqueta_: t => ({ texto: t, micro: '' }), claudeNivelSacarEtiqueta_: t => ({ texto: t, nivel: '' }), chatSacarEtiqueta_: t => ({ texto: t, esfera: '', subcategoria: '' }), temaSacarEtiqueta_: t => ({ texto: t, tag: null }), tvCandidataTema_: () => {},
+    rapidoIntentar_: () => null, recetaAprender_: () => {},
+    opAgente_: (adm, pedido, canal, f, previos) => X.opAgenteBucle_(adm, 'sys', [{ role: 'user', content: pedido }], [], { hechas: [], llamadas: [] }, 0, false, false),
+    claudeTools_: () => { avanza(4000); return { content: [{ type: 'tool_use', id: 't' + ahora, name: 'leer', input: {} }], stop_reason: 'tool_use' }; },
+    agEjecutar_: () => { avanza(1000); return { ok: true }; }, agMsHerr_: () => {}
+  });
+  const r = X.calle_({ email: 'juan@x' }, { texto: 'Mándale el reporte de la semana a Flor', sin_audio: true, alter: 'maricarmen' });
+  const total = ahora - X.PETICION_T0_;
+  ok(r.ok && r.seguira === true, '8 · un pedido largo de Maricarmen (voz de respaldo) pasa a segundo plano');
+  ok(total <= 15000, '8 · y Juan oye «sigo en eso» a los ' + (total / 1000).toFixed(1) + ' s de que llegó el pedido (15 s como mucho; el 20-nov eran 18-20)');
+  ok(r.ms && r.ms.tras_corte > 0, '8 · la respuesta dice cuánto tardó pasar a segundo plano (ms.tras_corte: ' + (r.ms && r.ms.tras_corte) + ' ms)'); }
 
 process.exit(fallo);

@@ -118,6 +118,7 @@ const CONOCIMIENTO_HEADERS = ['tema', 'contenido', 'aplica_a', 'activo', 'actual
 /* ═══════════════════════════════ 1. WEBHOOK ═══════════════════════════════ */
 
 function doPost(e) {
+  PETICION_T0_ = Date.now();   // el plazo del Modo calle cuenta desde aquí (calle.js)
   try {
     const props = PropertiesService.getScriptProperties();
     const body = JSON.parse((e && e.postData && e.postData.contents) || '{}');

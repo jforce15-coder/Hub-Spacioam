@@ -55,6 +55,7 @@ function personalidadFicha_(adm) {
   var f = { adapt_nivel: a.nivel_juan, adapt_tope: a.tope, weebo_modo: w.modo, weebo_nivel: w.modo === 'fijo' || e.clasico ? 0 : w.nivel_actual == null ? 1 : w.nivel_actual,   // la llamada empieza en el centro (techo ≠ partida)
     bloque: lineas.length ? '\n' + lineas.join('\n') : '' };
   /* Modo clásico (clasico.js): solo para Alma (la llamada lo suma a la ficha, voz.js); Claudio usa solo «bloque». */
+  if (!e.clasico) f.clasico_regla = '\n' + CLASICO_APAGADO_;   // reconoce «modo táctico» / «modo militar» aunque esté apagado (guardia 20-nov-2026)
   if (e.clasico) { f.clasico = true; f.clasico_regla = '\n' + CLASICO_REGLA_; f.saludos = CLASICO_SALUDOS_.slice(); f.first_message = CLASICO_SALUDOS_[0]; f.saludo_corto = 'Adelante'; f.saludo_tema = false; }
   return f;
 }

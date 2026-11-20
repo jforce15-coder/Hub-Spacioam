@@ -41,6 +41,20 @@ var GUARDIA_GEN_ = {}; GUARDIA_GENERICAS_.split(' ').forEach(function (w) { GUAR
 /* Un turno de Juan que solo asiente no es «algo nuevo»: el compromiso sigue en su tramo. */
 var GUARDIA_ASIENTE_RE_ = /^(?:(?:ok|okay|va|sale|s[ií]|dale|listo|perfecto|gracias|muchas|bueno|claro|excelente|muy|bien|de|acuerdo|aj[aá]|mm+|eso|ya|genial|s[uú]per|alma|vale|exacto|correcto|aja)[\s,.!¡¿?…]*)+$/i;
 
+/* ═══ Guardia 20-nov-2026: la Guía de camino no es un compromiso sin pedir ═══════════════════════════════════════════════
+   12:08 UTC: durante una Guía de camino (Juan: «Sigue guiándome», «¿dónde queda…?») la guardia avisó que Alma dijo que
+   haría algo sin pedirlo a su sistema. Falso positivo: la guía la lleva la app (herramienta de cliente guiar_camino,
+   guia.js); el «yo te aviso» de la guía lo cumple la app al oído, no la secretaria. Si en la llamada ya corrió
+   guiar_camino, un compromiso cuyo turno (lo de Alma o lo que Juan dijo justo antes) habla del camino no cuenta. Lo demás
+   de esa misma llamada («te mando el reporte») sigue revisándose igual. */
+var GUARDIA_GUIA_HERR_ = 'guiar_camino';
+var GUARDIA_GUIA_RE_ = /(^|[^a-záéíóúñ])gu[ií](a|as|ar|ame|ando|ándome|andome|o)\b|d[oó]nde queda|c[oó]mo llego|ll[eé]vame|camino|\bruta\b|cuadra|esquina|cruz|cruc|gir[ae]|dobl[ae]|\brecto\b|izquierda|derecha|llegu?(es|e|as|ando)\b|\bmapa\b|sem[aá]foro|\bmetros\b|referencia/i;
+/* ¿Lo dicho habla del camino? «La ruta del día» es la del equipo (Epi), no la guía: no cuenta. */
+function guardiaHablaDeGuia_(t) { return GUARDIA_GUIA_RE_.test(String(t || '').replace(/ruta(s)? del d[ií]a/gi, ' ')); }
+function guardiaEsGuia_(m) {
+  return ((m && m.tool_calls) || []).concat((m && m.tool_results) || []).some(function (c) { return c && String(c.tool_name || '') === GUARDIA_GUIA_HERR_; });
+}
+
 function guardiaPalabras_(t) {
   var s = String(t || '').toLowerCase();
   try { s = s.normalize('NFD').replace(/[̀-ͯ]/g, ''); } catch (e) {}
@@ -75,13 +89,15 @@ function guardiaMismoTema_(juan, args) {
 function guardiaSinPedir_(transcript) {
   var tr = transcript || [], okEn = [], dichos = [], turnos = {};
   tr.forEach(function (m, i) { okEn[i] = ((m && m.tool_results) || []).some(guardiaResultadoOk_); });
-  var pedidos = guardiaPedidosOk_(tr);
+  var pedidos = guardiaPedidosOk_(tr), guia = -1;
+  for (var gi = 0; gi < tr.length; gi++) if (guardiaEsGuia_(tr[gi])) { guia = gi; break; }   // desde aquí va una Guía de camino
   var esJuan = function (m) { return m && m.role === 'user' && String(m.message || '').trim(); };
   var esDicho = function (m) { return m && m.role === 'agent' && GUARDIA_DICHO_RE_.test(String(m.message || '').trim()); };
   tr.forEach(function (m, i) {
     if (!esDicho(m)) return;
     var usuario = -1; for (var u = i - 1; u >= 0; u--) if (esJuan(tr[u])) { usuario = u; break; }
     if (usuario < 0) return;                                            // sin nada dicho por Juan no hay pedido que mandar
+    if (guia >= 0 && guia <= i && guardiaHablaDeGuia_(String(m.message) + ' ' + String(tr[usuario].message))) return;   // la Guía de camino la cumple la app
     /* Su tramo: hasta que Juan diga algo nuevo (asentir no cuenta). */
     var fin = tr.length; for (var f = i + 1; f < tr.length; f++) if (esJuan(tr[f]) && !GUARDIA_ASIENTE_RE_.test(String(tr[f].message).trim())) { fin = f; break; }
     for (var j = usuario + 1; j < fin; j++) if (okEn[j]) return;       // a) la secretaria volvió en su tramo

@@ -1,0 +1,261 @@
+{
+  "que_es": "Mapa de funciones (Juan, 20-nov-2026): lo que Juan usa, dicho como él lo ve, y cómo comprobar que sigue funcionando corriendo la página. Los bots de prueba (pruebas/bots.mjs) recorren cada función que tiene «bot» después de unir; lo que no se ve abre el aviso «🤖 Bots de prueba». .github/mapa-funciones.js revisa en cada PR que las páginas, los id y las revisiones nombradas existan. Si agregas o cambias una función que Juan usa, agrégala o corrígela aquí en el mismo PR.",
+  "formato": {
+    "funcion": "nombre del glosario",
+    "para_juan": "qué hace, en sus palabras",
+    "como_verificar": "pasos de una persona en la app publicada",
+    "bot": "null o { pagina, ancho: telefono|computadora, sin_sesion, ver: [selectores que deben verse], texto: lo que debe decir la página, tocar: selector, luego: [selectores que deben verse después de tocar] }",
+    "sin_bot": "por qué no lo puede comprobar un bot (micrófono, Bluetooth, otra app)",
+    "revisiones": "pruebas con dobles que cuidan su lógica (estandares.yml)"
+  },
+  "funciones": [
+    {
+      "id": "entrar",
+      "funcion": "Entrar (login)",
+      "app": "Hub",
+      "para_juan": "Entro al Hub con mi correo y contraseña (o Face ID en la app), aunque se acabe el cupo de Google.",
+      "como_verificar": ["Abre hub.spacioam.com en una ventana privada.", "Se ve el correo y la contraseña.", "Entra con tu cuenta: abre el Hub sin volver a pedirla."],
+      "bot": { "pagina": "index.html", "ancho": "telefono", "sin_sesion": true, "ver": ["#sa-login-email", "#sa-login-pass"] },
+      "revisiones": [".github/entrar-sin-cupo.js", ".github/sesion-sin-cupo.js"]
+    },
+    {
+      "id": "inicio-roca",
+      "funcion": "Inicio y la roca",
+      "app": "Alma",
+      "para_juan": "Abro Alma y veo mi saludo, la roca al centro y Chat y Llamada a la mano.",
+      "como_verificar": ["Abre hub.spacioam.com/alma/inicio.html.", "Dice «Hola, <tu nombre>».", "La roca respira al centro; Chat y Llamada están abajo."],
+      "bot": { "pagina": "alma/inicio.html", "ancho": "telefono", "ver": ["#hola", "#orbita", "[data-a=chat]", "[data-a=start]"], "texto": "Hola" },
+      "revisiones": [".github/una-roca.js"]
+    },
+    {
+      "id": "niveles",
+      "funcion": "Esferas y niveles (Tu vida)",
+      "app": "Alma",
+      "para_juan": "Toco la roca y salen mis seis áreas como esferas; toco una y veo sus proyectos sin salir del centro.",
+      "como_verificar": ["En el inicio, toca la roca.", "Salen las seis áreas alrededor.", "Toca una: salen sus proyectos; atrás vuelve al nivel de antes."],
+      "bot": { "pagina": "alma/inicio.html", "ancho": "telefono", "ver": ["#nivel"], "texto": "SEIS ÁREAS" },
+      "revisiones": [".github/orbita.js", ".github/orbita-tema.js"]
+    },
+    {
+      "id": "bento-vivo",
+      "funcion": "Bento vivo",
+      "app": "Alma",
+      "para_juan": "En el iPad o la computadora, alrededor de la roca veo tarjetas de lo que pasa hoy y cambian a lo que hablo con Alma.",
+      "como_verificar": ["Abre alma/inicio.html en el iPad o en la computadora.", "Alrededor de la roca hay tarjetas con una imagen.", "En una llamada, habla de una reserva: las tarjetas cambian a ese tema."],
+      "bot": { "pagina": "alma/inicio.html", "ancho": "computadora", "ver": ["#riel-i", "#orbita"] },
+      "revisiones": [".github/bento-vivo.js"]
+    },
+    {
+      "id": "chat-alma",
+      "funcion": "Chat con Alma",
+      "app": "Alma",
+      "para_juan": "Le escribo o le dicto a Alma y me contesta en el mismo hilo, con lo que ya hablamos.",
+      "como_verificar": ["Toca Chat (o abre alma/index.html).", "Escribe «¿qué llegadas hay hoy?».", "Contesta con datos de hoy y con su fuente."],
+      "bot": { "pagina": "alma/index.html", "ancho": "telefono", "ver": ["#hilo", "#txt", "#mic"] },
+      "revisiones": [".github/respuesta-fuentes.js", ".github/dato-con-fuente.js"]
+    },
+    {
+      "id": "llamada-alma",
+      "funcion": "Llamada con Alma",
+      "app": "Alma",
+      "para_juan": "Toco Llamada y hablo con Alma: hace lo que le pido, se despide una vez y cuelga.",
+      "como_verificar": ["En el inicio toca Llamada.", "Pide algo que se lee («¿quién limpia hoy?»).", "Contesta rápido, sin repetir; al despedirte se despide una vez y cuelga."],
+      "bot": { "pagina": "alma/inicio.html", "ancho": "telefono", "ver": ["[data-a=start]"] },
+      "sin_bot": "La llamada necesita micrófono y ElevenLabs: el bot solo comprueba que el botón esté; la llamada se prueba de verdad.",
+      "revisiones": [".github/voz-acceso.js", ".github/despedida-unica.js", ".github/voz-rapido.js"]
+    },
+    {
+      "id": "claudio",
+      "funcion": "Claudio (hilo de desarrollo)",
+      "app": "Alma",
+      "para_juan": "Le pido a Claudio que construya o arregle algo y me deja tarjetas con su botón cuando necesita algo de mí.",
+      "como_verificar": ["Abre alma/claudio.html.", "Escribe un pedido chico.", "Aparece en el hilo y luego su respuesta o una tarjeta."],
+      "bot": { "pagina": "alma/claudio.html", "ancho": "telefono", "ver": ["#hilo", "#texto", "#enviar"] },
+      "revisiones": [".github/claudio-acciones.js", ".github/panel-claudio.js"]
+    },
+    {
+      "id": "hablar-claudio",
+      "funcion": "Hablar con Claudio",
+      "app": "Alma",
+      "para_juan": "En una llamada digo «pásame con Claudio» y hablo con él; al terminar vuelvo con Alma.",
+      "como_verificar": ["En una llamada di «pásame con Claudio».", "Contesta Claudio con su voz.", "Di «pásame con Alma»: vuelve Alma."],
+      "bot": null,
+      "sin_bot": "Es una llamada de voz con micrófono.",
+      "revisiones": [".github/hablar-claudio.js", ".github/claudio-local.js"]
+    },
+    {
+      "id": "creator",
+      "funcion": "Modo Creator",
+      "app": "Alma",
+      "para_juan": "Veo la app que se trabaja en BORRADOR, pido cambios por voz o por escrito y solo se publica cuando yo digo.",
+      "como_verificar": ["Abre alma/creator.html.", "Cambia entre Borrador y En vivo.", "Pide un cambio chico: se ve en el borrador; «Preparar para publicar» pide tu sí."],
+      "bot": { "pagina": "alma/creator.html", "ancho": "telefono", "ver": ["#ver-borrador", "#ver-vivo", "#app", "#texto", "#publicar"], "tocar": "#ver-vivo", "luego": ["#ver-borrador"] },
+      "revisiones": [".github/creator.js"]
+    },
+    {
+      "id": "estudio",
+      "funcion": "Mini estudio",
+      "app": "Alma",
+      "para_juan": "Grabo la voz oficial de Alma con teleprompter y cada toma se revisa sola.",
+      "como_verificar": ["Abre alma/estudio.html.", "Elige una sesión y conecta el micrófono.", "Graba una toma: sale su semáforo (verde, amarilla o roja)."],
+      "bot": { "pagina": "alma/estudio.html", "ancho": "telefono", "ver": ["#sesiones", "#b-mic", "#b-empezar"] },
+      "revisiones": [".github/estudio-calidad.js", ".github/estudio-hub.js"]
+    },
+    {
+      "id": "gasto",
+      "funcion": "Gasto de Alma",
+      "app": "Alma",
+      "para_juan": "Veo cuánto gasta Alma este mes, en qué, y aparte el gasto de Spacio AM.",
+      "como_verificar": ["Ajustes → Gasto.", "Se ve el total del mes y la proyección.", "Toca un rubro: muestra su detalle."],
+      "bot": { "pagina": "alma/gasto.html", "ancho": "telefono", "ver": ["#cuerpo"], "texto": "GASTO DE ALMA" },
+      "revisiones": [".github/gasto-calidad.js"]
+    },
+    {
+      "id": "bandeja",
+      "funcion": "Bandeja unificada",
+      "app": "Alma",
+      "para_juan": "Veo a cada persona una sola vez con todas sus redes (WhatsApp, Instagram, Messenger, Airbnb) y filtro por quién es.",
+      "como_verificar": ["Ajustes → Bandeja.", "Cada persona sale una vez con sus canales.", "Toca Huéspedes o Equipo: la lista se filtra."],
+      "bot": { "pagina": "alma/bandeja.html", "ancho": "computadora", "ver": ["#buscar", "#seg", "#filas"] },
+      "revisiones": [".github/bandeja-unica.js", ".github/bandeja-esferas.js"]
+    },
+    {
+      "id": "correos",
+      "funcion": "Correos",
+      "app": "Alma",
+      "para_juan": "Alma ordena mis correos: lo que tengo que responder, autorizar o solo leer.",
+      "como_verificar": ["Ajustes → Correos.", "Se ven los grupos (responder, autorizar, leer).", "Abre uno: el borrador sale solo con tu sí."],
+      "bot": { "pagina": "alma/correos.html", "ancho": "telefono", "ver": [], "texto": "Correos" },
+      "revisiones": [".github/correo-hilo.js"]
+    },
+    {
+      "id": "notificaciones",
+      "funcion": "Notificaciones",
+      "app": "Alma",
+      "para_juan": "Elijo cómo me llega cada tipo de aviso y lo pruebo con Siri.",
+      "como_verificar": ["Ajustes → Notificaciones.", "Cambia un tipo.", "«Probar con Siri» te llega al iPhone."],
+      "bot": { "pagina": "alma/avisos.html", "ancho": "telefono", "ver": ["#cuerpo", "#b-siri"] },
+      "revisiones": [".github/notif-ajustes.js", ".github/avisos-humanos.js"]
+    },
+    {
+      "id": "biblioteca",
+      "funcion": "Biblioteca de Claudio",
+      "app": "Alma",
+      "para_juan": "Le comparto a Claudio skills y documentos sin pasar por el chat.",
+      "como_verificar": ["Ajustes → Biblioteca de Claudio.", "Comparte un PDF.", "Aparece en la lista, privado."],
+      "bot": { "pagina": "alma/biblioteca.html", "ancho": "telefono", "ver": ["#b-archivo", "#b-compartir", "#lista"] },
+      "revisiones": [".github/biblioteca-claudio.js", ".github/buzon-claudio.js"]
+    },
+    {
+      "id": "equipo-agentes",
+      "funcion": "Tu equipo (agentes)",
+      "app": "Alma",
+      "para_juan": "Veo a mis agentes y lo que esperan mi sí.",
+      "como_verificar": ["Ajustes → Tu equipo.", "Arriba, «Esperan tu sí».", "Aprueba o rechaza una propuesta."],
+      "bot": { "pagina": "alma/agentes.html", "ancho": "telefono", "ver": ["#sec-p"] },
+      "revisiones": [".github/equipos.js"]
+    },
+    {
+      "id": "health",
+      "funcion": "Health",
+      "app": "Alma",
+      "para_juan": "Veo cómo dormí, mi pulso y mi estrés del día, con lo que lee el anillo.",
+      "como_verificar": ["Abre health/ (o desde el inicio).", "Se ve el sueño, el pulso y el oxígeno con su hora.", "Respira usa la roca de Alma."],
+      "bot": { "pagina": "health/index.html", "ancho": "telefono", "ver": ["#t-portada", "#v-sueno-c", "#v-ritmo-c"] },
+      "revisiones": [".github/anillo-alma.js"]
+    },
+    {
+      "id": "anillo",
+      "funcion": "Anillo (prueba de sensores)",
+      "app": "Hub",
+      "para_juan": "Conecto el anillo por Bluetooth y veo sus sensores y su batería.",
+      "como_verificar": ["Abre hub.spacioam.com/anillo/ en Bluefy.", "Toca Conectar.", "Se ven los gestos y la batería."],
+      "bot": { "pagina": "anillo/index.html", "ancho": "telefono", "ver": ["#conectar", "#estado"] },
+      "sin_bot": "El Bluetooth necesita el anillo: el bot solo ve la página.",
+      "revisiones": [".github/anillo-ble.js", ".github/anillo-cortes.js"]
+    },
+    {
+      "id": "usuarios",
+      "funcion": "Usuarios (reiniciar contraseña)",
+      "app": "Hub",
+      "para_juan": "Le doy un código temporal a alguien que olvidó su contraseña.",
+      "como_verificar": ["Abre hub.spacioam.com/usuarios.html con tu sesión.", "Se ve la lista de usuarios.", "Genera un código: entra con él y pide contraseña nueva."],
+      "bot": { "pagina": "usuarios.html", "ancho": "telefono", "ver": ["#lista"], "texto": "Reiniciar contraseña" },
+      "revisiones": [".github/usuarios-reinicio.js"]
+    },
+    {
+      "id": "ajustes",
+      "funcion": "Ajustes y Llaves",
+      "app": "Alma",
+      "para_juan": "En Ajustes encuentro todo (cuenta, voz, avisos, llaves) y guardo una llave sin verla después.",
+      "como_verificar": ["En el inicio toca Ajustes.", "Están Cuenta, Voz, Avisos, Llaves y Diagnóstico.", "Guarda una llave: dice que quedó, sin mostrar el valor."],
+      "bot": { "pagina": "alma/inicio.html", "ancho": "telefono", "ver": ["#b-ajustes"], "tocar": "#b-ajustes", "luego": ["#panel", "#p-bandeja"] },
+      "revisiones": [".github/ajustes-pantalla.js", ".github/llaves.js"]
+    },
+    {
+      "id": "hub-hoy",
+      "funcion": "Hub · Hoy, Bandeja del Hub y Tareas",
+      "app": "Hub",
+      "para_juan": "En el Hub veo las llegadas y salidas de hoy, las conversaciones con huéspedes y las tareas.",
+      "como_verificar": ["Entra a hub.spacioam.com.", "Hoy muestra llegadas, salidas y limpiezas.", "Abre una conversación: se ve el hilo y el borrador de Alma."],
+      "bot": null,
+      "sin_bot": "Necesita una sesión firmada de verdad: los bots solo llegan a la pantalla de entrar.",
+      "revisiones": [".github/operaciones-hoy.js", ".github/tablero-datos.js"]
+    },
+    {
+      "id": "modo-calle",
+      "funcion": "Modo calle",
+      "app": "App de iPhone",
+      "para_juan": "Digo «Alma» en la calle con los audífonos o el anillo y me contesta corto, sin colgar.",
+      "como_verificar": ["En la app, un toque largo en el botón de calle lo enciende.", "Di «Alma, ¿quién llega hoy?».", "Contesta en 12 palabras o menos y sigue escuchando."],
+      "bot": null,
+      "sin_bot": "Vive en la app de iPhone (TestFlight) y necesita micrófono.",
+      "revisiones": [".github/calle-rapida.js", ".github/calle-comandos.js", ".github/calle-voz.js"]
+    },
+    {
+      "id": "navegador",
+      "funcion": "Navegador de Alma",
+      "app": "App de iPhone",
+      "para_juan": "Navego dentro de la app y, si me pierdo, toco tres veces la roca y Alma me guía en la página.",
+      "como_verificar": ["En la app abre el Navegador.", "Toca tres veces la roca.", "Alma lee la página y señala el paso."],
+      "bot": null,
+      "sin_bot": "Vive en la app de iPhone (TestFlight).",
+      "revisiones": [".github/navegador-modos.js"]
+    },
+    {
+      "id": "mi", "funcion": "Mi", "app": "Mi (mi.spacioam.com)",
+      "para_juan": "Veo mis números de socio y la ficha de cada socio, en privado.",
+      "como_verificar": ["Abre mi.spacioam.com con tu sesión.", "Se ve el resumen consolidado del mes."],
+      "bot": null, "sin_bot": "Vive en su propio repositorio (sus bots y revisiones están allá).",
+      "revisiones": [".github/hoja-mi-privada.js", ".github/ficha-socio.js"]
+    },
+    {
+      "id": "epi", "funcion": "Epi", "app": "Epi (epi.spacioam.com)",
+      "para_juan": "Programo limpiezas y mantenimientos y veo quién va a cada apartamento.",
+      "como_verificar": ["Abre epi.spacioam.com.", "Se ve el programa de hoy con su técnico."],
+      "bot": null, "sin_bot": "Vive en su propio repositorio.",
+      "revisiones": [".github/epi-copia.js", ".github/red-salidas.js"]
+    },
+    {
+      "id": "hola", "funcion": "Hola", "app": "Hola (hola.spacioam.com)",
+      "para_juan": "El huésped llena su registro de llegada y yo veo quién ya lo llenó.",
+      "como_verificar": ["Abre hola.spacioam.com con un código de prueba.", "El registro se guarda y aparece en el Hub."],
+      "bot": null, "sin_bot": "Vive en su propio repositorio.",
+      "revisiones": [".github/recepcion-numeros.js"]
+    },
+    {
+      "id": "grow", "funcion": "Grow", "app": "Grow (grow.spacioam.com)",
+      "para_juan": "Llevo los proyectos y el presupuesto de cada apartamento.",
+      "como_verificar": ["Abre grow.spacioam.com.", "Abre un presupuesto: tiene sus partidas y su PDF."],
+      "bot": null, "sin_bot": "Vive en su propio repositorio.",
+      "revisiones": [".github/grow-presupuesto.js"]
+    },
+    {
+      "id": "docs", "funcion": "Docs", "app": "Docs (docs.spacioam.com)",
+      "para_juan": "Guardo y busco los documentos del negocio.",
+      "como_verificar": ["Abre docs.spacioam.com.", "Busca un documento por su nombre."],
+      "bot": null, "sin_bot": "Vive en su propio repositorio.",
+      "revisiones": []
+    }
+  ]
+}

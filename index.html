@@ -3527,8 +3527,8 @@
 <script type="text/x-dc" data-dc-script data-props="{&quot;rol&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;admin&quot;,&quot;admin2&quot;],&quot;default&quot;:&quot;admin&quot;,&quot;tsType&quot;:&quot;\&quot;admin\&quot; | \&quot;admin2\&quot;&quot;,&quot;section&quot;:&quot;Sesión&quot;},&quot;vistaInicial&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;login&quot;,&quot;hub&quot;],&quot;default&quot;:&quot;login&quot;,&quot;tsType&quot;:&quot;\&quot;login\&quot; | \&quot;hub\&quot;&quot;,&quot;section&quot;:&quot;Sesión&quot;},&quot;modoDemo&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Sesión&quot;},&quot;nombreAdmin&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Andrea&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Sesión&quot;},&quot;correoAdmin&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;andrea@spacioam.com&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Sesión&quot;},&quot;calendarioUrl&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Integraciones&quot;}}">
 class Component extends DCLogic {
   /* ──────────────────────────────────────────────────────────────
-     DATOS MOCK · forma estable para cablear después.
-     TODO: conectar a endpoint real (Apps Script / Hospitable / Sheets).
+     DATOS DE EJEMPLO · lo que sigue no viene de Apps Script, Hospitable ni Sheets: son datos fijos con la forma
+     que tendría la lectura real (lo que falta conectar está en el issue «Hub: pantallas con datos de ejemplo»).
      ────────────────────────────────────────────────────────────── */
   APPS = {
     grow: "https://grow.spacioam.com",
@@ -3579,7 +3579,7 @@ class Component extends DCLogic {
   EQUIPO = ["Marleny", "Doris", "Kevin", "Sofía", "Julio"];
 
 
-  /* TODO: GET /hola/checkins?fecha=hoy → [{nombre, propiedad, formulario, hora}] */
+  /* Ejemplo fijo; la lectura real sería GET /hola/checkins?fecha=hoy → [{nombre, propiedad, formulario, hora}] */
   CHECKINS = [
     { nombre: "Familia Ordóñez", prop: "Z10 - Airali - 1401", formulario: "completo", hora: "15:00" },
     { nombre: "Laura Méndez", prop: "Antigua - Casa Nook", formulario: "completo", hora: "16:00" },
@@ -3587,7 +3587,7 @@ class Component extends DCLogic {
     { nombre: "Ana y Diego", prop: "Z4 - Loft - 302", formulario: "sin-documento", hora: "21:00" }
   ];
 
-  /* Equipo interno de Epi · TODO: GET /epi/vendors (tipo interno, activo,
+  /* Equipo interno de Epi · ejemplo fijo; la lectura real sería GET /epi/vendors (tipo interno, activo,
      categoría EPI Limpieza / EPI Mantenimiento / Administrativo). */
   TECNICOS = [
     { id: "v1", nombre: "Marleny Xoc", categoria: "EPI Limpieza", email: "marleny@spacioam.com" },
@@ -3599,7 +3599,7 @@ class Component extends DCLogic {
   /* Turnos · misma forma que el schedule de Epi (blankSched en app.js):
      {id, fecha, hora, propiedad, vendorId, tipo, codigoAcceso, notas}.
      Es la única fuente del día: de aquí salen los conteos, las rutas y los
-     mantenimientos. TODO: GET/PUT /epi/schedules — el motor sigue en Epi. */
+     mantenimientos. Ejemplo fijo: la lectura real sería GET/PUT /epi/schedules (el motor sigue en Epi). */
   EPI_URL = "https://script.google.com/macros/s/AKfycbzPnUMHeLudInuDl4p29MOd5B-BcnezH34evAqAPa7_oaxJkOo-7DHr8ezxhMyjTjSe/exec";
   HOLA_URL = "https://script.google.com/macros/s/AKfycbxgMoVZxVnfRqmvCEEoVvbVfDkthnRw_Mq0IeiOLJbjlyaBc6UyBzEfvBi8eSaLu1yW2A/exec";
   TURNOS_BASE = [
@@ -3613,21 +3613,21 @@ class Component extends DCLogic {
     { id: "s8", d: 3, hora: "09:00", propiedad: "Z14 - Rooftop - 505", vendorId: "v3", tipo: "Revisión", codigoAcceso: "", notas: "" }
   ];
 
-  /* TODO: GET /hola/checkouts?fecha=hoy → [{nombre, propiedad, hora}] */
+  /* Ejemplo fijo; la lectura real sería GET /hola/checkouts?fecha=hoy → [{nombre, propiedad, hora}] */
   CHECKOUTS = [
     { nombre: "Marc y Julie", prop: "Z10 - Airali - 1401", hora: "11:00" },
     { nombre: "Pablo Estrada", prop: "Antigua - Casa Nook", hora: "11:00" },
     { nombre: "Wendy Corado", prop: "Z4 - Loft - 302", hora: "10:00" }
   ];
 
-  /* TODO: GET /grow/proyectos → [{nombre, avance, id}] */
+  /* Ejemplo fijo; la lectura real sería GET /grow/proyectos → [{nombre, avance, id}] */
   PROYECTOS = [
     { id: "p1", nombre: "Remodelación Zona 4", avance: 72 },
     { id: "p2", nombre: "Amueblado Rooftop", avance: 45 },
     { id: "p3", nombre: "Apertura Antigua II", avance: 18 }
   ];
 
-  /* Agenda del calendario · TODO: GET /grow/agenda (visitas y reuniones) y
+  /* Agenda del calendario · ejemplo fijo; la lectura real sería GET /grow/agenda (visitas y reuniones) y
      GET /epi/visitas (supervisiones programadas). El enlace real de Google
      Calendar se hereda del que ya está conectado en Grow. */
   VISITAS = [
@@ -3639,13 +3639,13 @@ class Component extends DCLogic {
     { dias: 11, hora: "10:00", titulo: "Visita de obra · Amueblado Rooftop", app: "Grow", tipo: "visita" }
   ];
 
-  /* TODO: GET /grow/alertas → [{texto, severidad, proyecto}] */
+  /* Ejemplo fijo; la lectura real sería GET /grow/alertas → [{texto, severidad, proyecto}] */
   ALERTAS_GROW = [
     { texto: "Cocina de Zona 4 lleva 6 días sin avance reportado.", sev: "atencion" },
     { texto: "El anticipo del carpintero vence mañana.", sev: "urgente" }
   ];
 
-  /* Reviews · TODO: GET /reviews?desde=&fuente= → [{prop, fuente, rating, dias, texto, pos[], neg[]}] */
+  /* Reviews · ejemplo fijo; la lectura real sería GET /reviews?desde=&fuente= → [{prop, fuente, rating, dias, texto, pos[], neg[]}] */
   REVIEWS = [
     { prop: "Z10 - Airali - 1401", fuente: "Airbnb", rating: 5, dias: 4, texto: "La cama es una nube y la vista al amanecer vale el viaje entero.", pos: ["Cama y descanso", "Vista"], neg: [] },
     { prop: "Z10 - Airali - 1401", fuente: "Airbnb", rating: 5, dias: 12, texto: "Todo impecable. El check-in fue en dos minutos.", pos: ["Limpieza", "Check-in ágil"], neg: [] },
@@ -9966,7 +9966,7 @@ class Component extends DCLogic {
     var nGrupo = {}; visibles.forEach(function (t) { var k = grupoDe(t); nGrupo[k] = (nGrupo[k] || 0) + 1; });
     var abiertasT = (st.tareas || []).filter(function (t) { return !t.hecha; }), vencT = abiertasT.filter(function (t) { return t.dias < 0; }).length, hoyT = abiertasT.filter(function (t) { return t.dias === 0; }).length;
     var editarTarea = function (id, campo, val, fin) {
-      /* TODO: PATCH /hub/tareas/:id — mismo contrato que TAREAS en Grow. */
+      /* Cambia solo esta pantalla: no se guarda en Grow (no hay PATCH /hub/tareas/:id; sería el contrato de TAREAS en Grow). */
       self.setState(function (s) {
         return { tareas: s.tareas.map(function (x) {
           if (x.id !== id) return x;
@@ -10122,8 +10122,8 @@ class Component extends DCLogic {
       verCuenta: function () { self.setState({ vista: "cuenta", menu: false }); },
       /* Toggle de idioma, como el del Dashboard. La preferencia se guarda en la
          cuenta para que viaje entre apps.
-         TODO: falta el diccionario de la copia del hub (Hola lo tiene en
-         app/data.jsx); hoy el toggle guarda la preferencia, no traduce todavía. */
+         El Hub no tiene diccionario (Hola lo tiene en app/data.jsx): el toggle guarda la
+         preferencia y no traduce. */
       idiomas: ["ES", "EN"].map(function (c) {
         var on = st.lang === c.toLowerCase();
         return { code: c, bg: on ? "#3E3F3F" : "transparent", fg: on ? "#FAFAFA" : "#6F6867" };
@@ -10182,7 +10182,7 @@ class Component extends DCLogic {
       guardarCuenta: function () {
         var p = self.state.perfil || perfil;
         if (!p.correo || !/.+@.+\..+/.test(p.correo)) { self.setState({ perfilError: "Ese correo no se ve completo. Revísalo." }); return; }
-        /* TODO: POST saveProfile — mismo contrato que en mi-spacioam. */
+        /* No se guarda en ningún lado: solo cambia esta pantalla (no hay POST saveProfile; sería el contrato de mi-spacioam). */
         self.setState({ perfilError: "", perfilGuardado: true, perfil: Object.assign({}, p, { pass: "" }) });
         setTimeout(function () { self.setState({ perfilGuardado: false }); }, 2600);
       },
@@ -10315,7 +10315,7 @@ class Component extends DCLogic {
       guardarTurno: function () {
         var d = self.state.tf || tf;
         if (!(d.fecha && d.propiedad && d.vendorId)) return;
-        /* TODO: PUT /epi/schedules — mismo contrato que onSave en ScheduleCfg. */
+        /* No llega a Epi: solo cambia esta pantalla (no hay PUT /epi/schedules; sería el contrato de onSave en ScheduleCfg). */
         self.setState(function (p) {
           var lista = p.turnos || turnos;
           var id = p.editId || ("s" + Date.now());
@@ -10515,15 +10515,14 @@ class Component extends DCLogic {
         if (!t) return;
         var f = self.state.reuFecha ? new Date(self.state.reuFecha + "T00:00:00") : self.hoy();
         var dias = Math.round((f - self.hoy()) / 86400000);
-        /* TODO: POST a Grow → Google Calendar con el calendario ya enlazado allá. */
+        /* No llega a Google Calendar: solo cambia esta pantalla (falta el POST a Grow, que tiene el calendario enlazado). */
         self.setState(function (s) {
           return { formReunion: false, reuTitulo: "",
             reuniones: s.reuniones.concat([{ dias: dias, hora: s.reuHora, titulo: t, app: s.gcalOn ? "Google" : "Hub", tipo: "reunion" }]) };
         });
       },
       /* El calendario se hereda del que ya está conectado en Grow — sin paso de
-         enlace. TODO: leer el calendarId real de la config de Grow; mientras
-         tanto se puede pasar por prop. */
+         enlace. El calendarId no se lee de la config de Grow: llega solo por prop. */
       /* Con la prop puesta se muestra el calendario real de Grow; sin ella, un
          calendario público de ejemplo, rotulado como tal. */
       gcalEsDemo: !(st.calCuenta || this.props.calendarioUrl),
@@ -10545,7 +10544,7 @@ class Component extends DCLogic {
     var txt = (this.state.nuevaTarea || "").trim();
     if (!txt) return;
     var self = this;
-    /* TODO: POST /hub/tareas */
+    /* No se guarda: solo cambia esta pantalla (no hay POST /hub/tareas). */
     this.setState(function (s) {
       return {
         nuevaTarea: "",

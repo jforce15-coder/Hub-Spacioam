@@ -1,6 +1,8 @@
 # Bots de prueba: usuarios ficticios (pruebas/bots.mjs) que usan cada página del Hub y de la app de Alma como personas
 # distintas — teléfono chico o grande, apurados, sin internet, escribiendo cosas raras, con el servidor fallando — y
 # buscan errores, cosas que se salen de la pantalla, botones tapados, imágenes rotas y texto cortado.
+# También recorren el mapa de funciones (docs/mapa-funciones.json): cada función que Juan usa, abierta en su página y
+# comprobada con lo que debe verse; lo que no se ve entra al mismo aviso como «Función del mapa que no se ve».
 # No dejan ningún registro: todo lo que iría al servidor se contesta con datos de prueba y su navegador se borra.
 #
 # Corren DESPUÉS de unir, nunca en el PR: Juan une sin esperar y el equipo se queda trabajando atrás.
@@ -12,7 +14,7 @@ name: Bots de prueba
 on:
   push:
     branches: [main]
-    paths: ["**.html", "js/**", "alma/**", "health/**", "anillo/**", "ds/**", "pruebas/**"]
+    paths: ["**.html", "js/**", "alma/**", "health/**", "anillo/**", "ds/**", "pruebas/**", "docs/mapa-funciones.json"]
   workflow_dispatch:
 
 permissions:

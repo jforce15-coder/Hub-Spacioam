@@ -383,7 +383,7 @@
   }
   @media (prefers-reduced-transparency: reduce) { #panel .aj-pag.sc .aj-barra { background: var(--aj-fondo); -webkit-backdrop-filter: none; backdrop-filter: none; } }
 
-  /* ── Áreas de vida: un toque a Alma la encoge y las 6 áreas llegan a su alrededor como esferas (solo el administrador principal, por ahora) ── */
+  /* ── Áreas de vida: un toque a Alma la encoge y las 6 áreas llegan a su alrededor como esferas (solo el administrador principal) ── */
   /* z-index menor que el de la roca (--san-z 880 en js/sa-nav.js): las esferas salen y se esconden siempre DETRÁS del botón roca */
   .orbita { position: fixed; inset: 0; z-index: 870; pointer-events: none; }
   /* las esferas van detrás de la capa de Alma (para salir de detrás de la roca), así que mientras están abiertas esa capa
@@ -2774,7 +2774,7 @@ window.SAPulso = {
     $("p-nombre").textContent = p.nombre || p.email; $("p-correo").textContent = p.email; $("p-rol").textContent = rolDe(p.apps);
     $("p-alt-f").hidden = !p.alterno; $("p-alt").textContent = p.alterno;
     $("p-tel-f").hidden = !p.tel; $("p-tel").textContent = p.tel;
-    /* Health (anillo, ritmo cardíaco, pasos): por ahora solo el administrador principal. */
+    /* Health (anillo, ritmo cardíaco, pasos): solo el administrador principal. */
     $("p-health-f").hidden = !Object.keys(p.apps).some(function (k) { return p.apps[k] === "admin_principal"; });
     /* Gasto de Alma (con Uso y Reportes adentro, alma/gasto.html): solo el administrador principal; el Hub lo vuelve a comprobar. */
     $("p-gasto-f").hidden = $("p-health-f").hidden;

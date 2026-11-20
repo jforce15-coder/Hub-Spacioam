@@ -88,7 +88,9 @@ function paraClaudeCrear_(adm, inp) {
   var uni = null, canal = String(inp.canal || (typeof AGENTE_CANAL_ !== 'undefined' && AGENTE_CANAL_) || '');
   if (!m && inp.unificar) {
     var textoUni = String(inp.literal || inp.resumen || '').trim() || titulo;
+    var tU = Date.now();
     try { uni = microUnificar_(adm, textoUni); m = uni ? microLeer_(uni.id) : null; } catch (e) { console.error('microUnificar_: ' + e); uni = null; m = null; }
+    pcMs_('unificar', tU);   // cronómetro (claudiofondo.js)
     if (!m) uni = null;
     else if (uni.por === 'reintento' && unifEnCurso_(m)) return unifAnotarReintento_(adm, m, textoUni, canal);
   }
@@ -118,11 +120,11 @@ function paraClaudeCrear_(adm, inp) {
     '**Nivel:** ' + claudeNivelTexto_(nivel) + '\n\n' +
     '---\n_Lo dictó ' + quien + ' a ALMA. Claude: sigue el método de CLAUDE.md (glosario, pregunta primero lo que es decisión de Juan, prototipos si es visual, spec y tickets si es grande, dos revisiones, evidencia en el PR). ' +
     (ajuste ? 'Es parte de un trabajo que ya empezó: lee el historial completo antes de tocar nada.' : 'Trabájalo en una rama nueva, abre un PR y enlázalo aquí.') + ' No incluyas datos personales de huéspedes._';
-  var issue = m.issue || '';
+  var issue = m.issue || '', tI = Date.now();
   var pg = PropertiesService.getScriptProperties(), tok = pg.getProperty('GITHUB_TOKEN') || pg.getProperty('GITHUB_PRS');   // la llave de Conexiones también sirve
   if (tok && issue) { try { microComentar_(issue, cuerpo); } catch (e) { console.error('paraClaude comentario: ' + e); } }   // el ajuste va como comentario, no otro issue
   else if (tok) issue = paraClaudeIssue_(tok, inp.app, ajuste ? m.nombre : titulo, cuerpo, inp.tipo, inp.prioridad);
-  m.issue = issue;
+  m.issue = issue; pcMs_('issue', tI);
   /* La instrucción lleva el historial completo: cada disparo abre una sesión nueva de Claude, sin memoria. */
   /* La Biblioteca de Claudio (biblioteca.js) va en la instrucción, no en el issue: la lista y cómo leer o pedir uno. */
   var hubUrl = PropertiesService.getScriptProperties().getProperty('HUB_URL') || HUB_EXEC_DEF_, biblio = '';
@@ -131,11 +133,12 @@ function paraClaudeCrear_(adm, inp) {
   var instruccion = cuerpo + (pantalla ? '\n\n' + pantalla : '') + (m.ajustes.length > 1 ? '\n\n### Historial del microproyecto (lo más viejo primero)\n' + microHistorialTexto_(m).slice(-40000) : '') + (biblio ? '\n\n' + biblio : '') + '\n\n' + MICRO_RESPONDER_;
   var llave = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
   var lector = biblio ? Utilities.getUuid().replace(/-/g, '') : '';   // solo leer la biblioteca; distinta de la llave de responder
-  var disparo = paraClaudeDisparar_({ id: id, llave: llave, respuesta_url: hubUrl, biblioteca: lector ? { lector: lector } : undefined,
+  var tL = Date.now(), disparo = paraClaudeDisparar_({ id: id, llave: llave, respuesta_url: hubUrl, biblioteca: lector ? { lector: lector } : undefined,
     quien: quien, app: inp.app || 'Otro', tipo: inp.tipo || 'mejora', prioridad: inp.prioridad || 'normal', titulo: ajuste ? m.nombre + ' · ' + (segunda ? 'segunda parte' : 'ajuste') : titulo,
     instruccion: instruccion, issue: issue, micro: microParaClaude_(m, { ajuste: ajuste, segunda: segunda, como: como, sesionAnterior: sesionAnterior }) }, nivel);
+  pcMs_('lanzar', tL);
   if (disparo.ok) nivel = claudeNivel_(disparo.nivel);   // sin la llave de la sencilla corrió la compleja: el chip dice la verdad
-  m.nivel = nivel;
+  m.nivel = nivel; var tH = Date.now();
   if (disparo.ok) { m.estado = MICRO_ESTADOS_.trabajo; m.ultima_pregunta = ''; m.opciones = []; if (disparo.url) m.sesion = disparo.url; }
   else if (!ajuste) m.estado = MICRO_ESTADOS_.trabajo;   // quedó en la lista (y en el issue); la tarjeta lo muestra igual
   try { microGuardar_(m); } catch (e) { console.error('microGuardar_: ' + e); }
@@ -148,6 +151,7 @@ function paraClaudeCrear_(adm, inp) {
   if (!inp.sinChat && adm && adm.email) {
     try { opGuardar_(adm, 'alma', 'claude', 'Pedido para Claudio · ' + (ajuste ? m.nombre : titulo) + '\n\n' + queSimple.slice(0, 1500) + (disparo.ok ? '' : '\n\n(No se pudo enviar directo a Claudio: ' + disparo.error + '. Quedó en la lista de pedidos.)'), [], CHAT_DESARROLLO_); } catch (e) { console.error('Pedido en el chat: ' + e); }
   }
+  pcMs_('hoja', tH);
   eqDesarrolloSuave_();   // el estado de Desarrollo, al día (equipos.js)
   return { ok: true, id: id, issue: issue || undefined, claude: disparo.ok, nivel: nivel, nivelNota: disparo.ok ? (disparo.nota || '') : '', micro: { id: m.id, nombre: m.nombre, ajuste: ajuste, segunda: segunda, parte: m.parte, nivel: nivel, unido: uni ? uni.por : '' },
     nota: disparo.ok ? 'Listo, quedó pedido.' : paraClaudeNotaFallo_(disparo, issue) };

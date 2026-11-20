@@ -163,10 +163,11 @@ function claudeMandarYa_(adm, texto, o) {
   o = o || {};
   /* Una orden de unir («une todo», «unir», «une el cambio de «…»») no es un pedido nuevo: se cumple aquí y se dice el
      resultado real (unirorden.js; Juan, 16-nov-2026: «dice que resolvió y no está resolviendo nada»). */
-  var uo = unirOrdenHacer_(adm, texto);
+  var tU = Date.now(), uo = unirOrdenHacer_(adm, texto); pcMs_('unir', tU);   // cronómetro (claudiofondo.js)
   if (uo) { if (o.yaArmado) { try { claudeBorradorGuardar_(adm.email, null); } catch (e) {} } return uo; }
-  var b = o.yaArmado ? (claudeBorradorLeer_(adm.email) || claudeBorradorPoner_(adm, texto, o)) : claudeBorradorPoner_(adm, texto, o);
+  var tB = Date.now(), b = o.yaArmado ? (claudeBorradorLeer_(adm.email) || claudeBorradorPoner_(adm, texto, o)) : claudeBorradorPoner_(adm, texto, o);
   if (o.yaArmado) claudeBorradorLiteral_(b, o.literal !== undefined ? o.literal : literalDeJuan_(texto));   // lo que escribió en este turno, tal cual
+  pcMs_('borrador', tB);   // microproyecto y sus palabras (en una llamada lee la transcripción)
   if (b.microDuda) {
     if (CLAUDE_SIGUE_RE_.test(chatNorm_(texto))) { b.micro = b.microDuda; b.ult = ''; }
     else { b.micro = ''; b.microNombre = ''; b.nuevo = true; b.ult = chatUltimaDeClaude_(adm.email).slice(0, 1500); }
@@ -180,8 +181,9 @@ function claudeBorradorMandar_(adm, b, ajusteVoz) {
   /* En JSON (Juan, 12-nov-2026), como todo pedido entre agentes. Es un cambio que pidió: se une con su «une». */
   var juan = b.partes.join('\n\nY además: ');
   var lit = (b.literal || []).join('\n\n');   // sus palabras tal cual (literal.js); un borrador viejo sin ellas usa las partes
-  var json = escalarJson_(adm, { pedido: juan, literal: lit || juan, entrega: false, canal: typeof AGENTE_CANAL_ !== 'undefined' ? AGENTE_CANAL_ : '', motivo: 'pidió un cambio del sistema',
+  var tJ = Date.now(), json = escalarJson_(adm, { pedido: juan, literal: lit || juan, entrega: false, canal: typeof AGENTE_CANAL_ !== 'undefined' ? AGENTE_CANAL_ : '', motivo: 'pidió un cambio del sistema',
     tarea: 'Haz el cambio del sistema que pidió ' + (adm.nombre || 'Juan') + ' (contexto.palabras_de_juan).', seguimiento: b.ult && !b.micro ? 'Puede ser un seguimiento de tu última respuesta en su chat con Alma: ' + b.ult : '' });
+  pcMs_('json', tJ);
   var r = paraClaudeCrear_(adm, { titulo: claudeBorradorTitulo_(b), app: 'Otro', tipo: 'mejora', prioridad: 'normal', sinChat: true, micro: b.micro || '', nombre: b.nombreNuevo || '', nivel: b.nivel || 'complejo',
     que_quiere: JSON.stringify(json, null, 2), resumen: juan, literal: lit || juan, unificar: !b.micro && !b.nuevo });   // sin microproyecto y sin «Es nuevo» de Juan: busca uno abierto de lo mismo (unificar.js)
   if (!r.ok) {

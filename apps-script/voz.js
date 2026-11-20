@@ -307,7 +307,8 @@ function vozPostCall_(body) {
    del turno (agente) y lo de después (despues). Robot voz_traza (#498 T1). Desde T4 (rapido.js), también qué modelo
    contestó: via (rapido · completo · rapido>completo), motivo, modelo y rapido (ms en el camino rápido). Desde la guardia
    del 19-nov (parte 3), lentas: las 4 herramientas más lentas del turno ({ h, s, v: r rápido · c completo }, agMsHerr_).
-   Desde la del 20-nov (parte 4, vozlectura.js): br (segundos de buscar_reservas en hoja, bandeja y vivo) y rapido_tope. */
+   Desde la del 20-nov (parte 4, vozlectura.js): br (segundos de buscar_reservas en hoja, bandeja y vivo) y rapido_tope.
+   Pedido para Claudio (claudiofondo.js): via «claudio» y pc (borr, unir, cola, chat), y «claudio_fondo» con sus partes. */
 var VOZ_T0_ = 0, VOZ_MS_ = null;
 function vozTraza_(herr, b, out) {
   try {
@@ -977,7 +978,7 @@ function vozSecretaria_(b) {
   if (esAdminPrincipal_(adm)) {
     var esMejora = VOZ_MEJORA_RE_.test(pedido);
     var resto = esMejora ? pedido.replace(VOZ_MEJORA_RE_, '').trim() : pedido;
-    var rv = vozBorradorTurno_(adm, resto, esMejora); if (rv) return rv;
+    var tBr = Date.now(), rv = vozBorradorTurno_(adm, resto, esMejora); VOZ_MS_.borr = Date.now() - tBr; if (rv) return rv;   // d.borr en voz_traza (claudiofondo.js)
     var intento = esMejora ? claudeBorradorIntencion_(resto, true) : '';
     if (intento === 'agregar' && claudeBorradorAgregado_(resto)) return vozParaClaude_(adm, 'Mejora para Claude: ' + resto);
     if (esMejora && (intento || (claudeNivelPedido_(resto) && !claudeNivelQuitar_(resto)))) return { ok: true, resultado: 'YA ESTABA PEDIDO: no hay nada esperando. No digas nada más sobre eso.' };
@@ -1060,7 +1061,19 @@ function vozParaClaude_(adm, pedido) {
   var nm = VOZ_MEJORA_RE_.exec(String(pedido)), nivel = nm && nm[1] ? nm[1].toLowerCase() : '';   // sin nivel: complejo (o el de su microproyecto)
   var texto = String(pedido).replace(VOZ_MEJORA_RE_, '').trim();
   if (!texto) return { ok: false, error: 'Falta qué quiere Juan que cambie Claudio.' };
-  var r = claudeMandarYa_(adm, texto, { nivel: nivel });
+  /* La llamada no espera a GitHub ni a la rutina (guardia 20-nov-2026, claudiofondo.js): el pedido queda guardado aquí y
+     sale en segundo plano en unos segundos. Una orden de unir sí se hace aquí: su resultado real se dice en la llamada. */
+  var ms = VOZ_MS_ || {}, t0 = Date.now(), unir = !!unirOrden_(texto); ms.via = 'claudio'; ms.pc = { unir: Date.now() - t0 };
+  if (!unir) {
+    var tC = Date.now(), guardado = paraClaudeVozEncolar_(adm, texto, nivel); ms.pc.cola = Date.now() - tC;
+    if (guardado) {
+      var tY = Date.now(); try { opGuardar_(adm, 'yo', 'llamada', texto, [], CHAT_DESARROLLO_); } catch (e) { console.error('vozParaClaude_ chat: ' + e); } ms.pc.chat = Date.now() - tY;
+      return { ok: true, enviado: true, resultado: 'HECHO. Dile solo: «Listo, quedó pedido.». Nada más: no repitas el pedido ni nombres a Claudio, el nivel o el modelo.' };
+    }
+  }
+  /* Orden de unir, o no se pudo guardar para después: todo aquí, como antes (sin decir «quedó pedido» antes de que exista). */
+  var tM = Date.now(); PC_MS_ = ms.pc;
+  var r; try { r = claudeMandarYa_(adm, texto, { nivel: nivel }); } finally { PC_MS_ = null; ms.pc.todo = Date.now() - tM; }
   opGuardar_(adm, 'yo', 'llamada', texto, [], CHAT_DESARROLLO_);
   opGuardar_(adm, 'alma', 'llamada', r.texto, [], CHAT_DESARROLLO_);
   if (r.claude && !r.claude.ok) return { ok: false, error: r.voz };

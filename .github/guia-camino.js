@@ -35,6 +35,8 @@ ok(ctx.guiaCamino_('', { destino: 'x', lat: 1, lng: 1 }).error === 'session', 's
 ok(ctx.guiaPideCamino_('¿Cómo llego al Parque Central?') && ctx.guiaPideCamino_('llévame a la casa de Flor') && !ctx.guiaPideCamino_('anota que llego tarde'), 'el Modo calle reconoce el pedido de camino');
 const h = ctx.vozGuiaHerramientas_()[0];
 ok(h.type === 'client' && h.name === 'guiar_camino' && /ESTÁS EN LA APP DE ALMA/.test(h.description), 'guiar_camino es herramienta de la app');
+ok(h.parameters.properties.donde && h.parameters.properties.donde.type === 'boolean' && /donde: true/.test(h.description) && /ya llegaste/.test(h.description) && /skip_turn/.test(h.description),
+   'guardia #946: «¿voy bien?» se pregunta a la app (donde), «ya llegaste» solo con el GPS y «...» es skip_turn');
 /* Cómo llegar en el chat (#838): siempre desde su ubicación actual, salvo que nombre otro punto. */
 const c1 = ctx.guiaComoLlegar_({ email: 'juan@x' }, { destino: 'Parque Central' });
 ok(c1.ok && c1.desde === 'tu ubicación actual' && !/origin=/.test(c1.google) && !/saddr=/.test(c1.apple) && /navigate=yes/.test(c1.waze), 'la ruta sale desde su ubicación actual (sin origen)');

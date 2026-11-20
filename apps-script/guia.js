@@ -11,7 +11,10 @@
      El lugar se busca primero cerca de él (unos 50 km) y si no, donde sea.
    · Desde el Modo calle: «¿cómo llego a…?», «llévame a…» abre la llamada sin la IA (guiaPideCamino_ en calle.js) y Alma
      sigue con guiar_camino.
-   · Las reglas van en la descripción de la herramienta, no en el prompt (el presupuesto de la voz ya está lleno). */
+   · Las reglas van en la descripción de la herramienta, no en el prompt (el presupuesto de la voz ya está lleno).
+   · Guardia (#946, Juan 20-nov-2026): en «guíame a casa» Alma inventó giros y dijo «ya llegaste» sin confirmarlo, y
+     contestaba los turnos «...» del ruido repitiendo preguntas. Ahora pregunta a la app (donde: true → próximo paso, cuánto
+     falta, llego), la app le pasa cada paso del GPS con la llamada abierta y «...» es skip_turn. */
 
 /* maps = el valor de Maps.DirectionFinder.Mode (en minúsculas: con 'WALKING' Apps Script responde «Argumento no válido: mode»). */
 var GUIA_MODOS_ = {
@@ -393,10 +396,13 @@ function vozGuiaHerramientas_() {
       description: 'Guía de camino: Juan pide cómo llegar a un lugar («¿cómo llego a…?», «llévame a…»). La app calcula la ruta desde donde está el teléfono, abre el mapa y le dice cada paso al oído justo cuando llega a ese punto, aunque cuelgues o bloquee el teléfono. ' +
         'Llámala con destino y SIN modo si Juan no dijo cómo va: si responde necesita_modo, pregúntale en una frase «¿Vas caminando, en carro, en bici o en bus?» y vuelve a llamarla con su respuesta (se recuerda para la próxima). ' +
         'Si responde recordado, dilo natural («Te llevo caminando, como la vez pasada») y ofrece cambiar solo si él lo pide. Con la ruta: di en UNA frase cuánto tarda y el primer paso (primer_paso); no leas los demás, la app los dice a tiempo, con puntos de referencia (tiendas, iglesias, monumentos) y cada cruce con anticipación (media cuadra caminando o en bici, una cuadra en carro). ' +
+        'Mientras va la guía NO inventes giros ni digas «vas perfecto» o «ya llegaste» por tu cuenta: los pasos te llegan como PASO NUEVO DEL GPS y la llegada solo cuenta si el GPS la confirma (llego: true). «¿Voy bien?», «¿cuánto falta?», «¿ya llegué?» → llámala con donde: true y contesta solo con lo que responde. ' +
+        'Un turno «...», ruido o silencio no es Juan hablando: skip_turn, sin repetir preguntas. ' +
         'detener: true termina la guía. Úsala SOLO si la FICHA DE QUIEN LLAMA dice «ESTÁS EN LA APP DE ALMA».',
       parameters: { type: 'object', required: [], properties: {
         destino: s('A dónde va, con el nombre como lo dijo y la ciudad si ayuda (p. ej. «Parque Central, Antigua Guatemala»).'),
         modo: { type: 'string', enum: ['caminando', 'carro', 'bici', 'bus'], description: 'Solo si Juan dijo cómo va (moto, Uber o taxi = carro).' },
-        detener: { type: 'boolean', description: 'true para terminar la guía que va.' } } } }
+        detener: { type: 'boolean', description: 'true para terminar la guía que va.' },
+        donde: { type: 'boolean', description: 'true para saber en qué paso va Juan, cuánto falta y si ya llegó (no cambia la guía).' } } } }
   ];
 }

@@ -1599,6 +1599,11 @@
       <div class="pp-seg dos" id="pp-modo" role="group" aria-label="Automático o fijo"><button type="button" data-pp-m="auto" aria-pressed="false">Automático</button><button type="button" data-pp-m="fijo" aria-pressed="false">Fijo</button></div>
       <p class="pp-nota" id="pp-weebo-n">En automático sube y baja según la confianza de la conversación. En fijo se queda donde lo pongas (con un problema o una urgencia, Alma igual vuelve a su centro).</p>
     </div>
+    <div class="grupo" id="g-clasico" hidden>
+      <div class="pp-cab"><b>Modo clásico</b><span class="v">táctica, como en un radio</span></div>
+      <div class="pp-seg dos" id="pp-clasico" role="group" aria-label="Modo clásico"><button type="button" data-pp-c="0" aria-pressed="false">Apagado</button><button type="button" data-pp-c="1" aria-pressed="false">Encendido</button></div>
+      <p class="pp-nota" id="pp-clasico-n">Encendido, Alma hace lo que le pides y solo confirma: «Copiado.», «Listo.». Sin charla, sin bromas ni sugerencias. También se lo puedes decir: «activa el modo clásico».</p>
+    </div>
     <div class="grupo" id="g-huesp" hidden>
       <div class="pp-cab"><b>Para huéspedes</b><span class="v" id="pp-h-v">tope 20 %</span></div>
       <div class="pp-barra"><div class="riel"></div><input type="range" id="pp-tope-h" min="0" max="100" step="5" value="20" aria-label="Tope de adaptación con huéspedes"></div>
@@ -3825,11 +3830,16 @@ window.SAPulso = {
       var fl = PP.enLlamada && PP.vivo && PP.vivo.cambio ? (PP.vivo.cambio > 0 ? " ▲" : " ▼") : "";
       pill.textContent = (PP.enLlamada ? "en la llamada: " : "ahora: ") + ahora + " · " + NOMBRES[ahora] + fl;
     }
+    var cl = !!d.clasico;   // Modo clásico (apps-script/clasico.js)
+    Array.prototype.forEach.call($("pp-clasico").children, function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-pp-c") === (cl ? "1" : "0"))); });
+    $("pp-clasico-n").classList.remove("error");
+    $("pp-clasico-n").textContent = cl ? "Encendido: Alma hace lo que le pides y solo confirma («Copiado.», «Listo.»). El Modo Weebo queda en 0 contigo hasta que lo apagues."
+      : "Encendido, Alma hace lo que le pides y solo confirma: «Copiado.», «Listo.». Sin charla, sin bromas ni sugerencias. También se lo puedes decir: «activa el modo clásico».";
     $("pp-weebo-n").classList.remove("error");
-    $("pp-weebo-n").textContent = w.modo === "fijo" ? "Fijo en " + w.nivel_fijo + " · " + NOMBRES[w.nivel_fijo] + ": Alma se queda ahí contigo (con un problema o una urgencia vuelve a su centro). Toca «Automático» para que lo mida ella."
+    $("pp-weebo-n").textContent = cl ? "En pausa mientras el Modo clásico está encendido: Alma te habla en su centro, sin humor." : w.modo === "fijo" ? "Fijo en " + w.nivel_fijo + " · " + NOMBRES[w.nivel_fijo] + ": Alma se queda ahí contigo (con un problema o una urgencia vuelve a su centro). Toca «Automático» para que lo mida ella."
       : "En automático sube y baja según la confianza de la conversación. Toca un nivel para fijarlo ahí.";
   }
-  function mostrar(on) { ["t-pers", "g-pers", "g-weebo", "g-huesp"].forEach(function (id) { $(id).hidden = !on; }); }
+  function mostrar(on) { ["t-pers", "g-pers", "g-weebo", "g-clasico", "g-huesp"].forEach(function (id) { $(id).hidden = !on; }); }
   function cargar() {
     if (!principal()) { mostrar(false); return; }
     var f = fotoLeer(); if (completa(f) && !PP.datos) { PP.datos = f; mostrar(true); pintar(); }   // la foto primero; la fresca llega por detrás
@@ -3847,6 +3857,7 @@ window.SAPulso = {
     if ("adapt_tope_huesped" in cambio) d.adapt.tope_huesped = cambio.adapt_tope_huesped;
     if ("weebo_modo" in cambio) d.weebo.modo = cambio.weebo_modo;
     if ("weebo_nivel" in cambio) d.weebo.nivel_fijo = cambio.weebo_nivel;
+    if ("clasico" in cambio) d.clasico = cambio.clasico;
     if (PP.enLlamada && PP.vivo && d.weebo.modo === "fijo" && PP.vivo.weebo !== d.weebo.nivel_fijo) {   // «en la llamada» sigue lo que le acabas de pedir a Alma
       PP.vivo.cambio = PP.vivo.weebo == null ? 0 : d.weebo.nivel_fijo > PP.vivo.weebo ? 1 : -1; PP.vivo.weebo = d.weebo.nivel_fijo; flechaSeVa();
     }
@@ -3865,6 +3876,11 @@ window.SAPulso = {
   $("pp-niveles").onclick = function (e) {
     var b = e.target.closest("[data-pp-w]"); if (!b || !PP.datos) return;
     fijar({ weebo_modo: "fijo", weebo_nivel: +b.getAttribute("data-pp-w") }, "pp-weebo-n");
+  };
+  $("pp-clasico").onclick = function (e) {
+    var b = e.target.closest("[data-pp-c]"); if (!b || !PP.datos) return;
+    var on = b.getAttribute("data-pp-c") === "1"; if (on === !!PP.datos.clasico) return;
+    fijar({ clasico: on }, "pp-clasico-n");
   };
   $("pp-modo").onclick = function (e) {
     var b = e.target.closest("[data-pp-m]"); if (!b || !PP.datos) return;

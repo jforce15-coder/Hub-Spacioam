@@ -156,12 +156,12 @@ function agHerramientas_() {
     T('ver_conversacion', 'Últimos mensajes de una reserva (plataforma, WhatsApp y llamadas) y promesas abiertas. También la de WhatsApp de ALMA con cualquier número (socio, contacto, equipo), con código de país.', { codigo: s('Código de reserva, conv_id o número de WhatsApp') }, ['codigo']),
     T('buscar_reuniones', 'Reuniones, llamadas y memos que Alma escuchó en modo conferencia (app del iPhone): resumen, acuerdos y lo que le tocó a Juan («¿qué quedamos con…?», «¿qué se dijo de…?»). Sin búsqueda, las últimas. Lo sin sentido queda unos días en Temporal (temporales=true); si sale en una búsqueda, se rescata.',
       { buscar: s('Palabras: persona, proyecto o tema. Vacío para las últimas'), temporales: { type: 'boolean', description: 'true para ver solo las que están en Temporal' } }, []),
-    T('ver_vuelos', 'Vuelos del botón del avión (de su correo): vuelo, aerolínea, ruta, horas, puerta, asiento y apertura del check-in. «Mi vuelo» = mi_vuelo (el de ahora o el próximo, con puerta y embarque al día), en su hora local. Solo administrador principal.', {}, []),
+    T('ver_vuelos', 'Vuelos del botón del avión (de su correo): vuelo, aerolínea, ruta, horas, puerta, asiento y apertura del check-in. «Mi vuelo» = mi_vuelo (el de ahora o el próximo, con puerta y embarque al día), en su hora local. Solo Juan.', {}, []),
     /* Calendario de Juan (calendario.js): una sola confirmación, que el código exige con confirmado. */
-    T('crear_evento', 'Pone un evento en el calendario de Juan. Sin confirmado te da la pregunta (día, hora, zona, choques): hazla UNA vez y con su sí repite con confirmado = true. Si alguien confirma una llamada que coordinaste, ofrécele ponerla así. Invita solo si Juan lo pide («invítala»). Solo administrador principal.',
+    T('crear_evento', 'Pone un evento en el calendario de Juan. Sin confirmado te da la pregunta (día, hora, zona, choques): hazla UNA vez y con su sí repite con confirmado = true. Si alguien confirma una llamada que coordinaste, ofrécele ponerla así. Invita solo si Juan lo pide («invítala»). Solo Juan.',
       { titulo: s('Título'), inicio: s('AAAA-MM-DD HH:MM'), duracion_min: { type: 'number', description: '60 por defecto' }, fin: s('Opcional: AAAA-MM-DD HH:MM'), zona: s(CAL_ZONA_), lugar: s('Lugar o enlace'),
         descripcion: s('Notas'), invitar: s('Correos, solo si Juan lo pidió'), confirmado: CAL_SI_ }, ['titulo', 'inicio']),
-    T('ver_agenda', 'Lo ocupado y los huecos libres (8 a 19 h) del calendario de Juan en un día o rango (máx. 14 días), para proponer horas sin choques. Solo administrador principal.',
+    T('ver_agenda', 'Lo ocupado y los huecos libres (8 a 19 h) del calendario de Juan en un día o rango (máx. 14 días), para proponer horas sin choques. Solo Juan.',
       { desde: s('AAAA-MM-DD; vacío = hoy'), hasta: s('AAAA-MM-DD opcional'), zona: s(CAL_ZONA_) }),
     T('mover_evento', 'Mueve un evento que TÚ creaste (id de crear_evento o ver_agenda). Primero la pregunta; con su sí, confirmado = true.',
       { id: s('id'), inicio: s('AAAA-MM-DD HH:MM'), duracion_min: { type: 'number', description: 'Vacío = la misma' }, zona: s(CAL_ZONA_), confirmado: CAL_SI_ }, ['id', 'inicio']),
@@ -199,8 +199,8 @@ function agHerramientas_() {
     /* Pagos de Epi (pagosepi.js): solo lee; pendiente de depositar = comprobantes sin soporte de transferencia. */
     T('pagos_epi', 'Pagos de Epi de alguien del equipo: comprobantes, si se depositaron, lo pendiente de depositar y adelantos. Repite cifras. Solo el principal.', { persona: s('Nombre o correo') }, ['persona']),
     /* Reporte del mes (reportemes.js): lo lee de la hoja de Mi; Alma repite sus cifras y nunca las calcula. */
-    T('consultas_tema', '% de consultas de una propiedad que pidieron un tema (30 y 60 días). Solo administrador principal.', { propiedad: s('Edificio'), tema: s('Vacío: parqueo') }, ['propiedad']),
-    T('reporte_mes', 'Reporte del mes de una propiedad como lo cierra Mi (noches, estadías, ocupación en %, ADR, ingresos, fee, gastos, depósito en USD, mes anterior). Para ocupación, ingresos o depósito: repite sus cifras tal cual; si el mes no está, no lo calcules. Cada estadía cuenta en su mes de entrada. Solo administrador principal.',
+    T('consultas_tema', '% de consultas de una propiedad que pidieron un tema (30 y 60 días). Solo Juan.', { propiedad: s('Edificio'), tema: s('Vacío: parqueo') }, ['propiedad']),
+    T('reporte_mes', 'Reporte del mes de una propiedad como lo cierra Mi (noches, estadías, ocupación en %, ADR, ingresos, fee, gastos, depósito en USD, mes anterior). Para ocupación, ingresos o depósito: repite sus cifras tal cual; si el mes no está, no lo calcules. Cada estadía cuenta en su mes de entrada. Solo Juan.',
       { propiedad: s('Como la digan («Rue 301», «z4 rue»)'), mes: s('AAAA-MM, «octubre», «octubre 2026» o «el mes pasado»; vacío = el último cerrado'), meses: { type: 'integer', description: 'Opcional: cuántos meses hacia atrás, para comparar' } }, ['propiedad']),
     T('precio_por_noche', 'Por noche: desglose de una reserva de Airbnb del último mes ÷ noches y largo plazo de Hola. Solo principal.',
       { propiedad: s('«Mónaco», «Z7»…') }, ['propiedad']),
@@ -215,7 +215,7 @@ function agHerramientas_() {
       { proyecto_id: s('id del proyecto (p…)'), fecha: s('YYYY-MM-DD HH:mm (hora Guatemala)'), asignado: s('Nombre de la persona del equipo de Grow'), nota: s('Opcional: indicaciones para quien visita') }, ['proyecto_id', 'fecha', 'asignado']),
     T('grow_fotos_visita', 'Grow: mira tú misma las fotos de la visita de un proyecto, de a 6, con su zona, y los problemas de mantenimiento que anotó quien visitó, para recomendar qué arreglar, comprar o fotografiar. Si quedan más (siguen), pide las siguientes con desde.',
       { proyecto_id: s('id del proyecto (p…)'), zona: s('Opcional: solo una zona (cocina, baño, sala, mantenimiento…)'), apto: s('Opcional: en edificios con varias unidades, el apartamento'), desde: { type: 'number', description: 'Opcional: cuántas saltar (0, 6, 12…)' } }, ['proyecto_id']),
-    T('grow_presupuesto_pdf', 'Grow: PDF del presupuesto para alguien de afuera; a Juan le llega por WhatsApp y te da enlace y drive_id. Con hoja y aptos, primero copia esa plantilla como un presupuesto por apartamento (sin duplicar). Solo administrador principal.',
+    T('grow_presupuesto_pdf', 'Grow: PDF del presupuesto para alguien de afuera; a Juan le llega por WhatsApp y te da enlace y drive_id. Con hoja y aptos, primero copia esa plantilla como un presupuesto por apartamento (sin duplicar). Solo Juan.',
       { proyecto_id: s('id del proyecto (p…)'), aptos: s('Opcional: «B5, A4»: un PDF por apartamento'), hoja: s('Opcional: enlace o nombre de la hoja plantilla'), pestana: s('Opcional: pestaña de la hoja'),
         consolidado: { type: 'boolean', description: 'Opcional: uno más con todos' }, whatsapp: { type: 'boolean', description: 'Opcional: false para no mandarlo a su WhatsApp' } }, ['proyecto_id']),
     T('actualizar_dato', 'Dato de hecho, sin pedir permiso: apto, edificio o zona de un proyecto de Grow; nombre, teléfono o correo de su dueño; nombre, rol, empresa o apartamentos de un contacto. Devuelve aviso: díselo a Juan tal cual.',
@@ -226,7 +226,7 @@ function agHerramientas_() {
     T('olvidar_memoria', 'Borra un dato de la memoria de una propiedad (por su id de memoria_propiedad). Si el administrador confirma uno «por confirmar», guárdalo con recordar_en_propiedad y borra el viejo.', { id: s('id del dato (mp…)') }, ['id']),
     T('ficha_socio', 'Ficha del socio en Mi: notas y detalles que importan (con fecha) de lo que él contó. Léela antes de escribirle o llamarle; si trae retomar, úsalo una vez. Nunca salud, religión, política ni banco.',
       { socio: s('«socio de <apto>», nombre o número'), accion: { type: 'string', enum: ['ver', 'anotar', 'corregir', 'borrar'] }, texto: s('anotar/corregir'), fecha: s('AAAA-MM-DD del evento'), id: s('de ver') }, ['socio']),
-    T('anillo', 'Lo último que la app de Alma leyó del anillo QRing de Juan (batería, pasos, ritmo, oxígeno) y de cuándo es. No es en vivo: di siempre la hora. Solo administrador principal.', {}),
+    T('anillo', 'Lo último que la app de Alma leyó del anillo QRing de Juan (batería, pasos, ritmo, oxígeno) y de cuándo es. No es en vivo: di siempre la hora. Solo Juan.', {}),
     T('calcular_distancia', 'Minutos en carro y caminando (si son 15 o menos) de una propiedad a un lugar. Ruta de Juan: sin propiedad, mapas desde su ubicación actual (no preguntes desde dónde).', { propiedad: s('Nombre de la propiedad; vacío = donde está Juan'), destino: s('Lugar, con ciudad si ayuda') }, ['destino']),
     T('mensaje_personal', 'Temas PERSONALES del administrador (no de Spacio AM): escribirle a alguien de su parte por WhatsApp como Alma, sin mencionar Spacio AM. Sin mensajes suyos en 24 h, primero le llega «Hola, soy Alma, la asistente de Juan. ¿Tienes un minuto?» y, al responder, este. Lo que conteste le llega al administrador.',
       { persona: AG_DEST_, numero: AG_NUM_, texto: s('Mensaje completo, natural, en primera persona como su asistente (ej. «Juan me pidió avisarte que…»)'), objetivo: s('Qué reunir («su itinerario: fechas, vuelos, hospedaje»): ALMA conversa hasta tenerlo y le manda un resumen; sin objetivo, solo reenvía lo que conteste.'), proyecto: s('Proyecto personal («Boda Pamela»): un solo resumen. Si lo nombra, úsalo siempre.'), contexto_de: { type: 'array', items: { type: 'string' }, description: 'Solo si no hay proyecto: nombres de personas con las que ya hablaste del mismo tema' } }, ['texto']),
@@ -245,16 +245,16 @@ function agHerramientas_() {
       { accion: { type: 'string', enum: ['poner', 'pausar', 'seguir', 'siguiente', 'anterior', 'volumen', 'que_suena', 'dispositivos'] }, consulta: s('Qué poner: canción y artista, artista, álbum o mood'),
         tipo: { type: 'string', enum: ['cancion', 'artista', 'album', 'playlist', 'mood'] }, dispositivo: s('Dónde (como lo dijo: sala, cocina, cuarto, teléfono…). Vacío = donde ya suena'), nivel: { type: 'number', description: 'Volumen 0-100' } }, ['accion']),
     /* El equipo de agentes detrás de Alma (agentes.js): ella le pide trabajo a cada uno y le pasa a Juan lo que proponen. */
-    T('pedir_a_agente', 'Le pide trabajo a uno de tus agentes y devuelve su informe y lo que propone: operaciones, huespedes, finanzas, crecimiento (anuncios, Grow), marketing, mantenimiento, desarrollo (Claude: lo que tú no puedes, sin preguntarle a Juan) y sus apps (dev_…), mejora (gastar menos) o archivo (orden y guardado). Solo el administrador principal.',
+    T('pedir_a_agente', 'Le pide trabajo a uno de tus agentes y devuelve su informe y lo que propone: operaciones, huespedes, finanzas, crecimiento (anuncios, Grow), marketing, mantenimiento, desarrollo (Claude: lo que tú no puedes, sin preguntarle a Juan) y sus apps (dev_…), mejora (gastar menos) o archivo (orden y guardado). Solo Juan.',
       { agente: s('operaciones | huespedes | finanzas | crecimiento | marketing | mantenimiento | desarrollo | dev_hub | dev_api | dev_app | dev_hola | dev_epi | dev_grow | dev_mi | dev_docs | mejora | archivo'), pedido: s('Lo que Juan quiere que revise o haga, con sus palabras') }, ['agente']),
     T('leer_playbook', 'Abre el playbook de un trabajo (pasos, reglas, herramientas y «listo significa»). Úsalo antes de un tema de un área o una app, o si no sabes cómo se hace. Nombres: operaciones, huespedes, finanzas, crecimiento, marketing, mantenimiento, archivo, correos, desarrollo, hub, api, app-alma, hola, epi, grow, mi, docs.',
       { nombre: s('Nombre del playbook') }, ['nombre']),
-    T('enviar_archivo', 'Manda en PDF al WhatsApp de Juan el reporte de actividad (tipo actividad: lo que hiciste en el chat, 3 días por defecto) o la transcripción de una llamada (tipo llamada: sin id, la última). Si da error de 24 h, pídele que escriba a Alma por WhatsApp y lo pida otra vez. Solo administrador principal.', { tipo: s('actividad o llamada'), dias: { type: 'number', description: 'Solo actividad: días hacia atrás (1 a 30)' }, id: s('Solo llamada: id de la conversación; vacío = la última') }, ['tipo']),
-    T('unir_cambio', 'Une (publica) un cambio que Claude dejó listo: «une», «une el de la app», «une el 240», «une todo». Sin cual, devuelve la lista de cambios abiertos: dile en simple cuáles hay y pregúntale. Si uno no se pudo unir, dile por qué en una frase. Solo administrador principal.',
+    T('enviar_archivo', 'Manda en PDF al WhatsApp de Juan el reporte de actividad (tipo actividad: lo que hiciste en el chat, 3 días por defecto) o la transcripción de una llamada (tipo llamada: sin id, la última). Si da error de 24 h, pídele que escriba a Alma por WhatsApp y lo pida otra vez. Solo Juan.', { tipo: s('actividad o llamada'), dias: { type: 'number', description: 'Solo actividad: días hacia atrás (1 a 30)' }, id: s('Solo llamada: id de la conversación; vacío = la última') }, ['tipo']),
+    T('unir_cambio', 'Une (publica) un cambio que Claude dejó listo: «une», «une el de la app», «une el 240», «une todo». Sin cual, devuelve la lista de cambios abiertos: dile en simple cuáles hay y pregúntale. Si uno no se pudo unir, dile por qué en una frase. Solo Juan.',
       { cual: s('Cuál cambio: número, «App #número», palabras del título, enlace o «todos». Vacío para ver la lista') }, []),
-    T('ajustar_playbook', 'Cuando Juan corrige CÓMO trabaja uno de tus agentes («que Operaciones revise también las salidas»), guárdalo en su playbook para siempre. campo: reglas (lo normal), pasos (el orden) o listo (qué cumple antes de entregar). Si no está claro, antes una o dos preguntas. Solo administrador principal.',
+    T('ajustar_playbook', 'Cuando Juan corrige CÓMO trabaja uno de tus agentes («que Operaciones revise también las salidas»), guárdalo en su playbook para siempre. campo: reglas (lo normal), pasos (el orden) o listo (qué cumple antes de entregar). Si no está claro, antes una o dos preguntas. Solo Juan.',
       { agente: s('id del agente (los de pedir_a_agente)'), cambio: s('La regla, paso o condición de «listo», en una frase clara'), campo: s('reglas | pasos | listo') }, ['agente', 'cambio']),
-    T('estado_equipos', 'El estado de los equipos de Operaciones, Finanzas y Desarrollo, ya precargado (tareas, limitaciones y problemas): al instante. Úsala cuando Juan pregunte cómo van los equipos o uno de ellos; no corras pedir_a_agente para eso. Solo administrador principal.',
+    T('estado_equipos', 'El estado de los equipos de Operaciones, Finanzas y Desarrollo, ya precargado (tareas, limitaciones y problemas): al instante. Úsala cuando Juan pregunte cómo van los equipos o uno de ellos; no corras pedir_a_agente para eso. Solo Juan.',
       { equipos: s('Cuáles: operaciones, finanzas, desarrollo (vacío = los tres)') }, []),
     T('propuestas_agentes', 'Lo que tus agentes proponen y espera el sí de Juan (numeradas). Úsala cuando pregunte qué hay pendiente de los agentes o antes de aprobar.', {}),
     T('decidir_propuestas', 'Aprueba (se hace en ese momento) o rechaza propuestas de los agentes. Solo cuando Juan lo dice claro («apruébalas», «solo la 2», «la 3 no»).',
@@ -270,24 +270,25 @@ function agHerramientas_() {
       { para: s('Correo de destino'), asunto: s('Asunto corto'), texto: s('Cuerpo del correo, completo') }, ['para', 'asunto', 'texto']),
     T('guardar_familia', 'Guarda a alguien de la familia de Juan (su esposa, sus hijos, sus padres…) para que Alma lo reconozca cuando llama o escribe, lo trate por su nombre y le ayude con lo personal de Juan. Úsala cuando Juan diga quién es («Christine es mi esposa»). Si ya le escribiste antes, basta el nombre.',
       { nombre: s('Nombre de la persona'), relacion: s('Qué es de Juan: «esposa de Juan», «mamá de Juan»…'), numero: s('WhatsApp con código de país (opcional si ya hay conversación)') }, ['nombre', 'relacion']),
-    T('dar_acceso_mi_ayudante', 'Da al ayudante de un socio su propio usuario de Mi (su correo y su contraseña) que ve las propiedades del socio. Primero sin aplicar: dile a Juan qué haría y pregunta; con su sí, otra vez con aplicar = true. Solo administrador principal.',
+    T('dar_acceso_mi_ayudante', 'Da al ayudante de un socio su propio usuario de Mi (su correo y su contraseña) que ve las propiedades del socio. Primero sin aplicar: dile a Juan qué haría y pregunta; con su sí, otra vez con aplicar = true. Solo Juan.',
       { socio: s('Correo del socio'), correo: s('Correo del ayudante'), nombre: s('Nombre del ayudante'), aplicar: { type: 'boolean', description: 'true solo después del sí de Juan' } }, ['socio', 'correo', 'nombre']),
     T('guardar_nota', 'Guarda algo para recordarlo en conversaciones futuras con este administrador.', { texto: s('Lo que hay que recordar') }, ['texto']),
     /* Vigilancias (vigilancias.js): la revisión es código, sin IA; tú solo la armas y actúas al final. */
-    T('vigilar', '«Avísame cuando…»: vigila sin gastar IA y avisa a Juan cuando pase. que (objetivo): vuelo, cambia puerta, terminal u hora (confirmación o número de ver_vuelos); huesped_responde (código, conv_id o WhatsApp); pr_unido (enlace); reserva_cambia (código) o pagina_dice (https://…, con texto). Solo el administrador principal.',
+    T('vigilar', '«Avísame cuando…»: vigila sin gastar IA y avisa a Juan cuando pase. que (objetivo): vuelo, cambia puerta, terminal u hora (confirmación o número de ver_vuelos); huesped_responde (código, conv_id o WhatsApp); pr_unido (enlace); reserva_cambia (código) o pagina_dice (https://…, con texto). Solo Juan.',
       { que: { type: 'string', enum: ['vuelo', 'huesped_responde', 'pr_unido', 'reserva_cambia', 'pagina_dice'] }, objetivo: s('Qué vigilar (ver «que»)'), texto: s('Solo pagina_dice: el texto que debe aparecer'),
         cada_min: { type: 'number', description: 'Opcional: cada cuántos minutos (mínimo 5; la página, 15)' }, vence: s('Opcional: horas (número) o «AAAA-MM-DD HH:MM». Por defecto 48 h (un vuelo, hasta que sale); máximo 14 días'),
         al_pasar: { type: 'object', description: 'Qué hacer al pasar', properties: { avisar: s('El aviso para Juan, corto'), pedido: s('Opcional: lo que harás tú cuando pase («escríbele a Gabriel que…»), con todos los datos') } } }, ['que', 'objetivo']),
     T('dejar_de_vigilar', 'Para «deja de vigilar…»: cancela una vigilancia (por su id o palabras de lo que vigila).', { cual: s('id (vg…) o palabras: «el vuelo», «Marcela»') }, ['cual']),
     T('vigilancias', 'Lo que estás vigilando para Juan ahora.', {}),
     T('cupo_google', 'Cupo de Google: nivel, % y qué lo gasta.', {}),
+    T('modo_clasico', '«Activa/sal del modo clásico». Solo Juan.', { encender: { type: 'boolean' } }, ['encender']),   // clasico.js
     T('gasto_alma', 'Gasto de Alma del mes y en qué se va.', {}),
     /* Registro de pruebas del Modo inicio (pruebas.js, Juan 18-nov-2026, #764). */
     T('registro_de_pruebas', 'Registro de las pruebas del Modo inicio: empezar (2 h; luego avisa con el resumen), ver o parar.', { que: { type: 'string', enum: ['empezar', 'ver', 'parar'] }, horas: { type: 'number' } }, ['que']),
     /* Pedidos en órbita (orbita.js, Juan 14-nov-2026, #539): los anillos alrededor de la roca en el inicio de la app. */
     T('pedidos_en_orbita', 'Anillos del inicio: qué pidió, qué se hizo y cómo va. Si toca uno o pregunta «¿cómo va…?».', { nombre: s('Del anillo; vacío: todos') }),
     /* Avisos de aterrizaje (avisovuelo.js): Juan elige por viaje a quién; el código vigila y escribe. */
-    T('avisar_aterrizaje', '«Avísale a Lucky cuando aterrice»: Alma le escribe a cada persona si se retrasa, al aterrizar y cuánto tarda Juan en salir. quitar = true para dejar de avisar. Solo el administrador principal.',
+    T('avisar_aterrizaje', '«Avísale a Lucky cuando aterrice»: Alma le escribe a cada persona si se retrasa, al aterrizar y cuánto tarda Juan en salir. quitar = true para dejar de avisar. Solo Juan.',
       { vuelo: s('Confirmación o número de vuelo (de ver_vuelos)'), personas: { type: 'array', items: { type: 'string' }, description: 'Nombres; se resuelven solos, con su fuente' }, numero: s('WhatsApp con código de país, si es una sola persona nueva'),
         solo_en: s('Opcional: solo al llegar a esa ciudad o aeropuerto'), maleta: { type: 'boolean', description: 'Si lleva maleta documentada (si lo dijo)' }, quitar: { type: 'boolean' } }, ['vuelo']),
     { type: 'web_search_20250305', name: 'web_search', max_uses: 5, user_location: { type: 'approximate', city: 'Guatemala City', timezone: 'America/Guatemala' } }
@@ -913,6 +914,12 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     case 'dejar_de_vigilar': { var rdv = vigDejar_(adm, inp.cual); if (rdv.ok) ctx.hechas.push({ tipo: 'vigilancia', resumen: 'Dejé de vigilar · ' + rdv.dejaste }); return rdv; }
     case 'vigilancias': return { ok: true, vigilando: vigListaTexto_(adm) };
     case 'cupo_google': return cupoParaAlma_(adm);   // cupo.js
+    case 'modo_clasico': {
+      if (!esAdminPrincipal_(adm)) return { error: 'Solo Juan prende o apaga el Modo clásico.' };
+      var rcl = clasicoHerramienta_(Object.assign({}, adm, { principal: true }), inp);
+      if (rcl.ok) ctx.hechas.push({ tipo: 'personalidad', resumen: 'Modo clásico ' + (rcl.clasico ? 'prendido' : 'apagado') });
+      return rcl;
+    }
     case 'registro_de_pruebas': return pruebasParaAlma_(adm, inp);   // pruebas.js
     case 'gasto_alma': return gastoParaAlma_(adm);   // gasto.js
     case 'pedidos_en_orbita': { var rOr = orbitaExplicar_(adm, inp.nombre); if (rOr && rOr.ok) tvCandidata_('datos', function () { return tdPedido_(rOr); }); return rOr; }   // orbita.js; cómo va, en pantalla (tablero.js)

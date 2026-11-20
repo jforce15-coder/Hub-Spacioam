@@ -1373,7 +1373,7 @@ function vozWebInicio_(ses, ligero, app, claudio, vueltaDe, maricarmen) {
   try { var cs = calleSueno_(); out.calle_silencio_s = cs.silencio; out.calle_tope_s = cs.tope; } catch (e) { console.error('calleSueno_: ' + e); }
   /* Conversación continua en conferencia: cuándo cierra sola la app (confSueno_). */
   try { var cf = confSueno_(); out.conferencia_silencio_s = cf.silencio; out.conferencia_tope_s = cf.tope; } catch (e) { console.error('confSueno_: ' + e); }
-  try { var pf = personalidadFicha_(adm); if (pf) { dv.quien_llama += pf.bloque; delete pf.bloque; Object.assign(out, pf); } } catch (e) { console.error('personalidadFicha_: ' + e); }
+  try { var pf = personalidadFicha_(adm); if (pf) { dv.quien_llama += pf.bloque + (pf.clasico_regla || ''); delete pf.bloque; delete pf.clasico_regla; Object.assign(out, pf); } } catch (e) { console.error('personalidadFicha_: ' + e); }
   /* Pendientes (retomar.js, #607): el saludo es el normal; solo lo urgente va en la ficha para decirlo una vez. Ese cuenta
      como mencionado solo cuando la llamada de verdad empieza (vozWebVincular): en 2 llamadas deja de ser urgente. */
   var ret = null; try { ret = retFicha_(adm, nom); } catch (e) { console.error('retFicha_: ' + e); }

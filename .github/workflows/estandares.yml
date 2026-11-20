@@ -225,6 +225,10 @@ jobs:
         # 17-nov: Juan pidió que en Modo calle Alma conteste como comando corto («listo Llorens»).
         run: node .github/calle-comandos.js apps-script
 
+      - name: Modo clásico (Alma táctica y pasiva con Juan; «Copiado.»; Ajustes → Personalidad o «activa el modo clásico»)
+        # 20-nov: Juan pidió un modo como de combate militar donde Alma solo responde de forma pasiva (#923).
+        run: node .github/modo-clasico.js apps-script
+
       - name: Notificaciones humanas con sus datos y sin datos personales, y la voz de Alma lista antes de que la app la pida (dobles)
         # 13-nov: las notificaciones sonaban a sistema («Hay una pregunta sobre…») y a veces salían con la voz del iPhone porque
         # el audio se armaba en la misma petición y la app dejaba de esperar a los 8-12 s (#509 T1 y T2).

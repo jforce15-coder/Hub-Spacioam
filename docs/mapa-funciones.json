@@ -120,6 +120,15 @@
       "revisiones": [".github/bandeja-unica.js", ".github/bandeja-esferas.js"]
     },
     {
+      "id": "bandeja-iphone",
+      "funcion": "Bandeja unificada en el iPhone",
+      "app": "Alma",
+      "para_juan": "En el iPhone, Alma me saluda con lo de hoy y me ordena la bandeja en Te toca · Alma · Esperan · Listo.",
+      "como_verificar": ["Abre Ajustes → Bandeja en el iPhone.", "Arriba dice el saludo y cuántas personas escribieron hoy.", "Abajo se ven Te toca · Alma · Esperan · Listo; toca uno y cambia la lista."],
+      "bot": { "pagina": "alma/bandeja.html", "ancho": "telefono", "ver": ["#saludo", "#navtel button"], "tocar": "#navtel button:nth-child(2)", "luego": ["#cuerpo h2"] },
+      "revisiones": [".github/bandeja-unica.js"]
+    },
+    {
       "id": "correos",
       "funcion": "Correos",
       "app": "Alma",

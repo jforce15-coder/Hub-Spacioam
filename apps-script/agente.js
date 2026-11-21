@@ -171,6 +171,7 @@ function agHerramientas_() {
     T('preparar_uber', 'Deja listo un Uber para que solo confirme. Antes busca la dirección exacta (hospedaje con leer_correo o ver_proyecto; aeropuerto con su nombre completo); si no la hallas, destino vacío y dilo. Por WhatsApp pega texto_whatsapp; en llamada o en la app, enviar = true.', { origen: s('Dirección o lugar de salida; vacío = su ubicación actual'), destino: s('Dirección o lugar de llegada'), enviar: { type: 'boolean', description: 'true = mandarlo a su WhatsApp' } }, []),
     T('buscar_en_mi_chat', 'Tu chat completo con quien te habla (también días atrás): borradores que redactaste, lo que pidió o acordaron. Úsala antes de decir que no lo tienes. Entrega el texto tal cual.',
       { texto: s('Palabras del mensaje'), desde: s('Día YYYY-MM-DD, opcional'), hasta: s('Último día, opcional'), de: { type: 'string', enum: ['alma', 'yo'], description: 'alma: tus borradores' } }, []),
+    T('buscar_todo', 'Todo sobre una palabra: fotos, archivos, correos, mensajes y datos. Solo Juan.', { texto: s('Palabra o tema') }, ['texto']),   // buscartodo.js
     T('buscar_contacto', 'Ficha y TODO el historial de alguien que no es huésped: proveedores, técnicos, socios, potenciales socios, recepciones. Úsala para retomar o saber qué se habló con alguien («lo de Liliana»). Busca por nombre, empresa, servicio, apartamento o número; también a quien le escribiste en 30 días (con su número: no lo pidas).', { texto: s('Nombre, empresa, servicio, apartamento o número') }, ['texto']),
     T('ver_imagenes', 'Las imágenes recientes que mandó el huésped en la conversación de una reserva (capturas, comprobantes, fotos de un problema), para leerlas. Úsala si mencionan una imagen o ver_conversacion marca [imagen].',
       { codigo: s('Código de reserva o conv_id'), cuantas: { type: 'integer', description: 'Cuántas imágenes recientes (1 a 4, por defecto 4)' } }, ['codigo']),
@@ -580,6 +581,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var rCal = calendarioHerramienta_(nombre, inp); if (nombre === 'ver_agenda' && rCal && rCal.ok) tvCandidata_('datos', function () { return tdAgenda_(rCal); }); if (rCal.hecho) ctx.hechas.push({ tipo: 'calendario', resumen: rCal.hecho }); return rCal;
     }
     case 'preparar_uber': { var rU = uberHerramienta_(adm, inp); if (rU.enviado) ctx.hechas.push({ tipo: 'uber', resumen: 'Uber listo por WhatsApp · ' + (rU.destino || rU.origen) }); return rU; }   // uber.js
+    case 'buscar_todo': return buscarTodo_(adm, inp);   // buscartodo.js: Drive, correo, chat y datos (solo el principal)
     case 'buscar_en_mi_chat': return chatBuscar_(adm, inp);   // chatbuscar.js: solo el chat de quien habla
     case 'buscar_contacto': {
       var fichas = contactoBuscar_(inp.texto);

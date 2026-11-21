@@ -1,4 +1,4 @@
-/* ═══ BUSCAR EN TODO (pedido pc1795284175075, Juan, 21-nov-2026, #964) ═══════════════════════════════════════════════
+/* ═══ Buscar en todo (pedido pc1795284175075, Juan, 21-nov-2026, #964) ═══════════════════════════════════════════════
    Juan: «Imágenes, archivos, textos, correos que cuando Alma busque un Keyboard, entonces encuentre todo una lista de
    archivos e información disponible sobre esa información».
    buscar_todo junta en UNA lista lo que hay sobre una palabra o un tema, de todas partes a la vez:

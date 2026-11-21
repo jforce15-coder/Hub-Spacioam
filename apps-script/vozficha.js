@@ -15,7 +15,7 @@ var VOZ_YA_IDENTIFICADO_ = ' Ya está identificado por el Hub: NO llames lookup_
 
 /* ── A1: con un administrador (caller_type juan, o equipo con rol admin). Va en su ficha; lookup_reservation además lo
    recuerda si la llaman de más (vozLookup_). ── */
-var VOZ_FICHA_ADMIN_ = '\nCON UN ADMINISTRADOR: NUNCA lookup_reservation NI hospitable_router en esta llamada (ni para identificarle, ni para buscar una reserva o un huésped): cada consulta tarda y lo que pida va completo por secretaria (o a_mano). Las personas del equipo (Jorge, Gabriel, Santiago, técnicos, recepciones de edificios) no son huéspedes: nunca busques «la reserva de» alguien del equipo.';
+var VOZ_FICHA_ADMIN_ = '\nCON UN ADMINISTRADOR: NUNCA lookup_reservation NI hospitable_router en esta llamada (ni para identificarle, ni para buscar una reserva o un huésped): cada consulta tarda; lo que pida va por secretaria, a_mano o enviar_confirmado, según la descripción de cada una. Las personas del equipo (Jorge, Gabriel, Santiago, técnicos, recepciones de edificios) no son huéspedes: nunca busques «la reserva de» alguien del equipo.';
 
 function vozEsAdminTel_(tel) { try { return !!(tel && adminPorTel_(tel)); } catch (e) { return false; } }
 

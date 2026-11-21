@@ -91,8 +91,8 @@ aplica a una audiencia o un dispositivo; C: ~2 000 quitando lo duplicado). Orden
 borra la línea), luego A4–A6, luego A9 y A1, luego B. A8 toca ElevenLabs: solo con una llamada real de prueba.
 
 **Hecho el 21-nov-2026** (Juan: «Vámonos con las tres partes de una vez, pero con prueba de calidad en cada parte»):
-de 42 798 a 33 988 caracteres (−8 810; tope nuevo 35 700 en `.github/presupuesto-prompts.json`). Ninguna regla se borró:
-- **A** (−~3 300): A1, A2, A3, A4–A6, A5, A9, A10 y A11 viven en `apps-script/vozficha.js` (guardas de secretaria,
+de 42 798 a 34 105 caracteres (−8 693; tope nuevo 35 800 en `.github/presupuesto-prompts.json`). Ninguna regla se borró:
+- **A** (−~3 350; A10 deja una línea corta en el prompt, la compuerta la pidió): A1, A2, A3, A4–A6, A5, A9, A10 y A11 viven en `apps-script/vozficha.js` (guardas de secretaria,
   `codigo_puerta` y `momento` de property_info y lookup_reservation, la ficha por número) y en la descripción de secretaria.
   **A12** queda también en el prompt (lo pide el check de dato con fuente) y en secretaria. **A7** (fechas y montos como persona) no se movió: sigue en el prompt (moverla pedía pasar números a palabras en
   cada herramienta). **A8** no se tocó (ElevenLabs).

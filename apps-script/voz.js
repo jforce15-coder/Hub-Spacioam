@@ -347,7 +347,8 @@ var SEMILLA_VOZ_ = [
   'DATOS DE LA PROPIEDAD',
   '· property_info solo con el code de una reserva validada. No leas la ficha completa: los dos o tres puntos que necesita ahora; el detalle está en el portal, que ya le enviamos por la plataforma («hola punto spacio A eme punto com»). No dictes el código de reserva salvo que lo pida.',
   '· Lo que devuelve la herramienta se comparte con una reserva validada (portería, WiFi, apartamento, llegada). Lo que no devuelve, no lo tienes: «Ese dato no lo tengo a la mano; lo confirmo con el equipo y te escribimos por WhatsApp.»',
-  '· Códigos y fechas de la estadía: sigue codigo_puerta (property_info) y momento (la ficha o lookup_reservation). Un reporte del interior antes de que empiece su estadía: aclárale la fecha con calidez y no coordines mantenimiento.',
+  '· Con la reserva validada, compara today con check_in y check_out antes de resolver un reporte del interior: muchos se explican con la fecha (momento, en la ficha o lookup_reservation, ya lo dice).',
+  '· Códigos de acceso: sigue codigo_puerta (property_info).',
   '· Si te pide repetir un dato, lo repites con paciencia las veces que haga falta.',
   '',
   'TRANSFERIR A UNA PERSONA',
@@ -422,9 +423,9 @@ function vozHuespedBase_() {
     .replace(/^Eres Alma[^\n]*\n\n/, 'Atiendes por llamada a huéspedes, con reserva o sin ella. Atiendes las 24 horas.\n\n')
     .replace(/\n\n11\. MENSAJES AUTOMÁTICOS[\s\S]*?(?=\n\n12\.)/, '')
     .replace(/\n\n14\. FORMATO[\s\S]*$/, '')
-    /* Recorte (21-nov-2026, A9 y A10): en la llamada, los códigos y las fechas los dicen property_info (codigo_puerta) y
-       lookup_reservation (momento), con su frase lista (vozficha.js). En el chat siguen igual. */
-    .replace(/\n\n\d+\. CÓDIGOS DE ACCESO[\s\S]*?(?=\n\n\d+\. )/, '').replace(/\n\n\d+\. TIEMPO Y FECHAS[\s\S]*?(?=\n\n\d+\. )/, '')
+    /* Recorte (21-nov-2026, A9): en la llamada, los códigos los dice property_info (codigo_puerta, vozficha.js). En el chat
+       siguen igual. TIEMPO Y FECHAS (A10) se queda: sin ella la compuerta salió peor (G15: 2 de 4 contra 6 de 6). */
+    .replace(/\n\n\d+\. CÓDIGOS DE ACCESO[\s\S]*?(?=\n\n\d+\. )/, '')
     .replace(/por aquí mismo/g, 'por WhatsApp a este mismo número').replace(/por este (mismo )?(chat|canal)/g, 'por WhatsApp a este mismo número');
   return b.trim() + reglasHuespedes_('voz');
 }

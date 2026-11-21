@@ -14,7 +14,7 @@ const sinFicha = (() => { const o = JSON.parse(p.voz[0]); delete o.ficha_de_quie
 /* ── El prompt general ya no trae lo que se movió ── */
 ['MÚSICA (solo caller_type juan', 'MOSTRAR EN EL CHAT (solo si', 'MANOS DE ALMA', 'ATAJOS DE iOS', 'MEJORAS DEL SISTEMA', 'DERIVAR A CLAUDIO',
   'AVÍSAME CUANDO', 'NUNCA lookup_reservation NI hospitable_router CON EL EQUIPO', 'Si secretaria devuelve ok:false', 'Nunca mandes un pedido en primer plano',
-  'Si secretaria falla, no lo reintentes', 'Hay dos códigos distintos', 'Compara HOY con CHECKIN', 'secretaria: Hace lo que pide'].forEach(t =>
+  'Si secretaria falla, no lo reintentes', 'Hay dos códigos distintos', 'secretaria: Hace lo que pide'].forEach(t =>
   ok(sinFicha.indexOf(t) < 0, 'el prompt de voz ya no trae «' + t + '» (vive en el código o en la ficha)'));
 
 /* ── Dobles: quién llama, sin hojas ── */

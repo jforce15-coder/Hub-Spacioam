@@ -11,6 +11,9 @@
    4. Solo el administrador principal ve el gasto y cambia la tabla.
    5. Pareto: abre como mucho 2 por semana, solo de lo que suma el 80 % y nunca dos veces el mismo lugar; el pedido a
       Claude va en JSON, sin montos, con la compuerta de calidad en sus pasos.
+   6. Se aplica solo (Juan, 21-nov-2026): el proyecto que pasa la compuerta y tiene las revisiones en verde se une solo
+      (squash con el sha de la cabeza); el que sale peor o no ahorra se cierra; lo que toca la voz o ElevenLabs espera a
+      Juan; con revisiones corriendo o en rojo, espera. Gasto de Alma ve qué se aplicó, cuánto ahorra y la calidad.
    node .github/gasto-calidad.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -164,5 +167,66 @@ if (process.env.TITULO || process.env.CUERPO) {
   const { ctx: c2, pedidos: p2 } = caja({ uso, el, ahora: lunes, props: { GASTO_PARETO: '0' } });
   c2.gastoParetoSiToca_();
   ok(p2.length === 0, '5 · GASTO_PARETO = 0 lo apaga');
+}
+/* 6 · Se aplica solo lo que pasa la compuerta (Juan, 21-nov-2026) */
+{
+  const { ctx, hojas } = caja({ ahora: '2026-11-21T18:00:00Z' });
+  const CAB = ctx.GASTO_AHORRO_CAB_, sh = ctx.hojaCrear_('GASTO_AHORRO', CAB);
+  const fila = (id, tipo, lugar) => { const r = CAB.map(() => ''); r[0] = id; r[2] = lugar; r[3] = tipo; r[4] = 30; r[5] = 40; r[9] = 'm' + id; r[12] = 'en trabajo'; r[14] = 'pendiente'; return r; };
+  const comp = (ver, ah) => '## Resumen\nx\n\n## Compuerta de calidad\nAntes: 20 casos\nDespués: 20 casos\nVeredicto: ' + ver + '\nAhorro medido: ' + ah + ' %\n\n## Cómo probarlo\ny';
+  const PR = {
+    1: { body: comp('igual', 30), files: ['apps-script/gasto.js'], ck: { total: 5, ok: 5, corriendo: 0, fallas: 0 } },
+    2: { body: comp('peor', 40), files: ['apps-script/agente.js'], ck: { total: 5, ok: 5, corriendo: 0, fallas: 0 } },
+    3: { body: comp('mejor', 20), files: ['apps-script/voz.js'], ck: { total: 5, ok: 5, corriendo: 0, fallas: 0 } },
+    4: { body: comp('igual', 15), files: ['apps-script/rapido.js'], ck: { total: 5, ok: 5, corriendo: 0, fallas: 0 } },
+    5: { body: comp('igual', 10), files: ['apps-script/rapido.js'], ck: { total: 5, ok: 4, corriendo: 0, fallas: 1 } },
+    6: { body: '## Resumen\nsin compuerta todavía', files: ['apps-script/rapido.js'], ck: { total: 5, ok: 5, corriendo: 0, fallas: 0 } },
+    7: { body: comp('igual', 0), files: ['apps-script/rapido.js'], ck: { total: 5, ok: 5, corriendo: 0, fallas: 0 } }
+  };
+  [['a1', 'claude', 'Claude · F1'], ['a2', 'claude', 'Claude · F2'], ['a3', 'claude', 'Claude · F3'], ['a4', 'elevenlabs', 'ElevenLabs · App'], ['a5', 'claude', 'Claude · F5'], ['a6', 'claude', 'Claude · F6'], ['a7', 'claude', 'Claude · F7']]
+    .forEach((x) => sh.appendRow(fila(...x)));
+  ctx.microLeer_ = (id) => ({ pr: 'https://github.com/o/r/pull/' + id.replace(/\D/g, '') });
+  const llamadas = [];
+  ctx.unirGh_ = (metodo, ruta, cuerpo) => {
+    llamadas.push({ metodo, ruta, cuerpo });
+    const n = +((/\/(?:pulls|issues)\/(\d+)/.exec(ruta) || [])[1]);
+    if (metodo === 'get' && /\/files/.test(ruta)) return { codigo: 200, j: PR[n].files.map((f) => ({ filename: f, patch: '+ algo' })) };
+    if (metodo === 'get') return { codigo: 200, j: { number: n, title: 'Ahorro · F' + n, state: 'open', draft: false, mergeable: true, body: PR[n].body, head: { sha: 'sha' + n } } };
+    if (metodo === 'put') return { codigo: 200, j: { merged: true } };
+    return { codigo: 200, j: {} };
+  };
+  ctx.paraClaudeChecks_ = (repo, sha) => PR[+sha.replace('sha', '')].ck;
+  /* El lunes (sin aplicar): solo lee, nunca une. */
+  ctx.gastoAhorroSincronizar_();
+  ok(!llamadas.some((x) => x.metodo === 'put' || x.metodo === 'patch'), '6 · la lectura de los lunes no une ni cierra nada');
+  llamadas.length = 0;
+  const r = ctx.gastoAhorroRevisar_();
+  const unidos = llamadas.filter((x) => x.metodo === 'put'), cerrados = llamadas.filter((x) => x.metodo === 'patch');
+  ok(unidos.length === 1 && /pulls\/1\/merge$/.test(unidos[0].ruta) && unidos[0].cuerpo.merge_method === 'squash' && unidos[0].cuerpo.sha === 'sha1', '6 · pasó la compuerta y revisiones en verde: se une solo, squash con el sha de la cabeza');
+  ok(cerrados.length === 2 && cerrados.some((x) => /pulls\/2$/.test(x.ruta)) && cerrados.some((x) => /pulls\/7$/.test(x.ruta)), '6 · calidad peor o sin ahorro: se cierra (descartado)');
+  ok(llamadas.some((x) => x.metodo === 'post' && /issues\/2\/comments/.test(x.ruta)), '6 · el PR descartado dice por qué');
+  const L = {}; ctx.gastoAhorroLista_().forEach((x) => { L[x.id] = x; });
+  ok(L.a1.estado === 'aplicado' && L.a1.decision === 'auto' && L.a1.aplicado && L.a1.calidad === 'igual' && L.a1.ahorro_medido_pct === 30, '6 · Gasto de Alma: qué se aplicó, cuándo y con qué calidad');
+  ok(L.a1.ahorro_usd_mes === 12, '6 · cuánto ahorra al mes (estimado: 30 días × ahorro medido)');
+  ok(L.a2.estado === 'descartado' && /peor/.test(L.a2.motivo), '6 · el peor queda descartado con su motivo');
+  ok(L.a3.estado === 'espera a Juan' && /voz/.test(L.a3.motivo), '6 · toca la voz (voz.js): no se aplica solo, espera a Juan');
+  ok(L.a4.estado === 'espera a Juan' && /ElevenLabs/.test(L.a4.motivo), '6 · un lugar de ElevenLabs: espera a Juan');
+  ok(L.a5.estado === 'en revisión' && /rojo/.test(L.a5.motivo), '6 · revisiones en rojo: no se une, espera el arreglo');
+  ok(L.a6.estado === 'en revisión' && /compuerta/.test(L.a6.motivo), '6 · sin compuerta completa: sigue en revisión');
+  ok(L.a7.estado === 'descartado' && /no ahorra/.test(L.a7.motivo), '6 · ahorro medido 0 %: descartado');
+  ok(r && r.hechos.length === 3, '6 · la vuelta de cada hora dice lo que hizo');
+  llamadas.length = 0; ctx.gastoAhorroRevisar_();
+  ok(!llamadas.some((x) => x.metodo === 'put' && /pulls\/1\//.test(x.ruta)), '6 · lo ya aplicado no se vuelve a tocar');
+  /* La regla sola, sin red */
+  const D = { state: 'open', mergeable: true, head: { sha: 's' } }, V = ctx.gastoCompuerta_(comp('igual', 12));
+  ok(ctx.gastoAhorroDecidir_(D, V, { total: 3, ok: 1, corriendo: 2, fallas: 0 }, '').estado === 'en revisión', '6 · revisiones corriendo: espera');
+  ok(ctx.gastoAhorroDecidir_(Object.assign({}, D, { mergeable: false }), V, { total: 3, ok: 3, corriendo: 0, fallas: 0 }, '').unir === false, '6 · choca con main: no se une');
+  ok(ctx.gastoAhorroDecidir_(D, V, { total: 3, ok: 3, corriendo: 0, fallas: 0 }, 'no pude leer sus archivos').estado === 'espera a Juan', '6 · sin poder leer los archivos: espera a Juan');
+  const { ctx: c3 } = caja({ props: { GASTO_AHORRO_AUTO: '0' } });
+  const sh3 = c3.hojaCrear_('GASTO_AHORRO', c3.GASTO_AHORRO_CAB_); sh3.appendRow(fila('b1', 'claude', 'Claude · F1'));
+  const ll3 = []; c3.microLeer_ = ctx.microLeer_; c3.paraClaudeChecks_ = ctx.paraClaudeChecks_;
+  c3.unirGh_ = (m, ruta, cu) => { ll3.push(m); return ctx.unirGh_(m, ruta, cu); };
+  c3.gastoAhorroRevisar_();
+  ok(!ll3.includes('put') && !ll3.includes('patch'), '6 · GASTO_AHORRO_AUTO = 0: nada se une solo');
 }
 process.exit(fallo);

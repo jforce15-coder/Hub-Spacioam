@@ -352,20 +352,24 @@
 
   function ahorro(L) {
     var caja = el("div", "ahorro");
-    var rg = el("div", "regla"); rg.innerHTML = "Cada lunes el equipo toma lo poco que suma el <b>80 %</b> del gasto por uso y abre un microproyecto para bajarlo. <b>Ninguno se une sin la compuerta de calidad</b>: los mismos casos reales antes y después, con el mismo resultado útil. Si la calidad baja, se descarta.";
+    var rg = el("div", "regla"); rg.innerHTML = "Cada lunes el equipo toma lo poco que suma el <b>80 %</b> del gasto por uso y abre un microproyecto para bajarlo. <b>Lo que pasa la compuerta de calidad se aplica solo</b>: las mismas preguntas reales antes y después, y la respuesta no sale peor. Si la calidad baja o no ahorra, se descarta. Lo que toca la voz o ElevenLabs espera a Juan.";
     caja.appendChild(rg);
     if (!L.length) { caja.appendChild(el("p", "nota", "Todavía no hay proyectos: el primero sale el lunes.")); return caja; }
-    var EST = { propuesto: "Propuesto", "en trabajo": "En trabajo", "en revisión": "En revisión", unido: "Unido", descartado: "Descartado" };
+    var EST = { propuesto: "Propuesto", "en trabajo": "En trabajo", "en revisión": "En revisión", unido: "Unido", aplicado: "Aplicado solo", "espera a Juan": "Espera a Juan", descartado: "Descartado" };
     L.forEach(function (x) {
       var c = el("div", "proy"), cab = el("div", "cab"); cab.appendChild(el("b", "", x.lugar));
-      cab.appendChild(chip(x.estado === "unido" ? "unido" : x.estado === "descartado" ? "descartado" : "estimado", EST[x.estado] || x.estado));
+      cab.appendChild(chip(x.estado === "unido" || x.estado === "aplicado" ? "unido" : x.estado === "descartado" ? "descartado" : "estimado", EST[x.estado] || x.estado));
       cab.appendChild(chip(x.calidad === "pendiente" ? "" : x.calidad, x.calidad === "pendiente" ? "Calidad por medir" : "Calidad " + x.calidad)); c.appendChild(cab);
       c.appendChild(el("p", "", x.hipotesis));
       var nm = el("div", "num"), a = el("div"), b = el("div"), d = el("div");
       a.appendChild(el("b", "", es.format(x.pct_gasto) + " %")); a.appendChild(el("span", "", "del gasto por uso"));
       b.appendChild(el("b", "", x.ahorro_esperado_pct + " %")); b.appendChild(el("span", "", "ahorro esperado"));
       d.appendChild(el("b", "", x.ahorro_medido_pct == null ? "—" : es.format(x.ahorro_medido_pct) + " %")); d.appendChild(el("span", "", "ahorro medido"));
-      [a, b, d].forEach(function (y) { nm.appendChild(y); }); c.appendChild(nm);
+      var m = el("div"); m.appendChild(el("b", "", x.ahorro_usd_mes == null ? "—" : usd(x.ahorro_usd_mes))); m.appendChild(el("span", "", "ahorra al mes (estimado)"));
+      [a, b, d, m].forEach(function (y) { nm.appendChild(y); }); c.appendChild(nm);
+      /* Registro de la decisión (Juan, 21-nov-2026): qué se aplicó solo y cuándo, qué se descartó y por qué, qué espera a Juan. */
+      if (x.estado === "aplicado" || x.decision === "auto") c.appendChild(el("p", "", "Se aplicó solo" + (x.aplicado ? " el " + new Date(x.aplicado).toLocaleDateString("es-ES", { day: "numeric", month: "short" }) : "") + ": pasó la compuerta con calidad " + x.calidad + "."));
+      else if (x.motivo) c.appendChild(el("p", "", (x.estado === "descartado" ? "Descartado: " : x.estado === "espera a Juan" ? "Espera a Juan: " : "Por ahora: ") + x.motivo + "."));
       c.appendChild(el("p", "", "Cómo se mide la calidad: " + x.calidad_como));
       if (x.pr) { var ir = el("a", "ir", "Ver el cambio ›"); ir.href = x.pr; ir.target = "_blank"; ir.rel = "noopener"; c.appendChild(ir); }
       caja.appendChild(c);

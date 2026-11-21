@@ -3229,6 +3229,7 @@ function aprender() {
   try { memoriaAprender_(); } catch (e) { console.error('memoriaAprender_: ' + e); }   // memoria de propiedades: corre aunque las propuestas de mejora estén apagadas
   try { cerebroAsegurarActivador_(); } catch (e) { console.error('cerebroAsegurarActivador_: ' + e); }   // cerebro de Alma: activador de 15 min, solo si está configurado (cerebro.js)
   try { cerebroPruebaSiToca_(); } catch (e) { console.error('cerebroPruebaSiToca_: ' + e); }
+  try { gastoAhorroRevisar_(); } catch (e) { console.error('gastoAhorroRevisar_: ' + e); }   // ahorro 80/20: lo que pasó la compuerta se aplica solo; lo peor se descarta (gasto.js, Juan 21-nov-2026)
   try { gastoParetoSiToca_(); } catch (e) { console.error('gastoParetoSiToca_: ' + e); }   // equipo de ahorro Pareto 80/20: cada lunes desde las 9 (gasto.js)   // la prueba del cerebro: cada lunes desde las 7 (cerebro_prueba.js)
   try { libroImportarSiToca_(); } catch (e) { console.error('libroImportarSiToca_: ' + e); }
   try { pagLimpiar_(); } catch (e) { console.error('pagLimpiar_: ' + e); }   // páginas explicativas: se borran a los 7 días (paginaexplicativa.js)   // Libro de transacciones: lo de Mi, una vez al mes desde el 11 (libro.js)
@@ -5698,7 +5699,7 @@ function dsBotApi_(body) {
       case 'pagina_explicativa': return json_(pagRobot_(body));   // crear con datos de prueba, estado, HTML o borrar (paginaexplicativa.js)
       case 'gasto': return json_(gastoReporte_(body.mes, body.fresco || false));   // el reporte de gasto (gasto.js)
       case 'gasto_planes': return json_(body.planes ? (gastoPlanesGuardar_(body.planes), { ok: true, planes: gastoPlanes_() }) : { ok: true, planes: gastoPlanes_() });   // la tabla de planes desde los recibos: solo en la propiedad, nunca en el repo
-      case 'gasto_pareto': return json_(body.sincronizar ? gastoAhorroSincronizar_() : gastoPareto_(body.seco !== false));   // el equipo de ahorro: qué abriría (seco) o abrirlo ya
+      case 'gasto_pareto': return json_(body.sincronizar ? gastoAhorroSincronizar_(!!body.aplicar) : gastoPareto_(body.seco !== false));   // el equipo de ahorro: qué abriría (seco) o abrirlo ya; sincronizar + aplicar une solo lo que pasó la compuerta
       case 'voz_recoger': return json_(vozRecoger_(true));
       case 'voz_turnos': return json_(vozTurnos_(body.eagerness));
       case 'voz_inicio': return json_(vozConfigInicio_(body.k));

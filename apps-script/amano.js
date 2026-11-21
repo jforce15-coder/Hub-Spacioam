@@ -18,8 +18,10 @@
      (amanoBloque_). Siempre dice de cuándo es el dato y nunca inventa: si no está en el paquete, usa la secretaria.
    · Calidad: cada vez que la copia de Epi se renueva, se compara lo que decía el paquete con lo nuevo (AMANO_CALIDAD);
      el robot amano_prueba lo compara con Epi en vivo y, si no coincide, el paquete no se usa por AMANO_DUDA_MIN_ minutos.
+   · Atajo (21-nov-2026, amanoAtajo_): la secretaria de voz contesta con el paquete un pedido de leer un tema que lo tiene,
+     sin IA; la segunda pregunta del mismo tema en la llamada va a la secretaria completa.
    · Medición (robot amano_medir): pedidos a la secretaria por llamada, cuántos eran de leer un tema con paquete y cuánto
-     tardaron, por día; más los usos de a_mano (AMANO_USO). AMANO_ON = 0 lo apaga todo. */
+     tardaron, por día; más los usos de a_mano y del atajo (AMANO_USO). AMANO_ON = 0 lo apaga todo. */
 
 var AMANO_VIDA_MIN_ = 60, AMANO_UMBRAL_ = 40, AMANO_MENCION_ = 60, AMANO_HERR_ = 50, AMANO_MANANA_ = [6, 11], AMANO_MANANA_PISO_ = 60;
 var AMANO_VIEJO_MIN_ = 45, AMANO_DUDA_MIN_ = 30, AMANO_FICHA_MAX_ = 900, AMANO_BLOQUE_MAX_ = 1600, AMANO_GUARDA_S_ = 21600, AMANO_MAX_TEMAS_ = 8;
@@ -352,6 +354,45 @@ function amanoParaSecretaria_(adm, pedido) {
   } catch (e) { return ''; }
 }
 
+/* ── Atajo en la secretaria (21-nov-2026) ──
+   La medición del 19 y 20-nov: las fichas con A la mano se armaron (124) y coincidían con Epi en vivo, pero la voz nunca
+   llamó a a_mano (ElevenLabs: 1 llamada en total): sus reglas para un administrador dicen «usa secretaria» para todo lo
+   operativo y el modelo de voz las sigue antes que la línea de a_mano o la de la ficha. Cada pregunta de leer limpieza,
+   socio o reserva tardó ~27 s en la secretaria aunque la respuesta ya estaba preparada.
+   Arreglo en código (sin tocar el prompt de voz ni ElevenLabs): la secretaria contesta primero con el paquete cuando el
+   pedido es de LEER un tema que tiene paquete usable (sin IA, ~1 s). Si la voz vuelve a preguntar del mismo tema en esa
+   llamada (AMANO_ATAJO_S_), es que el paquete no alcanzó: ese pedido va a la secretaria completa, como siempre.
+   Lo que el paquete no tiene (mensajes, lo que dijo alguien, por qué pasó algo, dinero, otro día) nunca toma el atajo. */
+var AMANO_ATAJO_S_ = 180;
+var AMANO_ATAJO_NO_ = /\b(mensajes?|conversacion\w*|chats?|escribi\w*|dijo|dijeron|contest\w*|respond\w*|respuesta|paso|queja\w*|por ?que|fotos?|historial|correos?|cobr\w*|pago|pagos|dinero|precio\w*|monto\w*)\b/;   // sobre el texto sin acentos (amanoNorm_)
+/* Otro día que el paquete no trae: ayer, la semana, una fecha o un día con nombre; «mañana» antes de las 7 p. m. (no «en la mañana»). */
+var AMANO_ATAJO_DIA_ = /\b(ayer|anoche|pasado manana|semana|mes|lunes|martes|miercoles|jueves|viernes|sabado|domingo|\d{1,2} de [a-z]+|\d{1,2}\/\d{1,2})\b/;
+function amanoAtajoOtroDia_(t) {
+  var n = amanoNorm_(t).replace(/(de|en|por|esta) la manana|esta manana|en la manana/g, ' ');
+  return AMANO_ATAJO_DIA_.test(n) || (/\bmanana\b/.test(n) && amanoHora_() < RUTA_HORA_VISIBLE_);
+}
+function amanoAtajo_(adm, pedido, convId) {
+  if (!adm || !adm.email || !amanoOn_()) return null;
+  var t = String(pedido || '').trim(); if (!t || t.length > 300) return null;
+  if (AMANO_ATAJO_NO_.test(amanoNorm_(t)) || amanoAtajoOtroDia_(t) || (typeof rapidoPideHacer_ === 'function' && rapidoPideHacer_(t))) return null;
+  var t0 = Date.now(), p = null, nt = ' ' + amanoNorm_(t) + ' ';
+  if (AMANO_TEMAS_.limpieza.re.test(t)) p = amanoPaquete_('limpieza', '', true);   // de la copia de Epi y la hoja: sin internet
+  else amanoCerca_(adm).forEach(function (x) {
+    if (p || /\?$/.test(x.clave) || amanoBase_(x.clave) === 'limpieza') return;
+    var y = amanoLeer_(x.clave);
+    if (y && (y.llaves || []).some(function (k) { k = amanoNorm_(k); return k.length >= 3 && nt.indexOf(' ' + k + ' ') >= 0; })) p = y;
+  });
+  if (!amanoUsable_(p)) return null;
+  var base = amanoBase_(p.clave), c = CacheService.getScriptCache(), marca = 'AMANO_ATAJO_' + amanoNorm_(convId || adm.email).replace(/\s+/g, '_').slice(0, 120) + '_' + base;
+  if (c.get(marca)) return null;   // segunda pregunta del mismo tema en la llamada: el paquete no alcanzó, va a la secretaria completa
+  c.put(marca, '1', AMANO_ATAJO_S_);
+  amanoAcercar_(adm, [{ clave: p.clave, puntos: AMANO_HERR_, q: t }]);
+  amanoUso_('atajo_' + base, Date.now() - t0);
+  return { clave: p.clave, tema: base, de: amanoDe_(p), corto: p.corto,
+    resultado: 'A LA MANO (' + amanoDe_(p) + '; ' + p.fuente + '): ' + p.corto + (p.detalle.length ? '\n' + p.detalle.join('\n').slice(0, 2500) : ''),
+    regla: 'Contesta solo con esto, corto, sin repetir la frase de espera. Si tiene más de 15 min, di de cuándo es. Si no responde lo que pidió, vuelve a llamar secretaria con el mismo pedido: esa vez lo busca completo.' };
+}
+
 /* ── Uso y medición ── */
 var AMANO_PRUEBA_ = false;   // la prueba del robot no cuenta como uso
 function amanoUso_(que, ms) {
@@ -387,11 +428,12 @@ function amanoMedir_(dias) {
   return { ok: true, desde: desde, nota: 'pedidos = pedidos de la voz a la secretaria; leer_tema = de leer y de limpieza, socio o reserva; s = segundos del Hub (sin lo que tarda ElevenLabs).',
     por_dia: Object.keys(por).sort().map(function (k) {
       var d = por[k], u = uso[k] || {};
-      var voz = Object.keys(u).filter(function (x) { return /^voz_(limpieza|socio|reserva)$/.test(x); }).reduce(function (n, x) { return n + u[x]; }, 0);
-      var vozMs = Object.keys(u).filter(function (x) { return /^voz_(limpieza|socio|reserva)_ms$/.test(x); }).reduce(function (n, x) { return n + u[x]; }, 0);
+      var suma = function (re) { return Object.keys(u).filter(function (x) { return re.test(x); }).reduce(function (n, x) { return n + u[x]; }, 0); };
+      var atajo = suma(/^atajo_(limpieza|socio|reserva)$/), voz = suma(/^voz_(limpieza|socio|reserva)$/) + atajo;
+      var vozMs = suma(/^voz_(limpieza|socio|reserva)_ms$/) + suma(/^atajo_(limpieza|socio|reserva)_ms$/);
       return { dia: k, pedidos: d.pedidos, s_prom: d.con_tiempo ? Math.round(d.s_total / d.con_tiempo * 10) / 10 : null, leer_tema: d.leer_tema, por_tema: d.por_tema,
         s_prom_leer_tema: d.con_tiempo_tema ? Math.round(d.s_leer_tema / d.con_tiempo_tema * 10) / 10 : null, s_secretaria_leer_tema: Math.round(d.s_leer_tema),
-        a_mano: voz, a_mano_ms_prom: voz ? Math.round(vozMs / voz) : null, a_mano_sin_dato: u.voz_falta || 0, fichas_con_a_la_mano: u.ficha || 0, bloques_en_chat: u.bloque || 0,
+        a_mano: voz, a_mano_atajo_secretaria: atajo, a_mano_ms_prom: voz ? Math.round(vozMs / voz) : null, a_mano_sin_dato: u.voz_falta || 0, fichas_con_a_la_mano: u.ficha || 0, bloques_en_chat: u.bloque || 0,
         calidad: cal[k] || null };
     }) };
 }

@@ -80,7 +80,9 @@ Nada de transcripciones, fotos ni resúmenes en el repo, los PRs o los issues: e
   con el botón «Unir» de Pendientes en la app de Alma o pidiéndoselo a Alma (`unir_cambio`). Nadie une sin que él lo pida.
   Excepción (Juan, 12-nov-2026): «Alma une sola únicamente cuando el usuario administrador principal hace un pedido y es
   necesaria alguna mejora o cambio para poder entregar el resultado solicitado» (con las revisiones del PR en verde; si
-  fallan o chocan, no une y le avisa con el enlace; `apps-script/escalar.js`). Español en commits, PRs y textos.
+  fallan o chocan, no une y le avisa con el enlace; `apps-script/escalar.js`). Excepción (Juan, 21-nov-2026): un PR del
+  **equipo de ahorro** (Pareto 80/20) que pasa la compuerta de calidad, con revisiones en verde, el Hub lo une solo; si
+  toca el prompt de voz o ElevenLabs, espera a Juan (`apps-script/gasto.js`). Español en commits, PRs y textos.
 - Commits terminan con las líneas de atribución que indique la sesión. Ningún identificador de modelo en commits ni PRs.
 - Apps Script junta todos los archivos: un nombre declarado dos veces lo tumba (hay un check).
 - Si cambias `js/sa-nav.js` o `js/alma-client.js`, sube su `?v=` en todas las páginas que lo cargan (hay un check).

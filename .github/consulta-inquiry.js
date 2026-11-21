@@ -155,6 +155,6 @@ const MSG = 'Hola Marisol, te saluda Alma.\n\nLa tarifa especial se aplica sola 
 /* 6 · nunca prometer pantalla */
 { const voz = leer('voz.js'), fuente = leer('almafuente.js');
   ok(!/Te lo pongo en pantalla/i.test(voz + fuente), '6 · nadie le enseña «Te lo pongo en pantalla» antes de que se vea');
-  ok(/solo si responde que se mostró/.test(voz) && /"n_antes"/.test(fuente), '6 · la pantalla se dice solo cuando la herramienta confirma');
+  ok(/solo si responde que se mostró/.test(voz + leer('vozficha.js')) && /"n_antes"/.test(fuente), '6 · la pantalla se dice solo cuando la herramienta confirma');
 }
 process.exit(fallo);

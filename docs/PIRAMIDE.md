@@ -66,7 +66,7 @@ números de ejemplo) salvo esto, que cambia cómo funciona algo y va en su propi
 - **27 fechas con `toLocale…String` y opciones en `index.html`**. `fechaFmt` da el mismo texto con fecha y hora, pero
   `toLocaleString` sin horas en las opciones no: se cambian en un PR con capturas antes y después.
 
-## Propuesta para el prompt de voz de Alma (no se cambió nada)
+## Prompt de voz de Alma: recorte hecho (21-nov-2026)
 
 Hoy: 42 798 de 42 800 caracteres. Reglas del prompt que pueden vivir en código, medidas sobre el prompt armado:
 
@@ -89,3 +89,18 @@ Hoy: 42 798 de 42 800 caracteres. Reglas del prompt que pueden vivir en código,
 Total: **~9 500 caracteres** (A: ~4 150 con guardas en el Hub y las herramientas; B: ~3 400 llevando a la ficha lo que solo
 aplica a una audiencia o un dispositivo; C: ~2 000 quitando lo duplicado). Orden sugerido: A11 y A3 (ya están en el código, solo se
 borra la línea), luego A4–A6, luego A9 y A1, luego B. A8 toca ElevenLabs: solo con una llamada real de prueba.
+
+**Hecho el 21-nov-2026** (Juan: «Vámonos con las tres partes de una vez, pero con prueba de calidad en cada parte»):
+de 42 798 a 33 988 caracteres (−8 810; tope nuevo 35 700 en `.github/presupuesto-prompts.json`). Ninguna regla se borró:
+- **A** (−~3 300): A1, A2, A3, A4–A6, A5, A9, A10 y A11 viven en `apps-script/vozficha.js` (guardas de secretaria,
+  `codigo_puerta` y `momento` de property_info y lookup_reservation, la ficha por número) y en la descripción de secretaria.
+  **A12** queda también en el prompt (lo pide el check de dato con fuente) y en secretaria. **A7** (fechas y montos como persona) no se movió: sigue en el prompt (moverla pedía pasar números a palabras en
+  cada herramienta). **A8** no se tocó (ElevenLabs).
+- **B** (−3 416, +255 de dos líneas que la compuerta pidió de vuelta): música, mostrar en el chat, manos y atajos solo en la
+  ficha de la app; mejoras, derivar a Claudio y avísame cuando solo en la ficha de Juan, con su **formato para el modo
+  agente** (esfera y proyecto, una decisión a la vez). En el prompt quedan dos líneas cortas: sin la app no hay pantalla,
+  y las mejoras solo las pide Juan.
+- **C** (−2 182): de la lista de herramientas queda la cabecera; cada una ya trae su descripción completa en ElevenLabs.
+- Compuerta: 30 casos anonimizados con las pruebas de ElevenLabs (antes en main, después en una rama sin tráfico) y el
+  check `.github/recorte-voz.js` (38 revisiones en código).
+

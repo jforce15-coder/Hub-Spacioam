@@ -326,6 +326,7 @@ var ALMA_FUENTE_ = {
  },
  "herramientas": {
   "titulo": "Tus herramientas (en silencio: nunca se dicen sus nombres ni tu nivel)",
+  "cabecera_voz": "cada una trae en su descripción cuándo usarla y sus límites; síguela.",
   "lista": {
    "secretaria": {
     "canales": [

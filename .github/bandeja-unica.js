@@ -41,7 +41,7 @@ function caja(o) {
     bandejaEsferaMapas_: () => o.mapas || { conv: {}, pers: {} }, bandejaEsferaDe_: (m, id) => (m.conv[id] || 'proposito')
   };
   vm.createContext(ctx);
-  vm.runInContext(RM + '\n' + BU, ctx);
+  vm.runInContext(leer('salidahuesped.js') + '\n' + RM + '\n' + BU, ctx);
   Object.assign(ctx, { props, hojas, cache, llamadas, vmap, inbox, dec });
   return ctx;
 }

@@ -48,6 +48,7 @@ repetidas de los PR de noviembre. ✅ = revisión automática · 🤖 = verifica
 | No tocar end_call, protecciones, LLM ni voz de ElevenLabs sin una llamada real | ✅ en parte + ✎ | `voz-proteccion.js`, `despedida-unica.js` |
 | Llamada nunca espera `LockService` · números por `normTel_` · celdas por `celdaTexto_` · elemento por id y no por clase · colores del `ds/` · movimiento con sentido | ✎ hoy · candidatas a ✅ | siguiente ronda: cada una necesita su regla sin falsos rojos |
 | Lo que Alma escribe, claro: frases cortas, voz activa, sin palabras «Evitar» (ASD-STE100 al 80 %; 20-nov-2026) | ◇ ✅ sin tocar los prompts | `escrituraclara.js` (revisión en código al salir) + `.github/escritura-clara.js` |
+| El razonamiento interno de Alma nunca le llega a un huésped (18-nov-2026) | ◇ ✅ | una sola puerta: `salidahuesped.js` en `hosp_`, `waResponder_`, `adjEnviarWa_` y `redesEnviar_` + `.github/salida-huesped.js` |
 | Lo que dice Alma (no anunciar, una confirmación, frase de espera, volumen parejo) | ✎ en el prompt · ver la propuesta de abajo | `playbooks/alma.json` |
 
 ## Copias viejas que se anotaron en vez de limpiarlas

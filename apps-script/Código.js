@@ -1147,6 +1147,17 @@ function enviarPendiente_(sh, f, ctrl, filas) {
     set_(sh, f, { estado: 'borrador', nota: 'retenido: el borrador traía razonamiento interno · revisar en Pendientes' });
     return log_(d, d.borrador, 'RETENIDO (no enviado): razonamiento interno en el borrador');
   }
+  /* Una consulta (inq:) que Hospitable no deja responder por la API (19 y 21-nov: dos consultas de Booking y una de Airbnb
+     del mismo día de llegada, HTTP 400; en Booking ningún mensaje por la API llegó nunca a una consulta y caducan en 24 h):
+     reintentar no sirve. Queda en revisión y el equipo la responde desde la plataforma con el borrador ya escrito. */
+  if ([400, 404, 409, 410, 422].indexOf(env.code) >= 0 && /^inq:/.test(String(d.resId)) && !env.bloqueado) {
+    const motivo = 'HTTP ' + env.code + (env.error ? ' · ' + String(env.error).slice(0, 120) : '');
+    set_(sh, f, { estado: 'borrador', nota: 'consulta: Hospitable no deja responderla (' + motivo + ') · responder desde la plataforma' });
+    try { avisarAdmins_('ALMA · consulta sin respuesta posible por Hospitable · ' + (d.propiedad || ''),
+      'Hospitable no dejó mandar la respuesta a esta consulta (' + motivo + '). Pasa con las consultas de Booking y con las que ya vencieron.\n' +
+      'Respóndela desde Airbnb o Booking. Este es el borrador de Alma:\n\n' + String(d.borrador || '').slice(0, 1500), false); } catch (e) { console.error('aviso consulta rechazada: ' + e); }
+    return log_(d, d.borrador, 'NO ENVIADO: Hospitable rechazó la consulta (' + motivo + ') · al equipo');
+  }
   /* Un rechazo de Hospitable (400, 404, 409, 410, 422) no cambia con reintentar: va a «error» y al aviso ya, con su motivo. */
   if ([400, 404, 409, 410, 422].indexOf(env.code) >= 0 && d.canal !== 'whatsapp') f.v[C.intentos] = Math.max(Number(f.v[C.intentos] || 0), CFG.MAX_INTENTOS - 1);
   if (env.code < 200 || env.code >= 300) return reintentar_(sh, f, 'envío ' + (d.canal === 'whatsapp' ? 'WhatsApp ' + (env.error || env.code) : 'HTTP ' + env.code + (env.error ? ' · ' + env.error : (env.code >= 400 && env.json && (env.json.message || env.json.error || env.json.errors) ? ' · ' + String(env.json.message || env.json.error || JSON.stringify(env.json.errors)).slice(0, 160) : ''))), 'esperando_envio');

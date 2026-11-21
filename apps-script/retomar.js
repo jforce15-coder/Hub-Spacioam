@@ -21,8 +21,8 @@ function retGuardar_(adm, l) {
   if (!l.length) p.deleteProperty(retClave_(adm)); else p.setProperty(retClave_(adm), JSON.stringify(l.slice(-RET_MAX_)));
 }
 function retCambiar_(adm, fn) {
-  var lock = LockService.getScriptLock(); lock.waitLock(10000);
-  try { var l = retLeer_(adm), r = fn(l); retGuardar_(adm, l); return r; } finally { lock.releaseLock(); }
+  var soltar = candadoTomar_(10000, { lanzar: true });
+  try { var l = retLeer_(adm), r = fn(l); retGuardar_(adm, l); return r; } finally { soltar(); }
 }
 /* o: { texto (lo que Alma dirá, 1 o 2 frases), tema (3 a 6 palabras, para invitar a verlo), detalle, importancia 1 a 3, origen } */
 function retPoner_(adm, o) {
@@ -170,11 +170,11 @@ function vozSeguirGuardar_(o) {
   for (var i = 0; i < s.length; i += 90000) partes[id + '_' + (n++)] = s.slice(i, i + 90000);
   partes[id] = String(n);
   c.putAll(partes, 21600);
-  var lock = vozColaLock_(); lock.waitLock(10000);
+  var soltar = candadoTomar_(10000, { usuario: true, lanzar: true });
   try {
     var p = PropertiesService.getScriptProperties(), cola = []; try { cola = JSON.parse(p.getProperty('VOZ_SEGUIR') || '[]'); } catch (e) {}
     cola.push({ id: id, email: o.email, t: Date.now() }); p.setProperty('VOZ_SEGUIR', JSON.stringify(cola.slice(-10)));
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
   try { orbitaEmpieza_(o.email, o.pedido, 'segundo_plano', '', o.orb, o.tema); } catch (e) { console.error('orbitaEmpieza_: ' + e); }
   try {
     ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'vozSeguirPronto'; }).forEach(function (t) { ScriptApp.deleteTrigger(t); });
@@ -193,14 +193,14 @@ function vozSeguirLeer_(id) {
 function vozSeguirPronto() {
   cupoCanal_('Voz');
   ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'vozSeguirPronto'; }).forEach(function (t) { ScriptApp.deleteTrigger(t); });
-  var p = PropertiesService.getScriptProperties(), lock = vozColaLock_();
+  var p = PropertiesService.getScriptProperties();
   for (var n = 0; n < 4; n++) {
     var it = null;
-    if (!lock.tryLock(5000)) return;
+    var soltar = candadoTomar_(5000, { usuario: true }); if (!soltar) return;
     try {
       var cola = []; try { cola = JSON.parse(p.getProperty('VOZ_SEGUIR') || '[]'); } catch (e) {}
       it = cola.shift(); p.setProperty('VOZ_SEGUIR', JSON.stringify(cola));
-    } finally { lock.releaseLock(); }
+    } finally { soltar(); }
     if (!it) return;
     var o = vozSeguirLeer_(it.id), adm = o && adminsOp_().filter(function (a) { return a.email === o.email; })[0];
     if (!adm) continue;

@@ -57,12 +57,12 @@ function orbitaLeer_(email, todo) {
    de las colas de la llamada (vozColaLock_, retomar.js), no el del script: ese lo tiene procesarCola toda su pasada. */
 function orbitaCambiar_(email, fn) {
   if (!email) return null;
-  var lock = vozColaLock_(); if (!lock.tryLock(3000)) { console.error('orbita: candado ocupado'); return null; }
+  var soltar = candadoTomar_(3000, { usuario: true }); if (!soltar) { console.error('orbita: candado ocupado'); return null; }
   try {
     var l = orbitaLeer_(email, true), r = fn(l);
     CacheService.getScriptCache().put(orbitaClave_(email), JSON.stringify(l.slice(-12)), 21600);
     return r;
-  } catch (e) { console.error('orbitaCambiar_: ' + e); return null; } finally { lock.releaseLock(); }
+  } catch (e) { console.error('orbitaCambiar_: ' + e); return null; } finally { soltar(); }
 }
 /* Empieza un pedido de segundo plano. Devuelve su id ('' si no se pudo anotar). id: el que ya se guardó con el pedido. */
 function orbitaId_() { return 'ob' + Date.now().toString(36) + Math.floor(Math.random() * 1e4); }

@@ -16,7 +16,7 @@ var RECEP_PLANTILLA_VIEJA_ = 'registro_ingreso';
 function recepcionEncolar_(body) {
   var code = String(body.code || '').trim().toUpperCase().replace(/[^A-Z0-9-]/g, '');
   if (!code || code.length < 5) return { ok: false, error: 'codigo' };
-  var lock = LockService.getScriptLock(); if (!lock.tryLock(10000)) return { ok: false, error: 'ocupado' };
+  var soltar = candadoTomar_(10000); if (!soltar) return { ok: false, error: 'ocupado' };
   try {
     var p = PropertiesService.getScriptProperties(), cola = [], hecho = {};
     try { cola = JSON.parse(p.getProperty('RECEP_COLA') || '[]'); } catch (e) {}
@@ -27,7 +27,7 @@ function recepcionEncolar_(body) {
     cola.push({ code: code, force: force, ts: Date.now() });
     p.setProperty('RECEP_COLA', JSON.stringify(cola.slice(-30)));
     recepcionEstadoGuardar_(code, { e: 'cola' });
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
   return { ok: true, enCola: true };
 }
 
@@ -35,12 +35,12 @@ function recepcionEncolar_(body) {
 function recepcionProcesar_() {
   var p = PropertiesService.getScriptProperties(), raw = p.getProperty('RECEP_COLA');
   if (!raw || raw === '[]') return;
-  var lock = LockService.getScriptLock(); if (!lock.tryLock(5000)) return;
+  var soltar = candadoTomar_(5000); if (!soltar) return;
   var lote = [];
   try {
     var cola = []; try { cola = JSON.parse(raw); } catch (e) {}
     lote = cola.slice(0, 3); p.setProperty('RECEP_COLA', JSON.stringify(cola.slice(3)));
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
   lote.forEach(function (x) {
     var r; try { r = recepcionEnviar_(x.code); } catch (e) { r = { ok: false, error: String(e) }; }
     recepcionLog_(x.code, r);

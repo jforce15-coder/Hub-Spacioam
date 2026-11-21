@@ -19,6 +19,7 @@
    node .github/guardia.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
+const CANDADO_ = fs.readFileSync(path.join(DIR, 'candado.js'), 'utf8') + '\n';   // el candado único (apps-script/candado.js)
 let fallo = 0; const ok = (c, m) => { if (c) console.log('✓ ' + m); else { console.log('::error::' + m); fallo = 1; } };
 const leer = f => fs.readFileSync(path.join(DIR, f), 'utf8');
 
@@ -32,7 +33,7 @@ function caja(o) {
     pendAvisar_: (adm, t, x) => { pend.push({ t, x }); return true; }
   };
   vm.createContext(ctx);
-  vm.runInContext(leer('guardia.js'), ctx, { filename: 'guardia.js' });
+  vm.runInContext(CANDADO_ + leer('guardia.js'), ctx, { filename: 'guardia.js' });
   return { X: ctx, cola, pend };
 }
 const U = (s, m) => ({ role: 'user', time_in_call_secs: s, message: m });
@@ -153,7 +154,7 @@ const LLAMADA = [
     vozColaLock_: () => ({ waitLock() {}, tryLock: () => true, releaseLock() {} }), adminPorTel_: () => ADM, orbitaEmpieza_: () => '', vozTrabajando_() {},
     opFilas_: () => [], opGuardar_: () => ({ id: 1 }), opAgente_: (adm, pedido) => { hechos.push(pedido); return { respuesta: 'ok', hechas: [] }; },
     chatTurnoCerrar_: () => ({}), orbitaTermina_() {}, vozEnvioFallo_() {}, vozSecAvisar_() {}, AGENTE_CONF_: false, ORBITA_ACTUAL_: null };
-  vm.createContext(ctx); vm.runInContext(enc + pro, ctx);
+  vm.createContext(ctx); vm.runInContext(CANDADO_ + enc + pro, ctx);
   const largo = 'Pedido de una llamada: ' + DICTADO + DICTADO;
   ctx.vozSecEncolar_('50255550100', largo, false);
   const enCola = JSON.parse(props.VOZ_SEC_COLA || '[]');

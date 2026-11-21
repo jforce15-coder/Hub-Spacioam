@@ -15,6 +15,7 @@
    node .github/decision-texto.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
+const CANDADO_ = fs.readFileSync(path.join(DIR, 'candado.js'), 'utf8') + '\n';   // el candado único (apps-script/candado.js)
 let fallo = 0; const ok = (c, m) => { if (c) console.log('✓ ' + m); else { console.log('::error::' + m); fallo = 1; } };
 
 const JUAN = '50255550100';   // número de prueba, no es el real
@@ -65,7 +66,7 @@ function caja(clasificaSi) {
     formatearMensaje_: t => t, limpiarSalida_: t => ({ texto: t }), estilo_: () => ''
   };
   vm.createContext(ctx);
-  vm.runInContext(fs.readFileSync(path.join(DIR, 'pedidopersonal.js'), 'utf8'), ctx);   // lo personal nunca es para el caso
+  vm.runInContext(CANDADO_ + fs.readFileSync(path.join(DIR, 'pedidopersonal.js'), 'utf8'), ctx);   // lo personal nunca es para el caso
   vm.runInContext(fs.readFileSync(path.join(DIR, 'decisiones.js'), 'utf8'), ctx);
   return { ctx, props, enviados, clasif, wa, dec: () => dec };
 }

@@ -11,6 +11,7 @@
    node .github/archivos-orbita.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
+const CANDADO_ = fs.readFileSync(path.join(DIR, 'candado.js'), 'utf8') + '\n';   // el candado único (apps-script/candado.js)
 const RAIZ = path.join(DIR, '..');
 let fallo = 0; const ok = (c, m) => { if (c) console.log('✓ ' + m); else { console.log('::error::' + m); fallo = 1; } };
 const leer = f => fs.readFileSync(path.join(DIR, f), 'utf8');
@@ -26,7 +27,7 @@ function caja(modelo) {
     claude_: () => (modelo === undefined ? '{"desc": "Factura de luz", "resumen": "Factura de luz por Q 350, vence el 30 de noviembre."}' : modelo)
   };
   vm.createContext(ctx);
-  vm.runInContext(leer('archivosorbita.js'), ctx, { filename: 'archivosorbita.js' });
+  vm.runInContext(CANDADO_ + leer('archivosorbita.js'), ctx, { filename: 'archivosorbita.js' });
   return { ctx, props, pasa: ms => { ahora += ms; } };
 }
 const JUAN = { email: 'juan@x.com' }, GABY = { email: 'gaby@x.com' };

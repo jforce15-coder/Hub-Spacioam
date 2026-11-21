@@ -20,6 +20,7 @@
    node .github/para-alma.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
+const CANDADO_ = fs.readFileSync(path.join(DIR, 'candado.js'), 'utf8') + '\n';   // el candado único (apps-script/candado.js)
 let fallo = 0; const ok = (c, m) => { if (c) console.log('✓ ' + m); else { console.log('::error::' + m); fallo = 1; } };
 const leer = f => fs.readFileSync(path.join(DIR, f), 'utf8');
 const sacar = (src, nombre) => { const m = new RegExp('\\nfunction ' + nombre + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}').exec(src); if (!m) throw new Error('no encontré ' + nombre); return m[0]; };
@@ -79,7 +80,7 @@ function caja(o) {
     waEnviar_: (n, t) => { wa.push({ n, t }); return { ok: true }; }
   };
   vm.createContext(ctx);
-  vm.runInContext(LIMPIAR + '\n' + leer('paraalma.js'), ctx);
+  vm.runInContext(CANDADO_ + LIMPIAR + '\n' + leer('paraalma.js'), ctx);
   const pasada = (min) => { ahora += (min || 3) * 60000; delete cache.para_alma_t; return ctx.paraAlmaRevisar_(ahora); };
   return { ctx, props, gh, agentes, cierres, wa, chat, pasada, candado, temas, cerrados, avanzar: min => { ahora += min * 60000; }, estados: () => JSON.parse(props.PARA_ALMA_ESTADO || '{}'),
     comentarios: () => gh.filter(g => /\/comments$/.test(g.ruta)).map(g => g.b.body), etiquetas: () => gh.filter(g => /\/labels$/.test(g.ruta)).map(g => g.b.labels[0]) };

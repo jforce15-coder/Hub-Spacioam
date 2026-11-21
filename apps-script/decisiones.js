@@ -51,9 +51,7 @@ function decGuardar_(sh, f, cambios) {
    (vozColaLock_, retomar.js), no el del script: procesarCola tiene ese toda su pasada y un toque de Juan en WhatsApp
    («Deshacer», una opción) no puede esperar a las respuestas de los huéspedes (ESTANDARES, Apps Script). */
 function decCandado_() {
-  var lock = vozColaLock_(), yaTenia = false;
-  try { yaTenia = lock.hasLock(); if (!yaTenia) lock.waitLock(10000); } catch (e) { return null; }
-  return function () { if (!yaTenia) { try { lock.releaseLock(); } catch (e) {} } };
+  return candadoTomar_(10000, { usuario: true });   // candado.js
 }
 function decOpciones_(f) { try { var o = JSON.parse(f.opciones || '[]'); return Array.isArray(o) ? o : []; } catch (e) { return []; } }
 function decCtx_(f) { try { return JSON.parse(f.contexto || '{}') || {}; } catch (e) { return {}; } }

@@ -89,7 +89,7 @@ function saludosGrabadosApi_(ses, body) {
   var adm = vozWebAdmin_(ses); if (!adm) return { ok: false, error: 'usuario' };
   if (!PropertiesService.getScriptProperties().getProperty('ELEVENLABS_KEY')) return { ok: false, error: 'falta ELEVENLABS_KEY' };
   var nom = String(adm.nombre || '').trim().split(/\s+/)[0], version = sgVersion_(nom), lista = sgLista_(nom);
-  var lock = LockService.getScriptLock(); if (!lock.tryLock(20000)) return { ok: false, error: 'ocupado' };
+  var soltar = candadoTomar_(20000); if (!soltar) return { ok: false, error: 'ocupado' };
   var datos = {}, arch;
   try {
     arch = sgArchivo_(nom);
@@ -102,7 +102,7 @@ function saludosGrabadosApi_(ses, body) {
       datos.clips[lista[i].id] = mp3; hechos++;
     }
     if (hechos) arch.setContent(JSON.stringify(datos));
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
   var tiene = body && body.version === version && Array.isArray(body.tiene) ? body.tiene.map(String) : [];
   var clips = lista.filter(function (s) { return datos.clips[s.id] && tiene.indexOf(s.id) < 0; })
     .map(function (s) { return { id: s.id, tono: s.tono, texto: s.texto, mp3: datos.clips[s.id] }; });

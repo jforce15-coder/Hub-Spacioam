@@ -11,6 +11,7 @@
    node .github/cola-reproceso.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
+const CANDADO_ = fs.readFileSync(path.join(DIR, 'candado.js'), 'utf8') + '\n';   // el candado único (apps-script/candado.js)
 let fallo = 0; const ok = (c, m) => { if (c) console.log('✓ ' + m); else { console.log('::error::' + m); fallo = 1; } };
 const leer = f => fs.readFileSync(path.join(DIR, f), 'utf8');
 const COD = leer('Código.js'), COLA = leer('colareproceso.js'), SAL = leer('salidahuesped.js');
@@ -49,7 +50,7 @@ function caja() {
   };
   HEAD.forEach((h, i) => { ctx.C[h] = i; });
   ctx.set_ = (sh, f, c) => Object.keys(c).forEach(k => { f.v[ctx.C[k]] = c[k]; sh.getRange(f.fila, ctx.C[k] + 1).setValue(c[k]); });
-  vm.createContext(ctx); vm.runInContext(SAL + '\n' + COLA, ctx);
+  vm.createContext(ctx); vm.runInContext(CANDADO_ + SAL + '\n' + COLA, ctx);
   return { ctx, H, props };
 }
 
@@ -97,7 +98,7 @@ const c2 = {
 };
 HEAD.forEach((h, i) => { c2.C[h] = i; });
 vm.createContext(c2);
-vm.runInContext(SAL + '\n' + COLA + '\n' + ['hosp_', 'limpiarSalida_', 'textoEnviable_', 'enviarCanal_', 'enviarPendiente_', 'reintentar_'].map(n => sacar(COD, n)).join('\n') +
+vm.runInContext(CANDADO_ + SAL + '\n' + COLA + '\n' + ['hosp_', 'limpiarSalida_', 'textoEnviable_', 'enviarCanal_', 'enviarPendiente_', 'reintentar_'].map(n => sacar(COD, n)).join('\n') +
   '\nvar TOKEN_SILENCIO_ = /\\[?\\s*\\b(SIN[\\s_-]*RESPUESTA|NO[\\s_-]*RESPONDER)\\b\\s*\\]?\\.?/ig;', c2);
 const env = c2.hosp_('post', '/reservations/inq:q-1/messages', { body: 'Hola, con gusto te ayudo con tu consulta de hoy.' });
 ok(env.code === 400 && env.error === 'Bad Request: inquiry is closed', '4. hosp_ trae el cuerpo crudo de un 400 sin «message»');

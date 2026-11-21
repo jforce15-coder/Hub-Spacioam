@@ -5,6 +5,7 @@
    node .github/pedidos-reintento.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
+const CANDADO_ = fs.readFileSync(path.join(DIR, 'candado.js'), 'utf8') + '\n';   // el candado único (apps-script/candado.js)
 let fallo = 0; const ok = (c, m) => { if (c) console.log('✓ ' + m); else { console.log('::error::' + m); fallo = 1; } };
 const src = fs.readFileSync(path.join(DIR, 'paraclaude.js'), 'utf8');
 const sacar = n => { const m = new RegExp('\\nfunction ' + n + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}').exec(src); if (!m) throw new Error('no encontré ' + n); return m[0]; };
@@ -26,7 +27,7 @@ function caja(filas, disparo, props) {
     paraClaudeDisparar_: (p) => { disparos.push(p); return disparo(disparos.length); }
   };
   vm.createContext(ctx);
-  vm.runInContext([varDe('PC_REINTENTO_H_'), sacar('paraClaudeSinCupo_'), sacar('paraClaudeNotaFallo_'), sacar('paraClaudeReintentar_')].join('\n'), ctx);
+  vm.runInContext(CANDADO_ + [varDe('PC_REINTENTO_H_'), sacar('paraClaudeSinCupo_'), sacar('paraClaudeNotaFallo_'), sacar('paraClaudeReintentar_')].join('\n'), ctx);
   return { ctx, disparos, celdas, props };
 }
 const ahora = Date.now(), h = x => 'pc' + (ahora - x * 3600000);

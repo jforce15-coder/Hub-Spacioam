@@ -44,7 +44,7 @@ function tutorialApi_(b) {
   var ver = Math.max(1, Math.min(99, Number(b.version) || 1));
   var pct = Math.max(0, Math.min(100, Math.round(Number(b.pct) || 0)));
   var evento = String(b.evento || 'avance'), app = String(b.app || '').slice(0, 20), ahora = new Date();
-  var lock = LockService.getScriptLock(); if (!lock.tryLock(10000)) return { ok: false, error: 'ocupado' };
+  var soltar = candadoTomar_(10000); if (!soltar) return { ok: false, error: 'ocupado' };
   try {
     var sh = tutHoja_(), filas = tutFilas_(sh), i = -1;
     for (var k = 0; k < filas.length; k++) if (String(filas[k][0]).toLowerCase() === email && String(filas[k][3]) === id && (Number(filas[k][4]) || 1) === ver) { i = k; break; }
@@ -58,7 +58,7 @@ function tutorialApi_(b) {
     if (i >= 0) sh.getRange(i + 2, 1, 1, TUT_COLS_.length).setValues([r]);
     else sh.appendRow(r);
     return { ok: true, v: r[6] === true ? 1 : 0, m: r[5] };
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
 }
 
 /* Hub · administradores: quién vio cada tutorial (acción 'tutoriales' de hubApi_). */

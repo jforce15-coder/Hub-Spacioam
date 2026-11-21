@@ -9,6 +9,7 @@
    node .github/decision-unica.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
+const CANDADO_ = fs.readFileSync(path.join(DIR, 'candado.js'), 'utf8') + '\n';   // el candado único (apps-script/candado.js)
 let fallo = 0; const ok = (c, m) => { if (c) console.log('✓ ' + m); else { console.log('::error::' + m); fallo = 1; } };
 
 const JUAN = '50255550100', TURNO = '50255550200';   // números de prueba, no son reales
@@ -53,7 +54,7 @@ function caja() {
     formatearMensaje_: t => t, limpiarSalida_: t => ({ texto: t }), estilo_: () => ''
   };
   vm.createContext(ctx);
-  vm.runInContext(fs.readFileSync(path.join(DIR, 'decisiones.js'), 'utf8'), ctx);
+  vm.runInContext(CANDADO_ + fs.readFileSync(path.join(DIR, 'decisiones.js'), 'utf8'), ctx);
   /* El chat con Alma tiene sus propios dobles: aquí solo se cuenta cuántas veces se avisa. */
   ctx.decisionAvisarChat_ = f => chat.push(f.id);
   return { ctx, avisos, chat, ia: () => ia, candado: () => candado };

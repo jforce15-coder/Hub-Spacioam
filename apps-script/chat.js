@@ -576,7 +576,7 @@ function chatResponderOp_(ses, b) {
 function chatMigrarDesarrollo_() {
   var P = PropertiesService.getScriptProperties(); if (P.getProperty(CHAT_MIGRADO_PROP_)) return { ok: true, ya: true, movidas: 0 };
   var jefe = chatPrincipal_(); if (!jefe) return { ok: false, error: 'sin administrador principal' };
-  var lock = LockService.getScriptLock(); if (!lock.tryLock(20000)) return { ok: false, error: 'ocupado' };
+  var soltar = candadoTomar_(20000); if (!soltar) return { ok: false, error: 'ocupado' };
   try {
     if (P.getProperty(CHAT_MIGRADO_PROP_)) return { ok: true, ya: true, movidas: 0 };
     var sh = hojaOp_(), n = sh.getLastRow(), movidas = 0;
@@ -591,7 +591,7 @@ function chatMigrarDesarrollo_() {
     }
     P.setProperty(CHAT_MIGRADO_PROP_, new Date().toISOString() + ' · ' + movidas);
     return { ok: true, movidas: movidas };
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
 }
 function migrarChatUnico() { return chatMigrarDesarrollo_(); }
 

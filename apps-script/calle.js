@@ -549,9 +549,9 @@ function avisoVozEncolar_(adm, a) {
 function avisoVozPronto() {
   cupoCanal_('Voz');
   try { ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'avisoVozPronto'; }).forEach(function (t) { ScriptApp.deleteTrigger(t); }); } catch (e) {}
-  var p = PropertiesService.getScriptProperties(), lock = vozColaLock_(), cola = [];
-  if (!lock.tryLock(5000)) return;
-  try { try { cola = JSON.parse(p.getProperty('AVISO_VOZ_COLA') || '[]'); } catch (e) {} p.setProperty('AVISO_VOZ_COLA', '[]'); } finally { lock.releaseLock(); }
+  var p = PropertiesService.getScriptProperties(), cola = [];
+  var soltar = candadoTomar_(5000, { usuario: true }); if (!soltar) return;
+  try { try { cola = JSON.parse(p.getProperty('AVISO_VOZ_COLA') || '[]'); } catch (e) {} p.setProperty('AVISO_VOZ_COLA', '[]'); } finally { soltar(); }
   avisoVozPreparar_(cola, adminsOp_());
 }
 function avisoVozPreparar_(cola, admins) {

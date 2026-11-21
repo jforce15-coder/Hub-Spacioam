@@ -13,6 +13,7 @@
    node .github/promesas-huesped.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
+const CANDADO_ = fs.readFileSync(path.join(DIR, 'candado.js'), 'utf8') + '\n';   // el candado único (apps-script/candado.js)
 let fallo = 0; const ok = (c, m) => { if (c) console.log('✓ ' + m); else { console.log('::error::' + m); fallo = 1; } };
 
 function hoja(cab) {
@@ -51,7 +52,7 @@ function caja(o) {
     chatPrincipal_: () => 'juan', vozAvisoPoner_: (a, t) => avisos.push(t), escalar_: (t, cuerpo) => avisos.push(t + '\n' + cuerpo)
   };
   vm.createContext(ctx);
-  vm.runInContext(fs.readFileSync(path.join(DIR, 'avisotexto.js'), 'utf8'), ctx);   // las notificaciones humanas (#509)
+  vm.runInContext(CANDADO_ + fs.readFileSync(path.join(DIR, 'avisotexto.js'), 'utf8'), ctx);   // las notificaciones humanas (#509)
   vm.runInContext(fs.readFileSync(path.join(DIR, 'promesas.js'), 'utf8'), ctx);
   return { ctx, inbox, avisos, props, hoja: () => sh };
 }

@@ -73,7 +73,7 @@ function caja(o) {
   };
   vm.createContext(ctx);
   vm.runInContext(['telsEnTexto_', 'normTel_', 'telsDe_'].map(n => sacar(COD, n)).join('\n'), ctx, { filename: 'Código.js (extracto)' });
-  ['sociosmi.js', 'socios.js', 'contacto.js', 'entrega.js', 'masuno.js'].forEach(f => vm.runInContext(leer(f), ctx, { filename: f }));
+  ['candado.js', 'sociosmi.js', 'socios.js', 'contacto.js', 'entrega.js', 'masuno.js'].forEach(f => vm.runInContext(leer(f), ctx, { filename: f }));
   vm.runInContext(['encargoRespuestaFalta_', 'agSocio_'].map(n => sacar(AGE, n)).join('\n'), ctx, { filename: 'agente.js (extracto)' });
   return { ctx, props, posts, wa, datos, fichas, guardadas, pend, avanzar: ms => { reloj += ms; } };
 }

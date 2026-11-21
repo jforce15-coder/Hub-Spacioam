@@ -42,7 +42,7 @@ function caja() {
     hojaCrear_: () => ({ getLastColumn: () => 15, appendRow() {}, getLastRow: () => 1, getRange: () => ({ setValues() {} }) })
   };
   vm.createContext(ctx);
-  ['avisotexto.js', 'calle.js', 'voz.js', 'orbita.js', 'pendientes.js', 'almaabre.js'].forEach(f => vm.runInContext(fs.readFileSync(path.join(DIR, f), 'utf8'), ctx, { filename: f }));
+  ['candado.js', 'avisotexto.js', 'calle.js', 'voz.js', 'orbita.js', 'pendientes.js', 'almaabre.js'].forEach(f => vm.runInContext(fs.readFileSync(path.join(DIR, f), 'utf8'), ctx, { filename: f }));
   ctx.pendClasificar_ = () => ({ tipo: 'aviso', area: 'proposito', proyecto: '', titulo: 'Pagos de Amalfi', resumen: 'Ya revisé los pagos de Amalfi de octubre: todo cuadra.', aviso: 'Ya revisé los pagos de Amalfi de octubre: todo cuadra.', importancia: 2, acciones: [] });
   const avisos = (ses, b) => ctx.vozAvisos_(ses || { email: JUAN.email }, b === undefined ? { abre: true } : b).avisos || [];
   return { ctx, props, cache, mencionados, avisos, pasa: ms => { ahora += ms; } };

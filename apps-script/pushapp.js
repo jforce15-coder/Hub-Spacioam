@@ -128,11 +128,11 @@ function pushAppMandar_(adm, a) {
 
 /* El push no salió: el aviso vuelve a ser solo de la app (la muestra al despertar) y del respaldo por WhatsApp. */
 function pushAppDesmarcar_(adm, id) {
-  var p = PropertiesService.getScriptProperties(), lock = LockService.getScriptLock(); lock.waitLock(10000);
+  var p = PropertiesService.getScriptProperties(), soltar = candadoTomar_(10000, { lanzar: true });
   try {
     var t = {}; try { t = JSON.parse(p.getProperty('VOZ_AVISOS') || '{}'); } catch (e) {}
     var l = t[adm.email] || [], cambio = false;
     l.forEach(function (x) { if (x && String(x.id) === String(id) && x.push) { delete x.push; cambio = true; } });
     if (cambio) { t[adm.email] = l; p.setProperty('VOZ_AVISOS', JSON.stringify(t)); }
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
 }

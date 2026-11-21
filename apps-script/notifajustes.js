@@ -83,12 +83,12 @@ function notifAjustesGuardarApi_(ses, b) {
   var email = notifQuien_(ses); if (!email) return { ok: false, error: 'Entra con tu usuario para cambiar tus notificaciones.' };
   b = b || {}; var k = String(b.tipo || '');
   if (!notifTipoOk_(k)) return { ok: false, error: 'tipo' };
-  var aj = notifLimpio_(k, b.ajuste), p = PropertiesService.getScriptProperties(), lock = LockService.getScriptLock(), todos;
-  lock.waitLock(10000);
+  var aj = notifLimpio_(k, b.ajuste), p = PropertiesService.getScriptProperties(), todos;
+  var soltar = candadoTomar_(10000, { lanzar: true });
   try {
     todos = notifTodos_(); todos[email] = todos[email] || {}; todos[email][k] = aj;
     p.setProperty(NOTIF_PROP_, JSON.stringify(todos));
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
   var web = false; try { web = notifOSEtiquetas_(email, notifAjustesDe_(email, todos)); } catch (e) { console.error('notifOSEtiquetas_: ' + e); }
   return { ok: true, tipo: k, ajuste: aj, web: web };
 }

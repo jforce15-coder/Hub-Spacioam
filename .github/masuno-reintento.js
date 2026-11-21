@@ -59,7 +59,7 @@ function caja(o) {
   };
   vm.createContext(ctx);
   vm.runInContext(['normTel_'].map(n => sacar(COD, n)).join('\n'), ctx, { filename: 'Código.js (extracto)' });
-  ['socios.js', 'contacto.js', 'entrega.js', 'masuno.js'].forEach(f => vm.runInContext(leer(f), ctx, { filename: f }));
+  ['candado.js', 'socios.js', 'contacto.js', 'entrega.js', 'masuno.js'].forEach(f => vm.runInContext(leer(f), ctx, { filename: f }));
   return { ctx, props, cache, posts, filas, avisos, fallos, creadas, lecturas };
 }
 /* Lo que avisa Meta por el webhook. */

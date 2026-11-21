@@ -4,11 +4,12 @@
       temperatura y con esfuerzo bajo; contesta él y el de siempre no se llama. El cronómetro y IA_USO dicen qué modelo.
    2. Un pedido que escribe («escríbele…», «programa…», «cancela…») va directo al de siempre, con todas las herramientas.
    3. Si el rápido no puede (falla la API, pide pasar_al_completo, pide una herramienta que no tiene, dice que no sabe o
-      que no puede, dice que algo quedó hecho, se niega), el turno pasa al de siempre desde el mismo pedido y sin lo que el
-      rápido leyó; una herramienta que no es de leer nunca corre.
+      que no puede, dice que algo quedó hecho, se niega), el turno pasa al de siempre desde el mismo pedido con lo que el
+      rápido ya leyó (sin releerlo); una herramienta que no es de leer nunca corre. Fotos o pantalla: directo al de siempre.
    4. Con el interruptor apagado (VOZ_RAPIDO = 0) todo va por el de siempre; fuera de la secretaria por voz (Hub, WhatsApp,
       la familia) nada cambia.
-   5. Si el rápido gastó el plazo de la llamada, el de siempre no empieza otra vuelta: sigue en segundo plano.
+   5. Si el rápido gastó el plazo de la llamada, el de siempre no empieza otra vuelta: sigue en segundo plano. Una
+      herramienta empieza solo si cabe lo que suele tardar; la secretaria tiene 15 s desde que llegó el pedido.
    6. Las herramientas del rápido existen y ninguna escribe; la decisión vive en un solo lugar; vozSecretaria_ lo enciende
       y lo apaga; el precio del modelo rápido está en la tabla.
    7. El portero Jev (#498 T5), con una API de Jev de mentira: leer con confianza alta → rápido; leer con confianza baja,
@@ -184,7 +185,18 @@ const LEER = 'Verificar si Mariana López ya llegó';
   ok(ms.via === 'rapido' && r.respuesta === 'Mañana llegan dos.', '3c · una vuelta corta (2 s) deja tiempo para la siguiente: contesta el rápido'); }
 { const c = caja({ rapido: [{ tools: [{ name: 'buscar_reservas' }] }, { tools: [{ name: 'enviar_a_huesped', input: { texto: 'hola' } }] }] });
   const { ms } = c.turno(LEER);
-  ok(/pidió enviar_a_huesped/.test(ms.motivo) && !ms.reuso && c.de(SONNET)[0].messages.length === 1, '3b · si pidió otra cosa, lo leído no pasa: el de siempre empieza limpio'); }
+  ok(/pidió enviar_a_huesped/.test(ms.motivo) && ms.reuso === 2 && c.de(SONNET)[0].messages.length === 3 && c.corridas.join() === 'buscar_reservas',
+    '3d · guardia 21-nov-2026: si después pidió otra cosa, lo leído pasa igual al de siempre y no se lee otra vez (reuso ' + ms.reuso + ')'); }
+{ const c = caja({ rapido: [{ tools: [{ name: 'buscar_reservas' }] }, { tools: [{ name: 'pasar_al_completo', input: { motivo: 'hay que escribirle' } }] }] });
+  const { r, ms } = c.turno(LEER);
+  const m = c.de(SONNET)[0].messages;
+  ok(/pidió el completo/.test(ms.motivo) && ms.reuso === 2 && m.length === 3 && m[2].content[0].type === 'tool_result' && c.corridas.join() === 'buscar_reservas' && r.respuesta === 'Respuesta del de siempre.',
+    '3d · pidió el completo después de leer: el completo sigue con esa lectura, sin el pedido de pasar ni otra lectura'); }
+/* 3e · guardia 21-nov-2026: fotos o pantalla van directo al completo (el rápido se rendía tras 3,5-4,9 s) */
+['Muéstrame las fotos del 1102', '¿Qué fotos hay de la limpieza de hoy?', 'Pon en pantalla las reservas de mañana'].forEach((pedido) => {
+  const c = caja({ rapido: [{ text: 'no debería' }] }); const { ms } = c.turno(pedido);
+  ok(c.de(RAPIDO).length === 0 && c.de(SONNET).length === 1 && ms.via === 'completo', '3e · «' + pedido + '» arranca directo con el completo (' + ms.motivo + ')');
+});
 
 /* 4 · interruptor y fuera de la voz */
 { const c = caja({ props: { VOZ_RAPIDO: '0' }, rapido: [{ text: 'no debería' }] }); const { ms } = c.turno(LEER);
@@ -213,6 +225,22 @@ const LEER = 'Verificar si Mariana López ya llegó';
   c.X.uf_ = (u, op) => { const res = uf(u, op); if (JSON.parse(op.payload).model === SONNET) { const ahora = c.X.Date.now(); c.X.Date.now = () => ahora + 7500; } return res; };
   const { r } = c.turno(LEER, { plazo: t + 17000 });
   ok(r.seguira === true && c.de(SONNET).length === 1 && c.corridas.join() === 'buscar_reservas', '5b · la vuelta del completo tardó 7,5 s: la siguiente no cabe en lo que queda de los 15 s y sigue en segundo plano'); }
+
+/* 5c · guardia 21-nov-2026: una herramienta empieza solo si cabe lo que suele tardar (agendar_en_epi ~9 s empezaba con
+   2,5 s de margen y la secretaria contestaba a los 26-51 s); lo que tarda se aprende de las llamadas. */
+{ const c = caja({ sonnet: [{ tools: [{ name: 'agendar_en_epi', input: {} }] }, { text: 'no debería llegar' }] }), t = c.X.Date.now();
+  const { r } = c.turno('Agenda en Epi la limpieza del 1102 para mañana', { plazo: t + 7000 });
+  ok(r.seguira === true && c.corridas.length === 0, '5c · agendar_en_epi (~9 s) no cabe en 7 s: sigue en segundo plano antes de empezarla'); }
+{ const c = caja({ sonnet: [{ tools: [{ name: 'ver_propiedad', input: {} }] }, { text: 'Listo.' }] }), t = c.X.Date.now();
+  const { r } = c.turno('Agenda en Epi la limpieza del 1102 para mañana', { plazo: t + 7000 });
+  ok(!r.seguira && c.corridas.join() === 'ver_propiedad', '5c · una herramienta rápida sí cabe en 7 s y corre en la llamada'); }
+{ const c = caja(); c.X.AG_MS_ = { herr: 0, nh: 0 }; c.X.agMsHerr_('ver_propiedad', 8000, 'c'); c.X.AG_MS_ = null; c.X.AG_HERR_TARDA_MEMO_ = {};
+  ok(c.X.agHerrTarda_('ver_propiedad') === 8000 && c.X.agHerrTarda_('agendar_en_epi') === 9500 && c.X.agHerrTarda_('codigo_acceso') === c.X.AGENTE_MARGEN_HERR_,
+    '5c · lo que tarda: lo medido en la caché, si no la tabla, y como mínimo el margen de siempre'); }
+{ const voz = fs.readFileSync(path.join(DIR, 'voz.js'), 'utf8'), sec = voz.slice(voz.indexOf('function vozSecretaria_('), voz.indexOf('function vozFamilia_('));
+  const dur = +(voz.match(/var VOZ_PLAZO_DURO_ = (\d+)/) || [])[1], res = +(voz.match(/VOZ_RESERVA_CORTE_ = (\d+)/) || [])[1];
+  ok(dur <= 15000 && res >= 3000 && /llego \+ VOZ_PLAZO_DURO_ - VOZ_RESERVA_CORTE_/.test(sec) && /llego = VOZ_T0_/.test(sec),
+    '5d · la secretaria: 15 s como mucho desde que el pedido llegó al Hub (VOZ_T0_), con reserva para pasar a segundo plano'); }
 
 /* 6 · fijo */
 { const c = caja(); const X = c.X; X.AGENTE_APP_ = true;

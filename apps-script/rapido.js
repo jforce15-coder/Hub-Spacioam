@@ -243,6 +243,7 @@ function rapidoIntentar_(adm, texto, system, msgs, tools, ctx, o) {
         var res, th = Date.now(); try { res = agEjecutar_(adm, u.name, u.input, ctx); } catch (e) { console.error('rapido ' + u.name + ': ' + (e.stack || e)); res = { error: String(e.message || e).slice(0, 200) }; }
         agMsHerr_(u.name, Date.now() - th, 'r');
         if (ctx.llamadas) ctx.llamadas.push({ tool: u.name, input: u.input || {}, ok: !!res && !res.error && res.ok !== false });
+        if (res && res._imgs) delete res._imgs;   // en la voz las fotos no se miran: quedan sus enlaces (formlimpieza.js)
         return { type: 'tool_result', tool_use_id: u.id, content: JSON.stringify(res).slice(0, 12000), is_error: !!(res && res.error) };
       });
       m.push({ role: 'user', content: resultados });

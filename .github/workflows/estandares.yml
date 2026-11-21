@@ -296,6 +296,9 @@ jobs:
       - name: Consultas por tema, el % de consultas de una propiedad que pidió algo (parqueo) sale de los mensajes guardados, sin estimar (dobles)
         # 19-nov: Juan preguntó qué % de las consultas de Mónaco necesita parqueo y Alma no tenía el conteo (#913).
         run: node .github/consultas-tema.js apps-script
+      - name: Formulario de limpieza, Alma lee lo que el equipo llenó en Epi (detalles, inventario y fotos por sección) con ruta_del_dia y una propiedad, sin inventar (dobles)
+        # 21-nov: Juan pidió el formulario de Helen de ayer en Rue 301 con la foto de los insumos y Alma no podía leerlo (#969).
+        run: node .github/formulario-limpieza.js apps-script
       - name: Precio por noche, el desglose de Airbnb ÷ noches sale de Hospitable y el largo plazo de Hola sin datos del inquilino (dobles)
         # 17-nov: Juan pidió para Mónaco tarifa, limpieza y comisión por noche y el largo plazo de Hola; Alma no tenía de dónde leerlo.
         run: node .github/precio-noche.js apps-script

@@ -139,7 +139,7 @@ function agMsHerr_(nombre, ms, via) {
   l.sort(function (a, b) { return b.s - a.s; }); if (l.length > 4) l.length = 4;
 }
 /* Destinatario (#583 T5): una sola frase para persona y número en todas las herramientas que escriben a alguien. */
-var AG_DEST_ = { type: 'string', description: 'Nombre o rol («Recepción Ignacio», «socio de 633»): se resuelve solo, con su fuente' }, AG_NUM_ = { type: 'string', description: 'Opcional: WhatsApp con código de país, si no lo tengo' };
+var AG_DEST_ = { type: 'string', description: 'Nombre o rol («Recepción Ignacio», «socio de 633»): se resuelve solo, con su fuente' }, AG_NUM_ = { type: 'string', description: 'WhatsApp con código de país, si no lo tengo' };
 var CAL_ZONA_ = 'Vacío = hora de España. Otra zona: la hora tal cual la dijo (15:00 + Guatemala)', CAL_SI_ = { type: 'boolean', description: 'true solo después del sí de Juan' };
 function agHerramientas_() {
   var s = function (d) { return { type: 'string', description: d }; };
@@ -154,14 +154,14 @@ function agHerramientas_() {
     T('programados_reserva', 'Mensajes automáticos programados de UNA reserva en Hospitable (recordatorio de reseña/review, check-in, first morning, salida…) que aún no salen, y el estado de la reseña al huésped.',
       { codigo: s('Código de reserva o conv_id') }, ['codigo']),
     T('cancelar_programados_reserva', 'Cancela mensajes programados de una reserva en Hospitable: por filtro o por ids de programados_reserva. Hospitable no permite posponerlos: si piden «posponer», cancélalos y ofrece programar uno nuevo con la fecha que digan.',
-      { codigo: s('Código de reserva o conv_id'), filtro: s('review, todos o una palabra del título'), ids: s('Opcional: ids separados por coma') }, ['codigo']),
+      { codigo: s('Código de reserva o conv_id'), filtro: s('review, todos o una palabra del título'), ids: s('Ids separados por coma') }, ['codigo']),
     T('ver_conversacion', 'Últimos mensajes de una reserva (plataforma, WhatsApp y llamadas) y promesas abiertas. También la de WhatsApp de ALMA con cualquier número (socio, contacto, equipo), con código de país.', { codigo: s('Código de reserva, conv_id o número de WhatsApp') }, ['codigo']),
     T('buscar_reuniones', 'Reuniones, llamadas y memos que Alma escuchó en modo conferencia (app del iPhone): resumen, acuerdos y lo que le tocó a Juan («¿qué quedamos con…?», «¿qué se dijo de…?»). Sin búsqueda, las últimas. Lo sin sentido queda unos días en Temporal (temporales=true); si sale en una búsqueda, se rescata.',
       { buscar: s('Palabras: persona, proyecto o tema. Vacío para las últimas'), temporales: { type: 'boolean', description: 'true para ver solo las que están en Temporal' } }, []),
     T('ver_vuelos', 'Vuelos del botón del avión (de su correo): vuelo, aerolínea, ruta, horas, puerta, asiento y apertura del check-in. «Mi vuelo» = mi_vuelo (el de ahora o el próximo, con puerta y embarque al día), en su hora local. Solo Juan.', {}, []),
     /* Calendario de Juan (calendario.js): una sola confirmación, que el código exige con confirmado. */
     T('crear_evento', 'Pone un evento en el calendario de Juan. Sin confirmado te da la pregunta (día, hora, zona, choques): hazla UNA vez y con su sí repite con confirmado = true. Si alguien confirma una llamada que coordinaste, ofrécele ponerla así. Invita solo si Juan lo pide («invítala»). Solo Juan.',
-      { titulo: s('Título'), inicio: s('AAAA-MM-DD HH:MM'), duracion_min: { type: 'number', description: '60 por defecto' }, fin: s('Opcional: AAAA-MM-DD HH:MM'), zona: s(CAL_ZONA_), lugar: s('Lugar o enlace'),
+      { titulo: s('Título'), inicio: s('AAAA-MM-DD HH:MM'), duracion_min: { type: 'number', description: '60 por defecto' }, fin: s('AAAA-MM-DD HH:MM'), zona: s(CAL_ZONA_), lugar: s('Lugar o enlace'),
         descripcion: s('Notas'), invitar: s('Correos, solo si Juan lo pidió'), confirmado: CAL_SI_ }, ['titulo', 'inicio']),
     T('ver_agenda', 'Lo ocupado y los huecos libres (8 a 19 h) del calendario de Juan en un día o rango (máx. 14 días), para proponer horas sin choques. Solo Juan.',
       { desde: s('AAAA-MM-DD; vacío = hoy'), hasta: s('AAAA-MM-DD opcional'), zona: s(CAL_ZONA_) }),
@@ -178,20 +178,20 @@ function agHerramientas_() {
       { codigo: s('Código de reserva o conv_id (si solo tienes el nombre, búscalo antes con buscar_reservas)'), reabrir: { type: 'boolean', description: 'true para reabrirla en vez de resolverla' } }, ['codigo']),
     T('enviar_a_huesped', 'Envía un mensaje al huésped de una reserva por la plataforma (Airbnb/Booking/Hospitable) o por WhatsApp. Por la plataforma no presentes a la empresa: el huésped ya sabe con quién reservó. Tú sí te presentas si no te conocen: «Hola Marcela, te saluda Alma.» Saludo en su línea; párrafos cortos con una línea en blanco. Si Juan te ordena enviarlo en su mensaje, sale directo. Si pide verlo antes: borrador = true; con su sí, confirmado = true.',
       { codigo: s('Código de reserva o conv_id, si lo tienes'), huesped: s('Sin código: nombre del huésped tal cual lo dijo (no hace falta buscar antes)'), propiedad: s('Sin código: propiedad y apartamento («Ignacio 1105»); con varias reservas posibles no sale y vuelven las opciones'),
-        texto: s('Mensaje final, listo para enviar'), canal: { type: 'string', enum: ['plataforma', 'whatsapp'] }, numero: s('Opcional: número de WhatsApp si no es el registrado'), borrador: { type: 'boolean', description: 'true = guarda el borrador con su reserva; no sale' }, confirmado: CAL_SI_ }, ['texto', 'canal']),
+        texto: s('Mensaje final, listo para enviar'), canal: { type: 'string', enum: ['plataforma', 'whatsapp'] }, numero: s('Número de WhatsApp si no es el registrado'), borrador: { type: 'boolean', description: 'true = guarda el borrador con su reserva; no sale' }, confirmado: CAL_SI_ }, ['texto', 'canal']),
     T('escribir_a_equipo', 'Envía un WhatsApp a una persona del equipo (administradores, técnicos, limpieza) o a un socio por su nombre o «socio de <apto>».',
-      { persona: AG_DEST_, propiedad: s('Opcional: apartamento del socio'), numero: AG_NUM_, texto: s('Mensaje concreto y completo'), al_responder: s('Opcional: qué debes hacer cuando responda (con todos los datos). Queda como encargo pendiente.'),
+      { persona: AG_DEST_, propiedad: s('Apartamento del socio'), numero: AG_NUM_, texto: s('Mensaje concreto y completo'), al_responder: s('Qué debes hacer cuando responda (con todos los datos). Queda como encargo pendiente.'),
         borrador: { type: 'boolean', description: 'true = solo el borrador; no sale' }, confirmado: CAL_SI_ }, ['persona', 'texto']),
-    T('ruta_del_dia', 'Ruta / programación de Epi de un día: qué propiedades tiene asignadas cada técnico (o uno en particular), con hora, tipo y orden.',
-      { fecha: s('YYYY-MM-DD; por defecto hoy'), persona: s('Opcional: nombre del técnico') }),
+    T('ruta_del_dia', 'Ruta / programación de Epi de un día: qué propiedades tiene asignadas cada técnico (o uno en particular), con hora, tipo y orden. Con propiedad: su formulario de limpieza (comentarios, inventario, daños, fotos).',
+      { fecha: s('YYYY-MM-DD; por defecto hoy'), persona: s('Nombre del técnico'), propiedad: s(''), fotos: s('insumos, baño, todas…') }),
     T('tareas_abiertas', 'Tareas abiertas del equipo (Hub/Epi).', {}),
-    T('crear_tarea', 'Crea una tarea para el equipo.', { texto: s('Qué hay que hacer'), propiedad: s('Opcional'), quien: s('Opcional: responsable'), vence: s('YYYY-MM-DD; por defecto hoy') }, ['texto']),
-    T('cerrar_tarea', 'Marca una tarea como hecha o le agrega un comentario.', { id: s('id de la tarea'), comentario: s('Opcional: en vez de cerrarla, deja este comentario') }, ['id']),
+    T('crear_tarea', 'Crea una tarea para el equipo.', { texto: s('Qué hay que hacer'), propiedad: s('Opcional'), quien: s('Responsable'), vence: s('YYYY-MM-DD; por defecto hoy') }, ['texto']),
+    T('cerrar_tarea', 'Marca una tarea como hecha o le agrega un comentario.', { id: s('id de la tarea'), comentario: s('En vez de cerrarla, deja este comentario') }, ['id']),
     T('agendar_en_epi', 'Agenda un trabajo en Epi (limpieza, limpieza profunda, mantenimiento o supervisión).',
-      { propiedad: s('Propiedad'), fecha: s('YYYY-MM-DD'), hora: s('HH:MM'), trabajo: s('Limpieza, Limpieza Profunda, Mantenimiento o Supervisión'), tecnico: s('Opcional: nombre'), notas: s('Opcional') }, ['propiedad', 'fecha']),
+      { propiedad: s('Propiedad'), fecha: s('YYYY-MM-DD'), hora: s('HH:MM'), trabajo: s('Limpieza, Limpieza Profunda, Mantenimiento o Supervisión'), tecnico: s('Nombre'), notas: s('Opcional') }, ['propiedad', 'fecha']),
     T('ver_propiedad', 'Ficha de una propiedad tal como la usa ALMA (dirección, WiFi, parqueo, llegada…) con el nombre exacto de cada campo editable.', { propiedad: s('Nombre o parte del nombre') }, ['propiedad']),
     T('codigo_acceso', 'Códigos de acceso de una propiedad tal como los ve el equipo en Epi (permanente o de la quincena vigente, con su vigencia) y, si das el código de reserva, los códigos que ya se le enviaron a ese huésped. Úsala para cualquier pregunta de códigos.',
-      { propiedad: s('Nombre o parte del nombre de la propiedad (ej. «Bonadiez 1001»; «Brunelo» devuelve todas las de Brunelo)'), fecha: s('YYYY-MM-DD; por defecto hoy'), codigo_reserva: s('Opcional: código de reserva para ver el código que ya se le envió al huésped') }),
+      { propiedad: s('Nombre o parte del nombre de la propiedad (ej. «Bonadiez 1001»; «Brunelo» devuelve todas las de Brunelo)'), fecha: s('YYYY-MM-DD; por defecto hoy'), codigo_reserva: s('Código de reserva para ver el código que ya se le envió al huésped') }),
     T('cambiar_dato_propiedad', 'Corrige un dato de la ficha de una propiedad. Usa el nombre de campo exacto que devolvió ver_propiedad.',
       { propiedad: s('Nombre exacto'), campo: s('Campo exacto (ej. address, wifiPass, std.es.parking)'), valor: s('Valor nuevo') }, ['propiedad', 'campo', 'valor']),
     T('encargar_conversacion', 'Para que ALMA hable con alguien (del equipo u otra persona) y se presente, explique, pregunte o valide algo: le escribe por WhatsApp para que llame a la línea de ALMA; en la llamada cumple el objetivo y le manda el resumen al administrador por WhatsApp.',
@@ -203,28 +203,28 @@ function agHerramientas_() {
     /* Reporte del mes (reportemes.js): lo lee de la hoja de Mi; Alma repite sus cifras y nunca las calcula. */
     T('consultas_tema', '% de consultas de una propiedad que pidieron un tema (30 y 60 días). Solo Juan.', { propiedad: s('Edificio'), tema: s('Vacío: parqueo') }, ['propiedad']),
     T('reporte_mes', 'Reporte del mes de una propiedad como lo cierra Mi (noches, estadías, ocupación en %, ADR, ingresos, fee, gastos, depósito en USD, mes anterior). Para ocupación, ingresos o depósito: repite sus cifras tal cual; si el mes no está, no lo calcules. Cada estadía cuenta en su mes de entrada. Solo Juan.',
-      { propiedad: s('Como la digan («Rue 301», «z4 rue»)'), mes: s('AAAA-MM, «octubre», «octubre 2026» o «el mes pasado»; vacío = el último cerrado'), meses: { type: 'integer', description: 'Opcional: cuántos meses hacia atrás, para comparar' } }, ['propiedad']),
+      { propiedad: s('Como la digan («Rue 301», «z4 rue»)'), mes: s('AAAA-MM, «octubre», «octubre 2026» o «el mes pasado»; vacío = el último cerrado'), meses: { type: 'integer', description: 'Cuántos meses hacia atrás, para comparar' } }, ['propiedad']),
     T('precio_por_noche', 'Por noche: desglose de una reserva de Airbnb del último mes ÷ noches y largo plazo de Hola. Solo principal.',
       { propiedad: s('«Mónaco», «Z7»…') }, ['propiedad']),
     T('grow_proyectos', 'Grow (captación y montaje de apartamentos nuevos): busca proyectos por edificio, apartamento, zona o dueño, o lista los de una etapa. Sin filtros da el conteo por etapa. Devuelve id, etapa, dueño y visita.',
-      { buscar: s('Opcional: edificio, apartamento, zona o nombre del dueño'), etapa: { type: 'string', enum: GROW_ETAPAS_, description: 'Opcional: solo los de esta etapa' } }),
+      { buscar: s('Edificio, apartamento, zona o nombre del dueño'), etapa: { type: 'string', enum: GROW_ETAPAS_, description: 'Solo los de esta etapa' } }),
     T('grow_crear_proyecto', 'Grow: da de alta un apartamento nuevo (prospecto) con su dueño. Con correo del dueño, entra ya a Grow. Si ese edificio + apartamento existe, devuelve el existente.',
       { edificio: s('Edificio'), apto: s('Número o nombre del apartamento'), zona: s('Opcional (ej. Zona 14)'), hab: { type: 'number' }, banos: { type: 'number' },   // opcionales: solo edificio es obligatorio
-        dueno_nombre: { type: 'string' }, dueno_email: { type: 'string' }, dueno_tel: { type: 'string' }, etapa: { type: 'string', enum: GROW_ETAPAS_, description: 'Opcional; por defecto desconocido' }, nota: s('Opcional: contexto') }, ['edificio']),
+        dueno_nombre: { type: 'string' }, dueno_email: { type: 'string' }, dueno_tel: { type: 'string' }, etapa: { type: 'string', enum: GROW_ETAPAS_, description: 'Opcional; por defecto desconocido' }, nota: s('Contexto') }, ['edificio']),
     T('grow_mover_etapa', 'Grow: mueve un proyecto a otra etapa del embudo. Para descartar usa etapa descartado con motivo.',
       { proyecto_id: s('id del proyecto (p…)'), etapa: { type: 'string', enum: GROW_ETAPAS_ }, motivo: s('Obligatorio si es descartado') }, ['proyecto_id', 'etapa']),
     T('grow_agendar_visita', 'Grow: agenda (o reprograma) la visita de levantamiento de un proyecto y se la asigna a alguien del equipo de Grow; le llega un correo.',
-      { proyecto_id: s('id del proyecto (p…)'), fecha: s('YYYY-MM-DD HH:mm (hora Guatemala)'), asignado: s('Nombre de la persona del equipo de Grow'), nota: s('Opcional: indicaciones para quien visita') }, ['proyecto_id', 'fecha', 'asignado']),
+      { proyecto_id: s('id del proyecto (p…)'), fecha: s('YYYY-MM-DD HH:mm (hora Guatemala)'), asignado: s('Nombre de la persona del equipo de Grow'), nota: s('Indicaciones para quien visita') }, ['proyecto_id', 'fecha', 'asignado']),
     T('grow_fotos_visita', 'Grow: mira tú misma las fotos de la visita de un proyecto, de a 6, con su zona, y los problemas de mantenimiento que anotó quien visitó, para recomendar qué arreglar, comprar o fotografiar. Si quedan más (siguen), pide las siguientes con desde.',
-      { proyecto_id: s('id del proyecto (p…)'), zona: s('Opcional: solo una zona (cocina, baño, sala, mantenimiento…)'), apto: s('Opcional: en edificios con varias unidades, el apartamento'), desde: { type: 'number', description: 'Opcional: cuántas saltar (0, 6, 12…)' } }, ['proyecto_id']),
+      { proyecto_id: s('id del proyecto (p…)'), zona: s('Solo una zona (cocina, baño, sala, mantenimiento…)'), apto: s('En edificios con varias unidades, el apartamento'), desde: { type: 'number', description: 'Cuántas saltar (0, 6, 12…)' } }, ['proyecto_id']),
     T('grow_presupuesto_pdf', 'Grow: PDF del presupuesto para alguien de afuera; a Juan le llega por WhatsApp y te da enlace y drive_id. Con hoja y aptos, primero copia esa plantilla como un presupuesto por apartamento (sin duplicar). Solo Juan.',
-      { proyecto_id: s('id del proyecto (p…)'), aptos: s('Opcional: «B5, A4»: un PDF por apartamento'), hoja: s('Opcional: enlace o nombre de la hoja plantilla'), pestana: s('Opcional: pestaña de la hoja'),
-        consolidado: { type: 'boolean', description: 'Opcional: uno más con todos' }, whatsapp: { type: 'boolean', description: 'Opcional: false para no mandarlo a su WhatsApp' } }, ['proyecto_id']),
+      { proyecto_id: s('id del proyecto (p…)'), aptos: s('Opcional: «B5, A4»: un PDF por apartamento'), hoja: s('Enlace o nombre de la hoja plantilla'), pestana: s('Pestaña de la hoja'),
+        consolidado: { type: 'boolean', description: 'Uno más con todos' }, whatsapp: { type: 'boolean', description: 'False para no mandarlo a su WhatsApp' } }, ['proyecto_id']),
     T('actualizar_dato', 'Dato de hecho, sin pedir permiso: apto, edificio o zona de un proyecto de Grow; nombre, teléfono o correo de su dueño; nombre, rol, empresa o apartamentos de un contacto. Devuelve aviso: díselo a Juan tal cual.',
       { donde: { type: 'string', enum: ['grow_proyecto', 'grow_dueno', 'contacto'] }, id: s('p… o D… de grow_proyectos, o número del contacto'), campo: { type: 'string', enum: ['apto', 'edificio', 'zona', 'nombre', 'telefono', 'email', 'rol', 'empresa', 'propiedades'] }, valor: s('Valor'), fuente: s('«lo dijo Inés»') }, ['donde', 'id', 'campo', 'valor', 'fuente']),
     T('memoria_propiedad', 'Lo que ALMA aprendió del equipo sobre una propiedad o su edificio (elevadores, tarjetas, accesos, dónde se pierden los huéspedes). Cada dato trae su id.', { propiedad: s('Nombre o parte del nombre de la propiedad') }, ['propiedad']),
     T('recordar_en_propiedad', 'Guarda un dato nuevo en la memoria de una propiedad (o de todo su edificio) para que ALMA lo use con futuros huéspedes. Úsalo cuando el administrador te enseñe algo de una propiedad.',
-      { propiedad: s('Nombre o parte del nombre'), dato: s('El dato, como hecho claro (máx. 30 palabras)'), alcance: { type: 'string', enum: ['apartamento', 'edificio'] }, dias: { type: 'number', description: 'Opcional: si es temporal, cuántos días vale' } }, ['propiedad', 'dato']),
+      { propiedad: s('Nombre o parte del nombre'), dato: s('El dato, como hecho claro (máx. 30 palabras)'), alcance: { type: 'string', enum: ['apartamento', 'edificio'] }, dias: { type: 'number', description: 'Si es temporal, cuántos días vale' } }, ['propiedad', 'dato']),
     T('olvidar_memoria', 'Borra un dato de la memoria de una propiedad (por su id de memoria_propiedad). Si el administrador confirma uno «por confirmar», guárdalo con recordar_en_propiedad y borra el viejo.', { id: s('id del dato (mp…)') }, ['id']),
     T('ficha_socio', 'Ficha del socio en Mi: notas y detalles que importan (con fecha) de lo que él contó. Léela antes de escribirle o llamarle; si trae retomar, úsalo una vez. Nunca salud, religión, política ni banco.',
       { socio: s('«socio de <apto>», nombre o número'), accion: { type: 'string', enum: ['ver', 'anotar', 'corregir', 'borrar'] }, texto: s('anotar/corregir'), fecha: s('AAAA-MM-DD del evento'), id: s('de ver') }, ['socio']),
@@ -234,7 +234,7 @@ function agHerramientas_() {
       { persona: AG_DEST_, numero: AG_NUM_, texto: s('Mensaje completo, natural, en primera persona como su asistente (ej. «Juan me pidió avisarte que…»)'), objetivo: s('Qué reunir («su itinerario: fechas, vuelos, hospedaje»): ALMA conversa hasta tenerlo y le manda un resumen; sin objetivo, solo reenvía lo que conteste.'), proyecto: s('Proyecto personal («Boda Pamela»): un solo resumen. Si lo nombra, úsalo siempre.'), contexto_de: { type: 'array', items: { type: 'string' }, description: 'Solo si no hay proyecto: nombres de personas con las que ya hablaste del mismo tema' } }, ['texto']),
     T('proyectos_personales', 'Lista los proyectos personales abiertos y quién participa en cada uno.', {}),
     T('ver_proyecto', 'Resumen consolidado de un proyecto personal (todo lo reunido con todas las personas, contradicciones y lo que falta).', { proyecto: s('Nombre del proyecto'), actualizar: { type: 'boolean', description: 'Rehacer el resumen con los últimos mensajes' } }, ['proyecto']),
-    T('asignar_a_proyecto', 'Pasa una conversación personal ya iniciada (por nombre de la persona) a un proyecto, con todo lo que ya se habló.', { persona: s('Nombre'), proyecto: s('Proyecto'), objetivo: s('Opcional: qué se quiere lograr en el proyecto') }, ['persona', 'proyecto']),
+    T('asignar_a_proyecto', 'Pasa una conversación personal ya iniciada (por nombre de la persona) a un proyecto, con todo lo que ya se habló.', { persona: s('Nombre'), proyecto: s('Proyecto'), objetivo: s('Qué se quiere lograr en el proyecto') }, ['persona', 'proyecto']),
     T('cerrar_proyecto', 'Cierra un proyecto personal terminado.', { proyecto: s('Nombre del proyecto') }, ['proyecto']),
     T('ver_conversacion_personal', 'Lo que ALMA habló por WhatsApp con alguien (por nombre) en 30 días, personal o no: «revisa la conversación».', { persona: s('Nombre') }, ['persona']),
     T('programar_mensaje', 'Programa un WhatsApp para enviarse más tarde (al equipo, a un proveedor o un tema personal). Confirma siempre al administrador la fecha y hora con su zona.',
@@ -267,7 +267,7 @@ function agHerramientas_() {
     T('leer_correo', 'Abre un correo de la bandeja del Hub (alma@spacioam.com, el de Juan y hola@): el hilo entero, sin citas ni firmas, y sus adjuntos (PDF, fotos, Excel). Si es largo, resume qué piden. Para mandar sus datos, mensaje_personal o enviar_correo; para contestarle a quien lo escribió, responder_correo.',
       { buscar: s('Palabras sueltas del asunto, de quién lo mandó o del texto (ej. «Casa Sol remodelación»)') }, ['buscar']),
     T('responder_correo', 'Responder en el hilo: contesta un correo (o el original de uno que Juan reenvió) a quien lo escribió, desde hola@spacioam.com. Si Juan te ordena responder en su mensaje, sale directo. Si no, te da el borrador: muéstraselo COMPLETO (para, copia, asunto y texto); con su sí, otra vez con confirmado = true y el mismo texto.',
-      { buscar: s('Como en leer_correo'), texto: s('La respuesta completa, lista para salir'), adjuntos: s('Opcional: drive_id de PDF a adjuntar, con comas'), a_todos: { type: 'boolean', description: 'true solo si Juan pide copiar a todos' }, confirmado: CAL_SI_ }, ['buscar', 'texto']),
+      { buscar: s('Como en leer_correo'), texto: s('La respuesta completa, lista para salir'), adjuntos: s('Drive_id de PDF a adjuntar, con comas'), a_todos: { type: 'boolean', description: 'true solo si Juan pide copiar a todos' }, confirmado: CAL_SI_ }, ['buscar', 'texto']),
     T('enviar_correo', 'Manda un correo NUEVO a la dirección que Juan te diga (p. ej. «mándale los vuelos a hola@spacioam.com»). Solo cuando Juan lo pide. Escribe el correo completo y claro, con los datos tal cual (vuelos, horarios, enlaces).',
       { para: s('Correo de destino'), asunto: s('Asunto corto'), texto: s('Cuerpo del correo, completo') }, ['para', 'asunto', 'texto']),
     T('guardar_familia', 'Guarda a alguien de la familia de Juan (su esposa, sus hijos, sus padres…) para que Alma lo reconozca cuando llama o escribe, lo trate por su nombre y le ayude con lo personal de Juan. Úsala cuando Juan diga quién es («Christine es mi esposa»). Si ya le escribiste antes, basta el nombre.',
@@ -278,8 +278,8 @@ function agHerramientas_() {
     /* Vigilancias (vigilancias.js): la revisión es código, sin IA; tú solo la armas y actúas al final. */
     T('vigilar', '«Avísame cuando…»: vigila sin gastar IA y avisa a Juan cuando pase. que (objetivo): vuelo, cambia puerta, terminal u hora (confirmación o número de ver_vuelos); huesped_responde (código, conv_id o WhatsApp); pr_unido (enlace); reserva_cambia (código) o pagina_dice (https://…, con texto). Solo Juan.',
       { que: { type: 'string', enum: ['vuelo', 'huesped_responde', 'pr_unido', 'reserva_cambia', 'pagina_dice'] }, objetivo: s('Qué vigilar (ver «que»)'), texto: s('Solo pagina_dice: el texto que debe aparecer'),
-        cada_min: { type: 'number', description: 'Opcional: cada cuántos minutos (mínimo 5; la página, 15)' }, vence: s('Opcional: horas (número) o «AAAA-MM-DD HH:MM». Por defecto 48 h (un vuelo, hasta que sale); máximo 14 días'),
-        al_pasar: { type: 'object', description: 'Qué hacer al pasar', properties: { avisar: s('El aviso para Juan, corto'), pedido: s('Opcional: lo que harás tú cuando pase («escríbele a Gabriel que…»), con todos los datos') } } }, ['que', 'objetivo']),
+        cada_min: { type: 'number', description: 'Cada cuántos minutos (mínimo 5; la página, 15)' }, vence: s('Horas (número) o «AAAA-MM-DD HH:MM». Por defecto 48 h (un vuelo, hasta que sale); máximo 14 días'),
+        al_pasar: { type: 'object', description: 'Qué hacer al pasar', properties: { avisar: s('El aviso para Juan, corto'), pedido: s('Lo que harás tú cuando pase («escríbele a Gabriel que…»), con todos los datos') } } }, ['que', 'objetivo']),
     T('dejar_de_vigilar', 'Para «deja de vigilar…»: cancela una vigilancia (por su id o palabras de lo que vigila).', { cual: s('id (vg…) o palabras: «el vuelo», «Marcela»') }, ['cual']),
     T('vigilancias', 'Lo que estás vigilando para Juan ahora.', {}),
     T('cupo_google', 'Cupo de Google: nivel, % y qué lo gasta.', {}),
@@ -294,7 +294,7 @@ function agHerramientas_() {
     /* Avisos de aterrizaje (avisovuelo.js): Juan elige por viaje a quién; el código vigila y escribe. */
     T('avisar_aterrizaje', '«Avísale a Lucky cuando aterrice»: Alma le escribe a cada persona si se retrasa, al aterrizar y cuánto tarda Juan en salir. quitar = true para dejar de avisar. Solo Juan.',
       { vuelo: s('Confirmación o número de vuelo (de ver_vuelos)'), personas: { type: 'array', items: { type: 'string' }, description: 'Nombres; se resuelven solos, con su fuente' }, numero: s('WhatsApp con código de país, si es una sola persona nueva'),
-        solo_en: s('Opcional: solo al llegar a esa ciudad o aeropuerto'), maleta: { type: 'boolean', description: 'Si lleva maleta documentada (si lo dijo)' }, quitar: { type: 'boolean' } }, ['vuelo']),
+        solo_en: s('Solo al llegar a esa ciudad o aeropuerto'), maleta: { type: 'boolean', description: 'Si lleva maleta documentada (si lo dijo)' }, quitar: { type: 'boolean' } }, ['vuelo']),
     { type: 'web_search_20250305', name: 'web_search', max_uses: 5, user_location: { type: 'approximate', city: 'Guatemala City', timezone: 'America/Guatemala' } }
   ].concat(cerebroHerramientas_(T, s));   // buscar_en_cerebro, solo si el cerebro está configurado (cerebro.js)
 }
@@ -716,6 +716,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       return resE.length === 1 ? resE[0] : { ok: resE.some(function (x) { return !x.error && x.ok !== false; }), enviados: resE };
     }
     case 'ruta_del_dia': {
+      if (s_(inp.propiedad).trim()) return formularioLimpieza_({ propiedad: inp.propiedad, fecha: inp.fecha || hoy, persona: inp.persona, fotos: inp.fotos });   // el formulario que llenaron (formlimpieza.js, #969)
       var cfg = ctx.cfg(), fd = String(inp.fecha || hoy).slice(0, 10), rt = agRutaTrabajos_(cfg, fd, inp.persona);
       if (rt.error) return { error: rt.error };
       tvCandidata_('datos', function () { return tdRuta_(rt, fd); });   // la ruta en pantalla, sin códigos (tablero.js, #607)

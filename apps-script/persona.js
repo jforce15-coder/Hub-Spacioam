@@ -72,7 +72,11 @@ function almaPrompt_(canal, audiencia, o) {
   L.push('', c.titulo.toUpperCase()); c.reglas.forEach(linea);
   if (!o.sinHerramientas && esVoz) {
     var H = A.herramientas.lista, hs = Object.keys(H).filter(function (n) { return H[n].canales.indexOf('voz') >= 0; });
-    if (hs.length) { L.push('', A.herramientas.titulo.toUpperCase()); hs.forEach(function (n) { L.push('· ' + n + ': ' + r(H[n].linea)); }); }
+    /* Parte C del recorte (Juan, 21-nov-2026): solo la cabecera. Cada herramienta ya trae en ElevenLabs su descripción
+       completa (cuándo usarla y sus límites); las líneas de alma.json quedan como índice (.github/alma-json.js). */
+    if (hs.length) L.push('', A.herramientas.titulo.toUpperCase() + (A.herramientas.cabecera_voz ? ': ' + r(A.herramientas.cabecera_voz) : ''));
+    /* Las de los administradores (en_prompt) quedan con su línea: sin la de enviar_confirmado la compuerta salió peor (G29). */
+    hs.filter(function (n) { return H[n].en_prompt; }).forEach(function (n) { L.push('· ' + n + ': ' + r(H[n].linea)); });
   }
   L.push('', A.prohibiciones.titulo.toUpperCase()); A.prohibiciones.reglas.forEach(function (x) { linea(x.texto); });
   if (!o.sinEjemplos) {
@@ -90,7 +94,8 @@ function almaIdentidad_(o) {
 /* Reglas de huéspedes consolidadas (playbooks/huespedes.json). En la voz, «por aquí mismo» es WhatsApp a ese número. */
 function huespedesReglas_(canal) {
   var H = HUESPEDES_FUENTE_, voz = canal === 'voz';
-  return '\n\n' + H.titulo + ':\n' + H.reglas.map(function (x) {
+  /* En la llamada, la regla de códigos la dice property_info (codigo_puerta, vozficha.js; recorte A9, 21-nov-2026). */
+  return '\n\n' + H.titulo + ':\n' + H.reglas.filter(function (x) { return !(voz && x.id === 'codigos'); }).map(function (x) {
     var t = x.texto; if (voz) t = t.replace(/por aquí mismo/g, 'por WhatsApp a este mismo número');
     return '· ' + t;
   }).join('\n');

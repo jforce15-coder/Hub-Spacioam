@@ -387,6 +387,7 @@ function claudioFicha_(adm, nom, motivo) {
   try { ficha += mfBloque_(adm); } catch (e) { console.error('mfBloque_: ' + e); }   // las últimas 5 llamadas (memoriafresca.js)
   /* El mismo Modo Weebo y la misma adaptación a Juan que la ficha de Alma (medidores.js). */
   try { var pf = personalidadFicha_(adm); if (pf && pf.bloque) ficha += pf.bloque; } catch (e) { console.error('personalidadFicha_: ' + e); }
+  ficha += VOZ_FORMATO_JUAN_;   // el formato que pidió Juan para el modo agente (21-nov-2026, vozficha.js)
   return ficha;
 }
 /* El saludo de Claudio: como una persona a la que Alma fue a llamar, variado (Juan, 16-nov-2026: «Hola Juan, ¿cómo estás?

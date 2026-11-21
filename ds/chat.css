@@ -145,6 +145,13 @@
 .sa-chat-opcion--fija:active{ transform:none; background:transparent; }
 @media (hover:hover){ .sa-chat-opcion--fija:hover{ background:transparent; } }
 .sa-chat-foto img{ display:block; max-width:220px; max-height:280px; border-radius:20px; }
+/* Fotos que Alma pone en pantalla (un formulario de limpieza de Epi, apps-script/formlimpieza.js): una galería de 2
+   columnas con la etiqueta de cada foto; tocarla la abre en Drive. */
+.sa-chat-fotos{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; width:min(300px,100%); margin-top:6px; }
+.sa-chat-fotos-item{ display:flex; flex-direction:column; gap:4px; text-decoration:none; color:inherit; min-width:0; }
+.sa-chat-fotos-item img{ display:block; width:100%; aspect-ratio:3/4; object-fit:cover; border-radius:14px; background:#F5F3F0; border:1px solid rgba(62,63,63,.08); }
+.sa-chat-fotos-pie{ font-family:var(--chat-sans); font-size:11px; line-height:1.35; color:var(--chat-tenue); overflow-wrap:anywhere; }
+.sa-chat-fotos:has(.sa-chat-fotos-item:only-child){ grid-template-columns:minmax(0,1fr); width:min(220px,100%); }
 .sa-chat-nota{ align-self:center; text-align:center; padding:2px 8px; font-family:var(--chat-sans); font-size:12px; line-height:1.4; color:var(--chat-tenue); }
 
 /* ── Chat único con Alma (#334, prototipo A con los cambios de Juan): fila de esferas bajo el encabezado (filtra el hilo),

@@ -33,10 +33,10 @@
 <link rel="stylesheet" href="ds/styles.css">
 <link rel="stylesheet" href="ds/esqueleto.css">
 <link rel="stylesheet" href="ds/movimiento.css">
-<link rel="stylesheet" href="ds/chat.css?v=2026-11-21a">
+<link rel="stylesheet" href="ds/chat.css?v=2026-11-21-fotos">
 <script src="ds/bundle.js"></script>
 <script src="ds/movimiento.js"></script>
-<script src="js/sa-nav.js?v=2026-11-21-escritorio"></script>
+<script src="js/sa-nav.js?v=2026-11-21-fotos"></script>
 <script src="js/alma-voz.js?v=2026-11-19-unavoz"></script>
 <script src="js/sw-reg.js?v=2026-10-18a"></script>
   <script src="js/sa-auth-client.js?v=2026-11-18a"></script>
@@ -44,7 +44,7 @@
 <script src="js/alma-client.js?v=2026-11-21-escritorio"></script>
 <script src="js/hub-bento.js?v=2026-11-19-reposo" defer></script>
 <script src="js/sa-compositor.js?v=2026-11-09b"></script>
-<script src="js/sa-chat.js?v=2026-11-21a"></script>
+<script src="js/sa-chat.js?v=2026-11-21-fotos"></script>
 <script src="js/push.js?v=2026-10-18a"></script>
 <script src="js/sched-engine.js?v=2026-10-18a"></script>
 <style>
@@ -7593,6 +7593,9 @@ class Component extends DCLogic {
         }
         /* Chat con Alma: sus opciones van como tarjeta de acción y sus reservas o enlaces como filas con «›» (js/sa-chat.js). */
         if (esOpH && guest && it.hayTexto && window.SAChat) {
+          /* Las fotos que Alma pone en pantalla ([[fotos]] … [[/fotos]], apps-script/formlimpieza.js): van como las fotos de la conversación. */
+          var fotA = SAChat.fotos ? SAChat.fotos(it.texto) : null;
+          if (fotA) { it.texto = fotA.texto; it.hayTexto = !!fotA.texto; if (fotA.fotos.length) { it.hayFotos = true; it.fotos = fotA.fotos.map(function (f) { return self.fotoVista(f.src); }); } }
           var opcA = SAChat.opciones(it.texto);
           if (opcA) {
             it.texto = opcA.texto; it.hayTexto = !!opcA.texto; it.hayOpciones = true;

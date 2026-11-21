@@ -545,6 +545,10 @@ jobs:
         # 18-nov-2026: Juan pidió que Alma trabaje como un juego de mundo abierto y tenga a la mano lo que se acerca.
         run: node .github/a-la-mano.js apps-script
 
+      - name: Fotos del formulario de limpieza en pantalla, Alma las ve y el chat las pinta (chat sí, WhatsApp no, llamada al chat aparte) y las limpiezas recientes (dobles)
+        # 21-nov-2026 (pedido pc1795284963805): «no me estás poniendo eso en pantalla, solo las reservas… necesito las fotos que están en Epi… la foto de los insumos».
+        run: node .github/fotos-en-pantalla.js apps-script
+
       - name: Unir = publicar, lo que cambia en main de una app con sincronizar se publica solo en alma@ (pedido del Hub, push y a mano sincroniza todas) (dobles)
         # 18-nov-2026: el horario de «Traslado a Workspace» pasó 12 h sin correr y lo unido no llegaba a producción.
         run: node .github/publicar-solo.js apps-script

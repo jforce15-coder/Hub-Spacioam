@@ -716,7 +716,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       return resE.length === 1 ? resE[0] : { ok: resE.some(function (x) { return !x.error && x.ok !== false; }), enviados: resE };
     }
     case 'ruta_del_dia': {
-      if (s_(inp.propiedad).trim()) return formularioLimpieza_({ propiedad: inp.propiedad, fecha: inp.fecha || hoy, persona: inp.persona, fotos: inp.fotos });   // el formulario que llenaron (formlimpieza.js, #969)
+      if (s_(inp.propiedad).trim()) return formularioLimpieza_({ propiedad: inp.propiedad, fecha: inp.fecha || hoy, persona: inp.persona, fotos: inp.fotos }, ctx);   // el formulario que llenaron (formlimpieza.js, #969)
       var cfg = ctx.cfg(), fd = String(inp.fecha || hoy).slice(0, 10), rt = agRutaTrabajos_(cfg, fd, inp.persona);
       if (rt.error) return { error: rt.error };
       tvCandidata_('datos', function () { return tdRuta_(rt, fd); });   // la ruta en pantalla, sin códigos (tablero.js, #607)
@@ -1098,6 +1098,7 @@ function agCerrarTurno_(adm, final, ctx) {
   var mt = microSacarEtiqueta_(final), nv = claudeNivelSacarEtiqueta_(mt.texto), et = chatSacarEtiqueta_(nv.texto), tg = temaSacarEtiqueta_(et.texto); final = tg.texto;   // y [[tema: …]] (temas.js)   // [[micro: …]] (microproyectos.js), [[nivel: …]] (paraclaude.js) y [[esfera: …]]
   try { tvCandidataTema_(adm); } catch (e) { console.error('tvCandidataTema_: ' + e); }   // en una llamada, el pedido de un socio sin otra tarjeta: su tablero (tarjeta.js)
   var respFinal = final || (ctx.hechas.length ? 'Listo.' : 'Entendido.');
+  try { respFinal = flPantalla_(adm, respFinal, ctx); } catch (e) { console.error('flPantalla_: ' + e); }   // fotos de un formulario de limpieza, en pantalla (formlimpieza.js)
   /* «Listo, le llegó» solo con un envío hecho en este turno (prometer.js, #583 T4): si no, «Todavía no salió: …». */
   try { respFinal = prometerFreno_(respFinal, ctx); } catch (e) { console.error('prometerFreno_: ' + e); }
   /* Solo lo que terminó en segundo plano va a Pendientes: lo que Juan vio en el chat o en la llamada ya lo sabe, y una

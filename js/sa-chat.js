@@ -63,6 +63,22 @@
     return deBloque(texto) || deLista(texto);
   };
 
+  /* Fotos que el Hub pone en pantalla (21-nov-2026, apps-script/formlimpieza.js: las de un formulario de limpieza de Epi):
+     [[fotos]] una línea por foto «etiqueta | id de Drive» [[/fotos]]. Devuelve { texto (sin el bloque), fotos: [{ t, id, src,
+     url }] } o null. src = la miniatura de Drive (el archivo es de «cualquiera con el enlace»); url = abrirla en Drive. */
+  var fotos = function (texto) {
+    texto = String(texto == null ? "" : texto).replace(/\r\n?/g, "\n");
+    var m = texto.match(/\[\[fotos\]\]([\s\S]*?)\[\[\/fotos\]\]/i);
+    if (!m) return null;
+    var lista = m[1].split("\n").map(function (l) {
+      var p = l.split("|"), id = String(p.pop() || "").trim(), t = p.join("|").trim();
+      if (!/^[\w-]{10,}$/.test(id)) return null;
+      return { t: t || "Foto", id: id, src: "https://drive.google.com/thumbnail?id=" + id + "&sz=w800", url: "https://drive.google.com/file/d/" + id + "/view" };
+    }).filter(Boolean).slice(0, 12);
+    var resto = (texto.slice(0, m.index) + "\n" + texto.slice(m.index + m[0].length)).replace(/\n{3,}/g, "\n\n").trim();
+    return lista.length ? { texto: resto, fotos: lista } : { texto: resto, fotos: [] };
+  };
+
   /* Códigos de reserva de Hospitable (HM + 8 letras o números) y enlaces https: una fila por cada uno, sin repetir. */
   var enlaces = function (texto) {
     texto = String(texto == null ? "" : texto);
@@ -235,8 +251,20 @@
       alma: function (texto, ts, meta) {
         api.pensando(false);
         texto = String(texto == null ? "" : texto).trim(); if (!texto) return;
+        var fo = fotos(texto); if (fo) texto = fo.texto;
         var op = opciones(texto), cuerpoTxt = op ? op.texto : texto, cuerpo = mensaje("alma", ts || Date.now(), meta);
         if (cuerpoTxt) burbuja(cuerpo, cuerpoTxt, "sa-chat-burbuja--otro");
+        if (fo && fo.fotos.length) {   /* la galería: cada foto con su etiqueta; tocarla la abre en Drive */
+          var gal = el("div", "sa-chat-fotos"); gal.setAttribute("role", "group"); gal.setAttribute("aria-label", "Fotos");
+          fo.fotos.forEach(function (f) {
+            var a = el("a", "sa-chat-fotos-item"); a.href = f.url; a.target = "_blank"; a.rel = "noopener";
+            var im = el("img"); im.src = f.src; im.alt = f.t; im.loading = "lazy";
+            im.onerror = function () { if (im.dataset.otra) return; im.dataset.otra = "1"; im.src = "https://lh3.googleusercontent.com/d/" + f.id + "=w800"; };
+            var pie = el("span", "sa-chat-fotos-pie"); pie.textContent = f.t;
+            a.appendChild(im); a.appendChild(pie); gal.appendChild(a);
+          });
+          cuerpo.appendChild(gal);
+        }
         if (op) {
           var tj = el("div", "sa-chat-tarjeta"); tj.setAttribute("role", "group"); tj.setAttribute("aria-label", "Opciones de Alma");
           op.opciones.forEach(function (x) {
@@ -538,7 +566,7 @@
     return abrir;
   };
 
-  var SAChat = { separador: separador, opciones: opciones, enlaces: enlaces, iconoOpcion: iconoOpcion, pintor: pintor, unico: unico, filaEsferas: filaEsferas, ESFERAS: ESFERAS, esfera: esfera,
+  var SAChat = { separador: separador, opciones: opciones, enlaces: enlaces, fotos: fotos, iconoOpcion: iconoOpcion, pintor: pintor, unico: unico, filaEsferas: filaEsferas, ESFERAS: ESFERAS, esfera: esfera,
     EMOJIS: EMOJIS, DOC_ACCEPT: DOC_ACCEPT, fijado: fijado, tipoAdjunto: tipoAdjunto, leerAdjunto: leerAdjunto, desplegable: desplegable, emojis: emojis };
   if (typeof module !== "undefined" && module.exports) module.exports = SAChat;
   raiz.SAChat = SAChat;

@@ -1536,7 +1536,7 @@
   }
   /* Las piezas del chat estilo A (ds/chat.css y js/sa-chat.js) se cargan la primera vez que se abre Alma, junto a este
      archivo (las páginas que ya las tienen no las vuelven a pedir). Sin ellas el chat pinta texto simple. */
-  var CHAT_V = "2026-11-21a", chatCb = [], chatCargando = false, chatSin = false;
+  var CHAT_V = "2026-11-21-fotos", chatCb = [], chatCargando = false, chatSin = false;
   function conChat(cb) {
     if (w.SAChat && w.SAChat.pintor) { cb(true); return; }
     if (chatSin) { cb(false); return; }

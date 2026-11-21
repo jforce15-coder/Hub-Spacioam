@@ -1469,7 +1469,7 @@ function contextoHosp_(resId, hilo, modo) {
     propiedadInfo: infoPropiedad_(nombreProp, idiomaCtx),
     codigos: codigosEnHilo_(hilo),
     instrucciones: prompt_('REGLAS_EXTRA'),
-    dispSolicitud: (function () { const conf = ['accepted', 'confirmed', 'checked_in', 'checkpoint'].some(x => estado.indexOf(x) !== -1); if (conf) return ''; try { return dispSolicitud_(s_(prop.id || prop.uuid), nombreProp, checkin, checkout, resId + checkin + checkout); } catch (e) { console.error('dispSolicitud_: ' + e); return ''; } })()
+    dispSolicitud: (function () { const conf = ['accepted', 'confirmed', 'checked_in', 'checkpoint'].some(x => estado.indexOf(x) !== -1); if (conf) return ''; try { return dispSolicitud_(s_(prop.id || prop.uuid), nombreProp, checkin, checkout, resId + checkin + checkout, codigo); } catch (e) { console.error('dispSolicitud_: ' + e); return ''; } })()
   };
 }
 
@@ -3959,30 +3959,50 @@ function aplicarSinConfirmar_(ctx) {
   ctx.propiedadInfo = 'RESERVA SIN CONFIRMAR · datos que SÍ puedes compartir:\nZona: ' + (zona || '—') + '\nEdificio: ' + (edif || '—') + (piso ? '\nPiso: ' + piso : '') +
     (parq && !/\d{3,}/.test(parq) ? '\nParqueo: ' + parq : '') + '\nNo compartas número de apartamento, códigos (edificio, portería, puerta), WiFi ni pasos de acceso hasta que la reserva esté confirmada.';
 }
-/* ¿Están libres las fechas que pide una consulta? Calendario de Hospitable; si no, alternativas del mismo edificio o zona (cache 30 min). */
-function dispSolicitud_(propId, nombre, ci, co, clave) {
-  if (!propId || !/^\d{4}-\d{2}-\d{2}$/.test(ci || '') || !/^\d{4}-\d{2}-\d{2}$/.test(co || '') || co <= ci) return '';
+/* ¿Están libres esas noches? El calendario de Hospitable manda; si no responde, la hoja Reservas (solo si muestra una
+   reserva que las cruza). true libre · false ocupada · null sin dato. Caso N Américas 8F (21-nov-2026): una consulta
+   recibió «revisamos disponibilidad» con una reserva confirmada en el calendario. Se revisa ANTES de responder. */
+function calendarioLibre_(propId, ci, co) {
+  if (!propId) return null;
+  const fin = new Date(co + 'T12:00:00'); fin.setDate(fin.getDate() - 1);
+  const r = hosp_('get', '/properties/' + propId + '/calendar?start_date=' + ci + '&end_date=' + Utilities.formatDate(fin, CFG.TZ, 'yyyy-MM-dd'));
+  if (r.code !== 200) return null;
+  const d = (r.json && r.json.data) || {}, dias = d.days || (Array.isArray(d) ? d : []);
+  if (!dias.length) return null;
+  return dias.every(x => { const st = x.status || {}; return st.available !== false && x.available !== false && !/book|reserv|block|unavail|occupied/i.test(String(st.reason || x.reason || '')); });
+}
+/* Reservas de la hoja que cruzan esas noches en la misma propiedad (sin canceladas, consultas ni solicitudes). */
+function reservasQueCruzan_(nombre, ci, co, codigo) {
+  const norm = x => String(x || '').toLowerCase().replace(/[\s\-–_]/g, '');
+  if (!nombre) return [];
+  return leerTabla_(CFG.TAB_RESERVAS).filter(r => norm(r.property_name) === norm(nombre) && (!codigo || s_(r.code) !== codigo) &&
+    !/cancel|declin|expir|denied|deny|inquiry|request|withdraw/i.test(s_(r.status)) && fecha_(r.checkin_date) && fecha_(r.checkin_date) < co && fecha_(r.checkout_date) > ci);
+}
+function ocupacionFechas_(propId, nombre, ci, co, codigo) {
+  const valido = /^\d{4}-\d{2}-\d{2}$/.test(ci || '') && /^\d{4}-\d{2}-\d{2}$/.test(co || '') && co > ci;
+  if (!valido) return { libre: null, fuente: '', reservas: [] };
+  let hoja = []; try { hoja = reservasQueCruzan_(nombre, ci, co, codigo); } catch (e) { console.error('reservasQueCruzan_: ' + e); }
+  const cal = calendarioLibre_(propId, ci, co);
+  if (cal !== null) return { libre: cal, fuente: 'calendario', reservas: hoja };
+  return hoja.length ? { libre: false, fuente: 'reservas', reservas: hoja } : { libre: null, fuente: '', reservas: [] };
+}
+/* ¿Están libres las fechas que pide una consulta? Si no, alternativas del mismo edificio o zona (cache 30 min). */
+function dispSolicitud_(propId, nombre, ci, co, clave, codigo) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ci || '') || !/^\d{4}-\d{2}-\d{2}$/.test(co || '') || co <= ci) return '';
   const cache = CacheService.getScriptCache(), ck = 'disp_' + String(clave || propId + ci + co).slice(-80), c0 = cache.get(ck); if (c0 != null) return c0;
-  const libre = id => {
-    const fin = new Date(co + 'T12:00:00'); fin.setDate(fin.getDate() - 1);
-    const r = hosp_('get', '/properties/' + id + '/calendar?start_date=' + ci + '&end_date=' + Utilities.formatDate(fin, CFG.TZ, 'yyyy-MM-dd'));
-    if (r.code !== 200) return null;
-    const d = (r.json && r.json.data) || {}, dias = d.days || (Array.isArray(d) ? d : []);
-    if (!dias.length) return null;
-    return dias.every(x => { const st = x.status || {}; return st.available !== false && x.available !== false && !/book|reserv|block|unavail|occupied/i.test(String(st.reason || x.reason || '')); });
-  };
-  const yo = libre(propId); let txt = '';
-  if (yo === true) txt = 'Del ' + ci + ' al ' + co + ': disponibles en esta propiedad al momento de responder.';
+  const yo = ocupacionFechas_(propId, nombre, ci, co, codigo).libre; let txt = '';
+  if (yo === true) txt = 'Del ' + ci + ' al ' + co + ': disponibles en esta propiedad al momento de responder (ya revisado en el calendario). No digas que vas a revisar ni que el equipo confirmará la disponibilidad.';
   else if (yo === false) {
     const partes = String(nombre || '').split(/\s+[-–·|]\s+/), zona = (partes[0] || '').toLowerCase(), edif = (partes[1] || '').toLowerCase();
     const todas = nombresPropiedades_(), ids = Object.keys(todas).filter(k => k.indexOf('lst:') !== 0 && k !== propId);
     const cand = ids.filter(k => edif && todas[k].toLowerCase().indexOf(edif) !== -1).concat(ids.filter(k => zona && todas[k].toLowerCase().indexOf(zona) === 0)).filter((v, i, a) => a.indexOf(v) === i).slice(0, 6);
     const alt = [];
-    cand.forEach(k => { if (alt.length >= 3) return; if (libre(k) !== true) return;
+    cand.forEach(k => { if (alt.length >= 3) return; if (ocupacionFechas_(k, todas[k], ci, co, '').libre !== true) return;
       let url = ''; try { const p = hosp_('get', '/properties/' + k + '?include=listings'), ls = (p.json && p.json.data && p.json.data.listings) || []; const ab = ls.find(l => /airbnb/i.test(String(l.platform || ''))); if (ab && ab.platform_id) url = 'https://www.airbnb.com/rooms/' + ab.platform_id; } catch (e) {}
       const pp = todas[k].split(/\s+[-–·|]\s+/); alt.push('· ' + [pp[0], pp[1]].filter(Boolean).join(' · ') + (url ? ' → ' + url : '')); });
-    txt = 'Del ' + ci + ' al ' + co + ': YA NO ESTÁN DISPONIBLES en esta propiedad (alguien más reservó esas fechas). Avísale con calidez, sin culpas, y ofrece ' +
-      (alt.length ? 'estas opciones libres en esas mismas fechas (comparte solo zona y edificio, y el enlace si lo hay):\n' + alt.join('\n') : 'revisar fechas cercanas: pregúntale si tiene flexibilidad y que el equipo le confirma opciones por aquí.') + '\nNunca dejes el mensaje sin respuesta.';
+    txt = 'Del ' + ci + ' al ' + co + ': YA NO ESTÁN DISPONIBLES en esta propiedad (el calendario ya tiene una reserva en esas fechas). Avísale con calidez, sin culpas, y ofrece ' +
+      (alt.length ? 'estas opciones libres en esas mismas fechas (comparte solo zona y edificio, y el enlace si lo hay):\n' + alt.join('\n') : 'revisar fechas cercanas: pregúntale si tiene flexibilidad y que el equipo le confirma opciones por aquí.') +
+      '\nPROHIBIDO decir que vas a revisar la disponibilidad de esas fechas o que el equipo la confirmará: ya está revisada y están ocupadas.\nNunca dejes el mensaje sin respuesta.';
   }
   try { cache.put(ck, txt, 1800); } catch (e) {}
   return txt;
@@ -4019,7 +4039,8 @@ function inquiryInfo_(convInq) {
   const d = (r.json && r.json.data) || {};
   const prop = (d.properties && d.properties[0]) || d.property || (d.listings && d.listings[0]) || d.listing || {};
   const gu = d.guest || {};
-  return { uuid: uuid, propiedad: nombrePropInq_(d) || s_(prop.title), huesped: s_(gu.first_name ? gu.first_name + ' ' + (gu.last_name || '') : gu.name).trim(),
+  const pp = (d.properties && d.properties[0]) || d.property || {};
+  return { uuid: uuid, propId: s_(pp.id || pp.uuid || d.property_id || d.property_uuid), propiedad: nombrePropInq_(d) || s_(prop.title), huesped: s_(gu.first_name ? gu.first_name + ' ' + (gu.last_name || '') : gu.name).trim(),
     idioma: s_(gu.language || d.language || d.conversation_language), checkin: s_(d.arrival_date || d.check_in), checkout: s_(d.departure_date || d.check_out),
     plataforma: s_(d.platform || (prop && prop.platform)).toLowerCase() };
 }
@@ -4072,9 +4093,14 @@ function inquiryResponder_(convInq, pregunta, huesped, ctrl, desdeMs) {
      solo retrasaba la respuesta hasta que salía (~6 min, 19-nov). En Booking se responde ya; en Airbnb se espera al que pre-aprueba. */
   const esBooking = /booking/.test(inf.plataforma || '');
   if (!prog && !esBooking && desdeMs && Date.now() - desdeMs < esperaMs && !inqPrevio_('inq:' + inf.uuid)) return Object.assign(base, { esperar: true, nota: 'inquiry: esperando el automático de Hospitable' });
+  /* El calendario primero: si esas noches ya están reservadas, nada de «revisamos disponibilidad» ni de pre-aprobar. */
+  const ciQ = s_(inf.checkin).slice(0, 10), coQ = s_(inf.checkout).slice(0, 10);
+  let occ = { libre: null, reservas: [] }; try { occ = ocupacionFechas_(inf.propId, inf.propiedad, ciQ, coQ, ''); } catch (e) { console.error('ocupacionFechas_: ' + e); }
+  if (occ.libre === false && (prog || !inqPrevio_('inq:' + inf.uuid))) return inqOcupada_(inf, base, prog, ciQ, coQ, occ, pregunta, ctrl);   // a un seguimiento no se le repite
   const ficha = infoPropiedad_(inf.propiedad, inf.idioma) || '', kb = (conocimiento_(inf.propiedad) || '') + distanciaBloque_(inf.propiedad, pregunta);
-  const evalTxt = claude_(CFG.MODELO_CLASIFICADOR || CFG.MODELO_REDACTOR, 500, prompt_('INQUIRY_EVALUAR') + REGLAS_FIJAS_INQ_,
+  const evalTxt = claude_(CFG.MODELO_CLASIFICADOR || CFG.MODELO_REDACTOR, 500, prompt_('INQUIRY_EVALUAR') + REGLAS_FIJAS_INQ_ + (occ.libre === true ? REGLA_INQ_LIBRE_ : ''),
     'PROPIEDAD: ' + (inf.propiedad || 'sin dato') + '\nFECHAS: ' + inf.checkin + ' → ' + inf.checkout +
+    (occ.libre === true ? '\nCALENDARIO (revisado ahora): del ' + ciQ + ' al ' + coQ + ' las noches están LIBRES en esta propiedad.' : occ.libre === false ? '\nCALENDARIO (revisado ahora): del ' + ciQ + ' al ' + coQ + ' las noches YA ESTÁN RESERVADAS (ya se le avisó). Nunca digas que se revisará la disponibilidad.' : '') +
     '\n\nFICHA:\n' + ficha + '\n\nBASE DE CONOCIMIENTO:\n' + kb + '\n\nMENSAJE DEL HUÉSPED:\n' + pregunta, 0);
   let ev = null; try { ev = JSON.parse(String(evalTxt).match(/\{[\s\S]*\}/)[0]); } catch (e) { }
   const previo = !prog && inqPrevio_('inq:' + inf.uuid);
@@ -4113,6 +4139,34 @@ function inquiryResponder_(convInq, pregunta, huesped, ctrl, desdeMs) {
     ? { estado: 'respondido', nota: 'respuesta directa' + (motivo ? ' · falta pre-aprobar' : ''), nivel: motivo ? 'AMARILLO' : 'VERDE', razon: 'Inquiry: se respondió la pregunta con un mensaje normal' + motivo, texto: s_(ev.respuesta), accion: 'ENVIADO · respuesta a la consulta · falta pre-aprobar' }
     : env.bloqueado ? { estado: 'borrador', nota: 'retenido: razonamiento interno · revisar en Pendientes', nivel: 'AMARILLO', razon: 'La respuesta traía el análisis interno de Alma y no salió' + motivo, accion: 'RETENIDO (no enviado) · revisar manualmente' }
     : { estado: 'error', nota: 'Hospitable ' + env.code, nivel: 'AMARILLO', razon: 'No se pudo enviar la respuesta a la consulta' + motivo, accion: 'revisar manualmente' });
+}
+/* Consulta en fechas ya reservadas (21-nov-2026): se responde de una vez que están ocupadas, con alternativas libres del
+   mismo edificio o zona. El automático de Hospitable (pre-aprueba y suele decir que se revisa) se cancela: pre-aprobar
+   noches ocupadas no sirve y su texto prometería algo falso. Si la reserva que las ocupa parece de la misma persona, al equipo. */
+const REGLA_INQ_LIBRE_ = '\n\nREGLA FIJA · CALENDARIO: si CALENDARIO dice LIBRES y la persona pregunta si hay disponibilidad en esas fechas, puede_responder=true y respondes que sí están libres al momento (sin prometer apartarlas: se aseguran al reservar). Nunca digas que vas a revisar o que el equipo revisará la disponibilidad: ya se revisó.';
+function inqOcupadoPrompt_() { return almaIdentidad_() + "\nUna persona sin reserva escribió por una consulta para unas fechas que YA ESTÁN RESERVADAS en el calendario. Escríbele la respuesta.\n· Saludo corto con su nombre (te presentas: «te saluda Alma»). En el idioma indicado.\n· Dile con calidez y sin culpas que esas fechas ya no están disponibles en ese apartamento. Si DISPONIBILIDAD trae opciones libres, ofrécelas (solo zona y edificio, y el enlace en su propia línea); si no, pregúntale si tiene flexibilidad de fechas y que con gusto le ayudamos.\n· Si hizo otra pregunta, ignórala salvo que la respuesta esté en DISPONIBILIDAD.\n· PROHIBIDO decir que vas a revisar o confirmar la disponibilidad, o que el equipo lo hará: ya se revisó. Nunca número de apartamento, códigos ni WiFi.\n· Párrafos cortos con una línea en blanco entre ellos, sin markdown ni emoji. Devuelve SOLO el mensaje."; }
+function inqOcupada_(inf, base, prog, ci, co, occ, pregunta, ctrl) {
+  const primer = x => String(x || '').trim().split(/\s+/)[0].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const nom = primer(inf.huesped || base.huesped);
+  if (nom && (occ.reservas || []).some(r => primer(r.guest_first_name) === nom))
+    return Object.assign(base, { estado: 'omitido', nota: 'inquiry: fechas ocupadas por una reserva que parece suya', nivel: 'AMARILLO', razon: 'Consulta del ' + ci + ' al ' + co + ': el calendario ya tiene una reserva en esas fechas con el mismo nombre · revisar a mano', accion: 'revisar manualmente' });
+  const idioma = /^es/i.test(inf.idioma || '') || /\b(hola|buen[oa]s?|disponib|fechas|gracias|quisiera|quiero)\b/i.test(pregunta) ? 'es' : (s_(inf.idioma).slice(0, 2) || 'es');
+  const disp = dispSolicitud_(inf.propId, inf.propiedad, ci, co, 'inq' + inf.uuid + ci + co, '');
+  let txt = String(claude_(CFG.MODELO_REDACTOR, 600, inqOcupadoPrompt_(), 'IDIOMA: ' + idioma + '\nNOMBRE: ' + (s_(inf.huesped || base.huesped).split(/\s+/)[0] || '') +
+    '\n\nMENSAJE DE LA PERSONA:\n' + pregunta + '\n\nDISPONIBILIDAD:\n' + disp, 0.4) || '').trim();
+  txt = inqSinPrivado_(inf.propiedad, '', txt);
+  if (!txt || /SIN_RESPUESTA|revis(o|amos|ar[eé]|aremos)\s+(la\s+)?disponibilidad|check(ing)?\s+(the\s+)?availability/i.test(txt)) txt = idioma === 'es'
+    ? 'Hola, te saluda Alma.\n\nGracias por escribirnos. Del ' + ci + ' al ' + co + ' ese apartamento ya está reservado, así que no está disponible en esas fechas.\n\n¿Tienes flexibilidad de fechas? Con gusto te ayudamos a encontrar otra opción.'
+    : "Hi, this is Alma.\n\nThanks for reaching out. From " + ci + ' to ' + co + " this apartment is already booked, so it isn't available on those dates.\n\nAre your dates flexible? We'd be happy to help you find another option.";
+  const razon = 'Consulta del ' + ci + ' al ' + co + ': el ' + (occ.fuente === 'reservas' ? 'registro de reservas' : 'calendario') + ' ya tiene esas noches reservadas · se le avisó sin prometer revisar';
+  if (ctrl.modo === 'SOMBRA') return Object.assign(base, { estado: 'sombra', nota: 'inquiry: fechas ocupadas (sombra)', nivel: 'VERDE', razon: 'SOMBRA · ' + razon, texto: txt, accion: 'SOMBRA · no aplicado' });
+  let cancelado = false; if (prog) { try { cancelado = cancelarHosp_(prog.id).code < 300; } catch (e) {} }
+  const env = hosp_('post', '/inquiries/' + inf.uuid + '/messages', { body: txt });
+  if (env.code < 300) { try { registrarEnvioInq_('inq:' + inf.uuid, txt); } catch (e) {} }
+  return Object.assign(base, env.code < 300
+    ? { estado: 'respondido', nota: 'inquiry: fechas ocupadas' + (prog ? (cancelado ? ' · automático cancelado' : ' · el automático no se pudo cancelar') : ''), nivel: prog && !cancelado ? 'AMARILLO' : 'VERDE', razon: razon + (prog && !cancelado ? ' · el automático de Hospitable sigue programado: cancélalo a mano' : ''), texto: txt, accion: 'ENVIADO · fechas ocupadas' }
+    : env.bloqueado ? { estado: 'borrador', nota: 'retenido: razonamiento interno · revisar en Pendientes', nivel: 'AMARILLO', razon: razon + ' · la respuesta no salió', accion: 'RETENIDO (no enviado) · revisar manualmente' }
+    : { estado: 'error', nota: 'Hospitable ' + env.code, nivel: 'AMARILLO', razon: 'Fechas ocupadas: no se pudo enviar la respuesta a la consulta', accion: 'revisar manualmente' });
 }
 function hubProgramados_(resId) {
   if (!resId) return { ok: false, error: 'falta resId' };

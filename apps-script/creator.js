@@ -238,7 +238,7 @@ function creatorLector_(lec) {
 var CREATOR_LECTURA_ = {
   mejoras: 1, acciones: 1, usoIA: 1, usoMensual: 1, prompts: 1, guestReview: 1, promesas: 1, limpiezas: 1, pasos: 1, waNumeros: 1,
   reservaInfo: 1, calendarioProps: 1, calendarioProp: 1, programados: 1, cola: 1, pushLog: 1, opLista: 1, opHilo: 1, notificaciones: 1,
-  pendientes: 1, pendientesClaude: 1, areas: 1, pedidosOrbita: 1, notifAjustes: 1, recetas: 1, vigilancias: 1, personalidad: 1,
+  pendientes: 1, pendientesClaude: 1, areas: 1, pedidosOrbita: 1, buscarEscritorio: 1, notifAjustes: 1, recetas: 1, vigilancias: 1, personalidad: 1,
   biblioteca: 1, uso: 1, tutoriales: 1, vozCaidas: 1, calleUsoLeer: 1, dsPropuestas: 1, vivoLeer: 1, claudioHilo: 1, llaveEstado: 1, gasto: 1,
   agentes: function (b) { return !b.decidir && !b.correr && !b.estado; },
   correos: function (b) { return String(b.accion || 'lista') === 'lista'; },

@@ -245,6 +245,8 @@
     ".san-scope .san-ov-cap{font:500 15px/1.45 Montserrat,system-ui,sans-serif;color:#FFFDFB;text-align:center;min-height:44px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;text-shadow:0 1px 8px rgba(40,30,25,.45);text-wrap:balance;transition:opacity .9s cubic-bezier(.45,0,.55,1),scale 1.1s cubic-bezier(.22,.61,.36,1)}",
     ".san-scope .san-ov-cap.in{opacity:0;scale:.97;transition:none}",
     ".san-scope .san-ov-btns{display:flex;gap:22px}.san-scope .san-ob[hidden]{display:none}",
+    /* «Pregúntale a Alma» (antes «Chat», Juan 21-nov-2026): en dos líneas para no chocar con «Iniciar llamada». */
+    ".san-scope .san-ob[data-a=\"chat\"] span{white-space:normal;width:84px;text-align:center;line-height:1.3}",
     /* Pendientes de Claude (solo la app de Alma): tercer botón con su número y una lista que se abre a pantalla completa */
     ".san-scope .san-badge{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;box-sizing:border-box;border-radius:9px;background:#E9826A;color:#fff;font:700 9.5px/17px Montserrat,system-ui,sans-serif;font-style:normal;text-align:center;box-shadow:0 3px 8px -3px rgba(233,130,106,.8)}",
     /* la burbuja de pendientes: arriba a la izquierda, con el mismo diseño del botón de Ajustes (arriba a la derecha) */
@@ -355,6 +357,39 @@
     ".san-scope .san-chat.soltando::after{content:'Suelta el archivo para Alma';position:absolute;inset:8px;border:2px dashed #E9826A;border-radius:22px;background:rgba(255,248,244,.86);display:grid;place-items:center;font:600 15px Montserrat,system-ui,sans-serif;color:#B4452A;pointer-events:none;z-index:5}",
     ".san-scope .san-chat form .san-env{display:none}.san-scope .san-chat form.lleno .san-env{display:grid}.san-scope .san-chat form.lleno .san-mic{display:none}",
     ".san-scope .san-chat form .san-tips{right:auto;left:0;bottom:0;width:0;height:0;position:absolute}.san-scope .san-chat form.lleno:focus-within .san-tips span{opacity:1;transform:none}",
+    /* ── Chat con Alma estilo messenger (Juan, 21-nov-2026): colores claros de Alma, estructura de un chat moderno. La cabecera en
+       una fila (atrás · roca con punto verde · Alma con insignia y su estado · llamar · ⋯), la barra de lo fijado, el hilo con
+       burbujas grandes (ds/chat.css, .sa-chat-hilo--msn) y la caja en píldora (cámara · texto · micrófono · emoji · imagen). ── */
+    ".san-scope .san-chat{background:#FFFDFB}",
+    ".san-scope .san-chat header,.san-scope .san-chat:has(.san-in:focus) header{flex-direction:row;justify-content:flex-start;align-items:center;gap:12px;text-align:left;padding:10px 10px 10px 56px;min-height:72px;border-bottom:1px solid #EFEBE7;background:#FFFDFB}",
+    ".san-scope .san-chat header .sa-chat-avatar,.san-scope .san-chat:has(.san-in:focus) header .sa-chat-avatar{width:46px;height:46px}.san-scope .san-chat:has(.san-in:focus) header .sa-chat-avatar-w{margin-right:0}",
+    ".san-scope .san-chat header .san-enlinea{position:absolute;right:-1px;bottom:-1px;width:13px;height:13px;box-sizing:border-box;border-radius:50%;background:#34C759;border:2.5px solid #FFFDFB}",
+    ".san-scope .san-chat header .t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}",
+    ".san-scope .san-chat header b{display:flex;align-items:center;gap:5px;font:600 17px/1.2 Montserrat,system-ui,sans-serif;color:#262423}.san-scope .san-insignia{width:17px;height:17px;flex:none;color:#E9826A}",
+    ".san-scope .san-estado{font:400 13px/1.3 Montserrat,system-ui,sans-serif;color:#8F8883;transition:color .2s}.san-scope .san-chat.escribe .san-estado{color:#E9826A}",
+    ".san-scope .san-cb{width:44px;height:44px;flex:none;border:0;border-radius:50%;padding:0;display:grid;place-items:center;cursor:pointer;background:transparent;color:#3E3F3F;-webkit-tap-highlight-color:transparent}.san-scope .san-cb:active{transform:scale(.92);background:#F3EFEB}",
+    "@media (hover:hover){.san-scope .san-cb:hover,.san-scope .san-pb:hover{background:#F3EFEB}}.san-scope .san-cb:focus-visible,.san-scope .san-pb:focus-visible,.san-scope .san-fijado:focus-visible{outline:2px solid #E9826A;outline-offset:1px}",
+    ".san-scope .san-menu3{position:absolute;right:10px;top:calc(100% - 4px);z-index:6;min-width:200px;padding:6px;border-radius:16px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.05),0 16px 40px -10px rgba(60,40,30,.28);display:flex;flex-direction:column}",
+    ".san-scope .san-menu3[hidden]{display:none}.san-scope .san-menu3 button{border:0;background:transparent;text-align:left;padding:11px 14px;min-height:44px;border-radius:10px;font:500 14px Montserrat,system-ui,sans-serif;color:#262423;cursor:pointer}.san-scope .san-menu3 button:hover{background:#F6F2EE}.san-scope .san-menu3 button[hidden]{display:none}",
+    ".san-scope .san-fijado{flex:none;display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:8px 8px 8px 14px;border:0;border-bottom:1px solid #EFEBE7;background:#FFFDFB;text-align:left;cursor:pointer;font:500 14px/1.3 Montserrat,system-ui,sans-serif;color:#262423}",
+    ".san-scope .san-fijado[hidden]{display:none}.san-scope .san-fijado .pin{width:34px;height:34px;flex:none;border-radius:50%;display:grid;place-items:center;background:#F3EFEB;color:#6F6867}",
+    ".san-scope .san-fijado .tx{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.san-scope .san-fijado .tx small{color:#8F8883;font-weight:400;margin-right:6px}",
+    ".san-scope .san-fijado .x{width:40px;height:40px;flex:none;border-radius:50%;display:grid;place-items:center;color:#9A938E}.san-scope .san-fijado .x:hover{background:#F3EFEB}",
+    ".san-scope .san-chat .sa-chat-esferas{background:#FFFDFB}",
+    ".san-scope .san-msgs{padding:14px 14px 18px}",
+    ".san-scope .san-chat form.san-pie{align-items:flex-end;gap:8px;padding:10px 14px 14px;border-top:0;background:#FFFDFB}",
+    ".san-scope .san-pil{position:relative;flex:1;min-width:0;display:flex;align-items:flex-end;gap:2px;min-height:52px;padding:4px 6px;box-sizing:border-box;border-radius:26px;background:#F4F1EE;border:1px solid #E9E4DF;transition:border-color .18s cubic-bezier(.22,.61,.36,1),background .18s}",
+    ".san-scope .san-pil:focus-within{border-color:#DDD6CF;background:#fff}",
+    ".san-scope .san-pil .san-in,.san-scope .san-pil .san-in:focus{flex:1;border:0;background:transparent;padding:11px 6px;height:42px;border-radius:0}",
+    ".san-scope .san-pb{width:42px;height:42px;flex:none;border:0;border-radius:50%;padding:0;display:grid;place-items:center;cursor:pointer;background:transparent;color:#4A4746;-webkit-tap-highlight-color:transparent;transition:background .15s,transform .1s}.san-scope .san-pb:active{transform:scale(.9)}",
+    ".san-scope .san-chat form .san-env{width:40px;height:40px;margin:1px;flex:none;border:0;border-radius:50%;padding:0;place-items:center;cursor:pointer;background:#3B6FD8;color:#fff}.san-scope .san-chat form .san-env:active{transform:scale(.92)}",
+    ".san-scope .san-chat form.lleno .san-mas{display:none}",
+    ".san-scope .san-emojis{position:absolute;right:0;bottom:calc(100% + 10px);z-index:6;display:grid;grid-template-columns:repeat(6,40px);gap:2px;padding:8px;border-radius:18px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.05),0 16px 40px -10px rgba(60,40,30,.28)}",
+    ".san-scope .san-emojis[hidden]{display:none}.san-scope .san-emojis button{width:40px;height:40px;border:0;border-radius:10px;background:transparent;font-size:22px;line-height:1;cursor:pointer}.san-scope .san-emojis button:hover{background:#F6F2EE}",
+    ".san-scope .san-chat .san-adj{margin:0 14px 8px}",
+    /* En la computadora (chat a pantalla completa) el hilo y la caja no pasan de ~880 px de ancho, al centro. */
+    "@media (min-width:1100px){.san-scope .san-msgs,.san-scope .san-chat form.san-pie{padding-left:max(14px,calc((100% - 880px)/2));padding-right:max(14px,calc((100% - 880px)/2))}}",
+    ".san-scope .san-chat .san-vacio{padding:0 16px 14px}.san-scope .san-sug button{background:#FFFDFB;border-color:#E6E0DA}",
     /* el lugar de la roca: transparente, solo el área de toque (la piedra de verdad, E.stone, se pinta encima). 1 toque mejora · 2 toques, hablar */
     ".san-scope .san-send{width:46px;height:46px;flex:none;border-radius:50%;border:0;padding:0;cursor:pointer;position:relative;display:grid;place-items:center;touch-action:none;-webkit-user-select:none;user-select:none;background:transparent!important;box-shadow:none;outline-offset:4px}",
     ".san-scope .san-send.graba{animation:sanGraba 1.2s ease-in-out infinite}@keyframes sanGraba{50%{box-shadow:0 0 0 14px rgba(233,130,106,.2)}}",
@@ -1290,24 +1325,39 @@
     var ov = d.createElement("div"); ov.className = "san-ov"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-label", "Alma");
     ov.innerHTML = '<div class="san-ov-bg"></div>' + piedraHTML("san-rock", ' aria-label="Alma"', "") +
       '<div class="san-ov-ui"><div class="san-ov-st"></div><div class="san-ov-cap" aria-live="polite"></div><div class="san-ov-btns">' +
-      '<button type="button" class="san-ob" data-a="chat" aria-label="Pasar a chat">' + svg(P.chat, 21) + '<span>Chat</span></button>' +
+      '<button type="button" class="san-ob" data-a="chat" aria-label="Pregúntale a Alma por escrito">' + svg(P.chat, 21) + '<span>Pregúntale a Alma</span></button>' +
       '<button type="button" class="san-ob start" data-a="start" aria-label="Iniciar llamada">' + svg('<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>', 21) + '<span>Iniciar llamada</span></button>' +
       '<button type="button" class="san-ob end" data-a="end" aria-label="Terminar">' + svg('<path d="M6 6l12 12M18 6L6 18"/>', 21) + '<span>Terminar</span></button></div>' +
       '<div class="san-ov-tip">Mantén la piedra para minimizarla · desliza hacia abajo para terminar</div></div>' +
+      /* Cabecera estilo messenger (Juan, 21-nov-2026): la roca de Alma redonda con su punto verde, su nombre con insignia y debajo
+         el estado («En línea» o «Escribiendo…»); a la derecha, llamar y «⋯». Debajo, la barra de lo fijado (un tema o un pedido). */
       '<div class="san-chat"><header><div class="asa"></div><button type="button" class="san-atras" aria-label="Cerrar el chat">' + svg('<path d="M19 12H5M11 6l-6 6 6 6"/>', 22) + '</button>' +
-      '<span class="sa-chat-avatar-w"><span class="sa-chat-avatar sa-chat-avatar--alma" aria-hidden="true"></span><i class="sa-chat-total" hidden></i></span><div class="t"><b>Alma</b></div></header>' +
+      '<span class="sa-chat-avatar-w"><span class="sa-chat-avatar sa-chat-avatar--alma" aria-hidden="true"></span><i class="san-enlinea" aria-hidden="true"></i><i class="sa-chat-total" hidden></i></span>' +
+      '<div class="t"><b>Alma<svg class="san-insignia" viewBox="0 0 24 24" aria-label="Alma, de Spacio AM" role="img"><path fill="currentColor" d="M12 1.8l2.6 1.9 3.2-.1 1 3 2.6 1.9-1 3 1 3-2.6 1.9-1 3-3.2-.1L12 22.2l-2.6-1.9-3.2.1-1-3-2.6-1.9 1-3-1-3 2.6-1.9 1-3 3.2.1z"/><path d="M8 12.3l2.7 2.6L16.2 9.4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></b>' +
+      '<small class="san-estado" aria-live="polite">En línea</small></div>' +
+      '<button type="button" class="san-cb san-llamar" aria-label="Llamar a Alma">' + svg('<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>', 22) + '</button>' +
+      '<button type="button" class="san-cb san-mas3" aria-label="Más opciones del chat" aria-haspopup="menu" aria-expanded="false">' + svg(P.more, 22) + '</button>' +
+      '<div class="san-menu3" role="menu" hidden><button type="button" role="menuitem" data-m="historial">Cargar historial</button><button type="button" role="menuitem" data-m="fijar">Fijar este tema</button>' +
+      '<button type="button" role="menuitem" data-m="desfijar" hidden>Quitar lo fijado</button><button type="button" role="menuitem" data-m="cerrar">Cerrar el chat</button></div></header>' +
+      '<button type="button" class="san-fijado" hidden><span class="pin" aria-hidden="true">' + svg('<path d="M9 4h6l-1 5 3 3v2H7v-2l3-3z"/><path d="M12 14v6"/>', 16) + '</span><span class="tx"></span><span class="x" role="button" tabindex="0" aria-label="Quitar lo fijado">' + svg('<path d="M6 6l12 12M18 6L6 18"/>', 14) + '</span></button>' +
       '<div class="sa-chat-esferas san-esferas" hidden></div><div class="san-msgs"></div>' +
-      '<div class="san-vacio"><h3>¿En qué te ayudo?</h3><p>Escríbeme o díctame con el micrófono. Cuando escribes aparece el +: me mandas una foto o un archivo, o usas tus plantillas.</p><div class="san-sug">' +
+      '<div class="san-vacio"><h3>¿En qué te ayudo?</h3><p>Escríbeme o díctame con el micrófono. Con la cámara me mandas una foto; con la imagen, una foto, un archivo o tus plantillas.</p><div class="san-sug">' +
       '<button type="button" data-s="¿Qué hay hoy?" data-y="1">¿Qué hay hoy?</button><button type="button" data-s="Crea una tarea para ">Crea una tarea</button>' +
       '<button type="button" data-s="Escríbele a ">Escríbele a alguien</button><button type="button" data-s="Dile a Claudio que ">Mejorar el sistema</button></div></div>' +
       '<div class="san-adj" hidden aria-live="polite"></div>' +
-      '<form class="sa-chat-pie" data-lleno="0"><button type="button" class="san-mas sa-chat-mas" aria-label="Plantillas, foto y más">' + svg('<path d="M12 5v14M5 12h14"/>', 22) + '</button>' +
-      '<textarea class="san-in" rows="1" placeholder="Escríbele a Alma…" autocomplete="off" aria-label="Mensaje para Alma" enterkeyhint="enter"></textarea>' +
-      '<button type="button" class="san-mic sa-chat-redondo" aria-label="Dictar: toca y habla">' + svg('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>', 20) + '</button>' +
-      '<button type="submit" class="san-env sa-chat-redondo" aria-label="Enviar">' + svg('<path d="M4.5 12 3 4.5l17.5 7.5L3 19.5z"/><path d="M4.5 12H11"/>', 20) + '</button>' +
+      /* La caja en píldora (estilo messenger): cámara a la izquierda; micrófono, emoji e imagen a la derecha (la imagen abre lo que
+         antes abría el «+»: foto, archivo y plantillas). Con texto, enviar toma el lugar del micrófono y la imagen. La roca sigue afuera. */
+      '<form class="sa-chat-pie san-pie" data-lleno="0"><div class="san-pil">' +
+      '<button type="button" class="san-pb san-cam" aria-label="Mandar una foto">' + svg('<path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.7l1.3-2h5l1.3 2h1.7A2.5 2.5 0 0 1 20 8.5v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.4"/>', 22) + '</button>' +
+      '<textarea class="san-in" rows="1" placeholder="Mensaje…" autocomplete="off" aria-label="Mensaje para Alma" enterkeyhint="enter"></textarea>' +
+      '<button type="button" class="san-pb san-mic" aria-label="Dictar: toca y habla">' + svg('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>', 22) + '</button>' +
+      '<button type="button" class="san-pb san-emo" aria-label="Emoji" aria-haspopup="true" aria-expanded="false">' + svg('<circle cx="12" cy="12" r="8.5"/><path d="M8.5 14.2a4.2 4.2 0 0 0 7 0"/><circle cx="9.3" cy="10" r=".9" fill="currentColor"/><circle cx="14.7" cy="10" r=".9" fill="currentColor"/>', 22) + '</button>' +
+      '<button type="button" class="san-pb san-mas" aria-label="Foto, archivo y plantillas">' + svg('<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.7"/><path d="M20.5 15.5l-5-5-9 9"/>', 22) + '</button>' +
+      '<button type="submit" class="san-env" aria-label="Enviar">' + svg('<path d="M12 19V5M6 11l6-6 6 6"/>', 20) + '</button>' +
+      '<div class="san-emojis" role="dialog" aria-label="Emojis" hidden></div></div>' +
       '<button type="button" class="san-send sa-chat-roca" aria-label="Alma · un toque mejora tu texto, dos toques para hablar"></button>' +
       '<div class="san-tips" aria-hidden="true"><span>Mejorar</span></div>' +
-      '<input type="file" accept="image/*" hidden class="san-file"><input type="file" accept="' + DOC_ACCEPT + '" hidden class="san-doc"></form></div>';
+      '<input type="file" accept="image/*" hidden class="san-file"><input type="file" accept="image/*" capture="environment" hidden class="san-camf"><input type="file" accept="' + DOC_ACCEPT + '" hidden class="san-doc"></form></div>';
     ov.insertAdjacentHTML("beforeend", '<button type="button" class="san-pendb san-notib" data-a="noti" aria-label="Notificaciones" hidden>' + svg('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>', 20) + '<i class="san-badge"></i></button>');
     ov.insertAdjacentHTML("beforeend", '<div class="san-pend san-noti" role="dialog" aria-label="Notificaciones"><header><div class="t"><b>Notificaciones</b><small>Sin nada que hacer · 3 días</small></div>' +
       '<button type="button" class="san-hb san-noti-x" aria-label="Cerrar">' + svg('<path d="M6 6l12 12M18 6L6 18"/>', 18) + '</button></header><div class="san-pend-l san-noti-l"></div></div>');
@@ -1435,6 +1485,48 @@
     hj.addEventListener("dragover", function (e) { if (!conArch(e)) return; e.preventDefault(); e.stopPropagation(); hj.classList.add("soltando"); });
     hj.addEventListener("dragleave", function (e) { if (e.target === hj) hj.classList.remove("soltando"); });
     hj.addEventListener("drop", function (e) { if (!conArch(e)) return; e.preventDefault(); e.stopPropagation(); hj.classList.remove("soltando"); var x = e.dataTransfer.files && e.dataTransfer.files[0]; if (x) adjCargar(x); });
+    /* Estilo messenger (Juan, 21-nov-2026): llamar, «⋯», lo fijado, la cámara y los emojis. */
+    hd.querySelector(".san-llamar").onclick = function (e) { e.stopPropagation(); if (AL.esc && !AL.on) escActivar(false); else if (AL.chat) almaChat(false); };
+    var m3 = hd.querySelector(".san-menu3"), b3 = hd.querySelector(".san-mas3");
+    var menu3 = function (on) { m3.hidden = !on; b3.setAttribute("aria-expanded", on ? "true" : "false"); if (on) { var p0 = m3.querySelector("button:not([hidden])"); if (p0) try { p0.focus(); } catch (x) {} } };
+    b3.onclick = function (e) { e.stopPropagation(); menu3(m3.hidden); };
+    m3.onclick = function (e) {
+      var x = e.target.closest && e.target.closest("[data-m]"); if (!x) return; e.stopPropagation(); menu3(false);
+      var q = x.getAttribute("data-m");
+      if (q === "historial") chatPintar(function () { if (E.u) E.u.cargar(); });
+      else if (q === "fijar") {
+        var ult = E.msgs.querySelectorAll(".sa-chat-msg--otro[title]"), t = ult.length ? ult[ult.length - 1].title.replace(/^Alma · /, "") : "", es = E.u && E.u.esfera ? E.u.esfera() : "";
+        fijPoner({ texto: t || es || "Chat con Alma", tipo: "tema", esfera: (t.split(" · ")[0] || es) });
+      } else if (q === "desfijar") fijPoner(null);
+      else if (q === "cerrar") almaEnd(false);
+    };
+    d.addEventListener("click", function (e) { if (!m3.hidden && !m3.contains(e.target) && e.target !== b3) menu3(false); if (!emo.hidden && !emo.contains(e.target) && !emoB.contains(e.target)) emoAbrir(false); });
+    d.addEventListener("keydown", function (e) { if (e.key === "Escape") { if (!m3.hidden) { menu3(false); try { b3.focus(); } catch (x) {} } if (!emo.hidden) emoAbrir(false); } });
+    var fj = ov.querySelector(".san-fijado");
+    fj.onclick = function (e) {
+      var v = fijLeer(); if (!v) return;
+      if (e.target.closest && e.target.closest(".x")) { e.stopPropagation(); fijPoner(null); return; }
+      if (v.tipo === "pedido") { var t2 = "¿Cómo va «" + v.texto + "»?"; i.value = t2; crecer(); try { i.focus(); } catch (x) {} return; }
+      if (v.esfera) chatPintar(function () { if (E.u) E.u.filtro(v.esfera, true); });
+    };
+    fj.querySelector(".x").addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); fijPoner(null); } });
+    fijPintar();
+    var camf = ov.querySelector(".san-camf");
+    ov.querySelector(".san-cam").onclick = function () { if (!fotoOk) { nope(); return; } camf.click(); };
+    camf.onchange = function () { var x = camf.files && camf.files[0]; camf.value = ""; if (x) chatFoto(x, i); };
+    var emo = ov.querySelector(".san-emojis"), emoB = ov.querySelector(".san-emo");
+    var EMO = ["👍", "🙏", "😊", "😂", "❤️", "🙌", "👌", "✅", "🎉", "🔥", "🤔", "😅", "👀", "💪", "🏠", "🧹", "🔑", "📅"];
+    var emoAbrir = function (on) {
+      if (on && !emo.firstChild) EMO.forEach(function (x) { var bb = d.createElement("button"); bb.type = "button"; bb.textContent = x; bb.setAttribute("aria-label", x); emo.appendChild(bb); });
+      emo.hidden = !on; emoB.setAttribute("aria-expanded", on ? "true" : "false");
+    };
+    emoB.onclick = function (e) { e.stopPropagation(); emoAbrir(emo.hidden); };
+    emo.onclick = function (e) {
+      var x = e.target.closest && e.target.closest("button"); if (!x) return; e.stopPropagation();
+      var a = i.selectionStart != null ? i.selectionStart : i.value.length, z = i.selectionEnd != null ? i.selectionEnd : a;
+      i.value = i.value.slice(0, a) + x.textContent + i.value.slice(z); crecer(); emoAbrir(false);
+      try { i.focus(); var k = a + x.textContent.length; i.setSelectionRange(k, k); } catch (y) {}
+    };
   }
   /* El compositor compartido (js/sa-compositor.js) se carga solo la primera vez que se usa, junto a este archivo. */
   function conComp(cb) {
@@ -1444,7 +1536,7 @@
   }
   /* Las piezas del chat estilo A (ds/chat.css y js/sa-chat.js) se cargan la primera vez que se abre Alma, junto a este
      archivo (las páginas que ya las tienen no las vuelven a pedir). Sin ellas el chat pinta texto simple. */
-  var CHAT_V = "2026-11-15c", chatCb = [], chatCargando = false, chatSin = false;
+  var CHAT_V = "2026-11-21a", chatCb = [], chatCargando = false, chatSin = false;
   function conChat(cb) {
     if (w.SAChat && w.SAChat.pintor) { cb(true); return; }
     if (chatSin) { cb(false); return; }
@@ -1463,14 +1555,35 @@
           /* El chat único: «Cargar historial», la fila de esferas y la insignia con el total (js/sa-chat.js). */
           E.u = w.SAChat.unico({ hilo: E.msgs, fila: E.ov.querySelector(".san-esferas"), insignia: E.ov.querySelector(".san-chat .sa-chat-total"),
             api: { hilo: function (q) { return w.ALMA.opHilo(q); }, enviar: function (t) { return w.ALMA.opEnviar(chatConOrbita({ texto: t, canal: chatCanal() })); } },
-            alElegir: function (t) { chatEnviar(t); }, alAbrir: chatAbrir,
+            alElegir: function (t) { chatEnviar(t); }, alAbrir: chatAbrir, estilo: "messenger", alPensando: chatEscribe,
             alEnviar: function () { clearTimeout(pensT); pensT = setTimeout(function () { chatPensando(false); }, 90000); },
             alResponder: function () { clearTimeout(pensT); chatQuieto(); } });
           E.pt = E.u.pintor;
-        } else E.pt = w.SAChat.pintor(E.msgs, { alElegir: function (t) { chatEnviar(t); }, alAbrir: chatAbrir });
+        } else E.pt = w.SAChat.pintor(E.msgs, { alElegir: function (t) { chatEnviar(t); }, alAbrir: chatAbrir, estilo: "messenger", alPensando: chatEscribe });
       }
       cb(ok ? E.pt : null);
     });
+  }
+  /* La cabecera dice «Escribiendo…» mientras Alma prepara su respuesta (los tres puntos del hilo) y «En línea» el resto. */
+  function chatEscribe(on) {
+    var c = E.ov && E.ov.querySelector(".san-chat"), e = c && c.querySelector(".san-estado"); if (!c) return;
+    c.classList.toggle("escribe", !!on); if (e) e.textContent = on ? "Escribiendo…" : "En línea";
+  }
+  /* Lo fijado (Juan, 21-nov-2026): la barra bajo la cabecera con un tema o un pedido. Se fija desde «⋯ → Fijar este tema»
+     (la esfera y el tema del último mensaje de Alma) o sola al abrir el chat desde un pedido en órbita. Tocarla filtra el
+     hilo en su esfera o, si es un pedido, deja lista la pregunta. Se guarda por persona en este navegador. */
+  function fijClave() { var p = null; try { p = w.SASesion && w.SASesion.perfilRapido ? w.SASesion.perfilRapido() : null; } catch (x) {} return "sa_chat_fijado:" + String((p && p.email) || "yo").toLowerCase(); }
+  function fijLeer() { try { var v = JSON.parse(localStorage.getItem(fijClave()) || "null"); return v && v.texto ? v : null; } catch (x) { return null; } }
+  function fijPoner(v) {
+    try { if (v && v.texto) localStorage.setItem(fijClave(), JSON.stringify({ texto: String(v.texto).slice(0, 120), tipo: v.tipo || "tema", esfera: v.esfera || "", t: Date.now() })); else localStorage.removeItem(fijClave()); } catch (x) {}
+    fijPintar();
+  }
+  function fijPintar() {
+    var b = E.ov && E.ov.querySelector(".san-fijado"); if (!b) return;
+    var v = fijLeer(), m = E.ov.querySelector('.san-menu3 [data-m="desfijar"]'); if (m) m.hidden = !v;
+    b.hidden = !v; if (!v) return;
+    var tx = b.querySelector(".tx"); tx.textContent = ""; var sm = d.createElement("small"); sm.textContent = v.tipo === "pedido" ? "Pedido" : "Tema"; tx.appendChild(sm); tx.appendChild(d.createTextNode(v.texto));
+    b.setAttribute("aria-label", "Fijado: " + v.texto);
   }
   /* «Pensando» (#317): desde que mandas hasta que llega la respuesta de Alma (o 45 s, por si no llega). */
   var pensT = 0;
@@ -2443,6 +2556,7 @@
     if (E.ov.classList.contains("noti")) notiAbrir(false);
     if (!AL.on) escActivar(true); else if (!AL.chat) almaChat(true);
     E.orb = o.texto && o.orbita ? { id: String(o.orbita).slice(0, 90), texto: String(o.texto).trim(), t: Date.now() } : null;   // con su id (#583 T1)
+    if (o.orbita && o.texto) { var mq = String(o.texto).match(/«([^»]{2,120})»/); if (mq) fijPoner({ texto: mq[1], tipo: "pedido" }); }   // el pedido en órbita queda fijado arriba
     chatPintar(function () { if (E.u) E.u.filtro(e, true); if (o.texto) chatEnviar(o.texto); });   // o.texto: lo pregunta ya (un anillo en órbita del inicio)
     return true;
   }

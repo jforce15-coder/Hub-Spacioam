@@ -449,7 +449,97 @@
     return u;
   };
 
-  var SAChat = { separador: separador, opciones: opciones, enlaces: enlaces, iconoOpcion: iconoOpcion, pintor: pintor, unico: unico, filaEsferas: filaEsferas, ESFERAS: ESFERAS, esfera: esfera };
+  /* ── Piezas del Chat con Alma estilo messenger (#952) para el panel de la app (alma/index.html): las mismas del chat del
+     inicio (js/sa-nav.js). Lo fijado se guarda con la misma clave (sa_chat_fijado:<correo>), así el tema fijado en un
+     chat se ve en el otro. ── */
+  var EMOJIS = ["👍", "🙏", "😊", "😂", "❤️", "🙌", "👌", "✅", "🎉", "🔥", "🤔", "😅", "👀", "💪", "🏠", "🧹", "🔑", "📅"];
+  var DOC_EXT = { pdf: "application/pdf", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", doc: "application/msword",
+    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", xls: "application/vnd.ms-excel", csv: "text/csv", txt: "text/plain",
+    mp3: "audio/mpeg", m4a: "audio/mp4", aac: "audio/aac", ogg: "audio/ogg", opus: "audio/ogg", wav: "audio/wav", amr: "audio/amr" };
+  var DOC_ACCEPT = Object.keys(DOC_EXT).map(function (e) { return "." + e; }).join(",") + ",application/pdf,audio/*,image/*";
+  var fijado = {
+    clave: function (correo) { return "sa_chat_fijado:" + String(correo || "yo").toLowerCase(); },
+    leer: function (correo) { try { var v = JSON.parse(localStorage.getItem(fijado.clave(correo)) || "null"); return v && v.texto ? v : null; } catch (x) { return null; } },
+    poner: function (correo, v) {
+      try { if (v && v.texto) localStorage.setItem(fijado.clave(correo), JSON.stringify({ texto: String(v.texto).slice(0, 120), tipo: v.tipo || "tema", esfera: v.esfera || "", t: Date.now() })); else localStorage.removeItem(fijado.clave(correo)); } catch (x) {}
+    },
+    /* «Fijar este tema»: la esfera y el tema del último mensaje de Alma (su title «Alma · Esfera · tema»), o la esfera filtrada. */
+    deHilo: function (hilo, esferaActual) {
+      var ult = hilo ? hilo.querySelectorAll(".sa-chat-msg--otro[title]") : [], t = ult.length ? ult[ult.length - 1].title.replace(/^Alma · /, "") : "";
+      return { texto: t || esferaActual || "Chat con Alma", tipo: "tema", esfera: t.split(" · ")[0] || esferaActual || "" };
+    }
+  };
+  /* Qué es un archivo elegido: foto, documento o audio (null si no se puede abrir). */
+  var tipoAdjunto = function (nombre, type) {
+    nombre = String(nombre || ""); type = String(type || "");
+    var foto = /^image\//.test(type) || /\.(jpe?g|png|heic|webp)$/i.test(nombre), ext = String((/\.([a-z0-9]+)$/i.exec(nombre) || [])[1] || "").toLowerCase();
+    var mime = foto ? "image" : DOC_EXT[ext] || (/^audio\//.test(type) ? type.split(";")[0] : "");
+    return mime ? { foto: foto, mime: mime, nombre: nombre || (foto ? "Foto" : "archivo") } : null;
+  };
+  /* Lee una foto o un archivo y se lo pasa a Alma (ALMA.almaFoto / ALMA.almaArchivo). alFoto(dataUrl) en cuanto la foto
+     está achicada. Promesa con { ok, nombre, foto, texto } (texto: lo que Alma recibe) o { ok:false, error }. */
+  var leerAdjunto = function (archivo, api, alFoto) {
+    return new Promise(function (fin) {
+      var t = archivo && tipoAdjunto(archivo.name, archivo.type);
+      if (!t) { fin({ ok: false, error: "Ese tipo de archivo no lo puedo abrir. Mándame un PDF, Word, Excel, CSV, una foto o un audio." }); return; }
+      if (archivo.size > 8e6) { fin({ ok: false, error: "«" + t.nombre + "» pasa de 8 MB." }); return; }
+      if (!(api && (t.foto ? api.almaFoto : api.almaArchivo))) { fin({ ok: false, error: "Aquí no puedo recibir archivos." }); return; }
+      var mal = function (e) { fin({ ok: false, nombre: t.nombre, error: e || "No lo pude subir. Intenta de nuevo." }); };
+      var r = new FileReader(); r.onerror = function () { mal("No pude leer «" + t.nombre + "»."); };
+      if (t.foto) r.onload = function () {
+        var im = new Image(); im.onerror = function () { mal("No pude abrir la foto."); };
+        im.onload = function () {
+          var k = Math.min(1, 1280 / Math.max(im.width, im.height)), c = document.createElement("canvas"); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+          c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); var du = c.toDataURL("image/jpeg", .8);
+          if (alFoto) alFoto(du);
+          api.almaFoto(du).then(function (j) {
+            if (!(j && j.ok)) { mal(j && j.error && j.error !== "foto" ? j.error : ""); return; }
+            fin({ ok: true, nombre: "Foto", foto: du, texto: "[Te mando una foto" + (j.texto ? ". Lo que se ve: " + j.texto : ", pero no pude describirla") + "]" });
+          }, function () { mal(); });
+        };
+        im.src = r.result;
+      };
+      else r.onload = function () {
+        api.almaArchivo({ data: String(r.result).split(",")[1] || "", mime: t.mime, nombre: t.nombre }).then(function (j) {
+          if (!(j && j.ok)) { mal(j && j.error); return; }
+          fin({ ok: true, nombre: t.nombre, foto: "", texto: "[Te mando el archivo «" + j.nombre + "» (quedó en el Drive del Hub, drive_id " + j.drive_id + ")" + (j.texto ? ". Lo que dice: " + j.texto : ". " + (j.nota || "")) + "]" });
+        }, function () { mal(); });
+      };
+      r.readAsDataURL(archivo);
+    });
+  };
+  /* El menú «⋯» de la cabecera y la hoja de emojis: abren y cierran con su botón, al tocar afuera o con Escape. */
+  var desplegable = function (boton, hoja, alAbrir) {
+    var doc = boton.ownerDocument;
+    var abrir = function (on) {
+      if (on && alAbrir) alAbrir();
+      hoja.hidden = !on; boton.setAttribute("aria-expanded", on ? "true" : "false");
+      if (on && hoja.getAttribute("role") === "menu") { var p0 = hoja.querySelector("button:not([hidden])"); if (p0) try { p0.focus(); } catch (x) {} }
+    };
+    boton.addEventListener("click", function (e) { e.stopPropagation(); abrir(hoja.hidden); });
+    doc.addEventListener("click", function (e) { if (!hoja.hidden && !hoja.contains(e.target) && !boton.contains(e.target)) abrir(false); });
+    doc.addEventListener("keydown", function (e) { if (e.key === "Escape" && !hoja.hidden) { abrir(false); try { boton.focus(); } catch (x) {} } });
+    return abrir;
+  };
+  /* Emojis: tocar uno lo pone donde está el cursor del cuadro. */
+  var emojis = function (boton, hoja, campo, alPoner) {
+    var doc = boton.ownerDocument;
+    var abrir = desplegable(boton, hoja, function () {
+      if (hoja.firstChild) return;
+      EMOJIS.forEach(function (x) { var b = doc.createElement("button"); b.type = "button"; b.textContent = x; b.setAttribute("aria-label", x); hoja.appendChild(b); });
+    });
+    hoja.addEventListener("click", function (e) {
+      var x = e.target.closest && e.target.closest("button"); if (!x) return; e.stopPropagation();
+      var a = campo.selectionStart != null ? campo.selectionStart : campo.value.length, z = campo.selectionEnd != null ? campo.selectionEnd : a;
+      campo.value = campo.value.slice(0, a) + x.textContent + campo.value.slice(z); abrir(false);
+      if (alPoner) alPoner();
+      try { campo.focus(); var k = a + x.textContent.length; campo.setSelectionRange(k, k); } catch (y) {}
+    });
+    return abrir;
+  };
+
+  var SAChat = { separador: separador, opciones: opciones, enlaces: enlaces, iconoOpcion: iconoOpcion, pintor: pintor, unico: unico, filaEsferas: filaEsferas, ESFERAS: ESFERAS, esfera: esfera,
+    EMOJIS: EMOJIS, DOC_ACCEPT: DOC_ACCEPT, fijado: fijado, tipoAdjunto: tipoAdjunto, leerAdjunto: leerAdjunto, desplegable: desplegable, emojis: emojis };
   if (typeof module !== "undefined" && module.exports) module.exports = SAChat;
   raiz.SAChat = SAChat;
 })(typeof window !== "undefined" ? window : globalThis);

@@ -227,3 +227,39 @@
 .sa-chat-puntos i:nth-child(2){ animation-delay:.16s; } .sa-chat-puntos i:nth-child(3){ animation-delay:.32s; }
 @keyframes sa-chat-punto{ 0%,60%,100%{ opacity:.45; transform:none; } 30%{ opacity:1; transform:translateY(-3px); } }
 @media (prefers-reduced-motion: reduce){ .sa-chat-puntos i{ animation:none; opacity:.7; } .sa-chat-visto{ animation:none; } }
+
+/* ── Cabecera y caja del Chat con Alma estilo messenger, fuera de la roca (el panel de la app, alma/index.html): los mismos
+   botones del chat del inicio (#952, js/sa-nav.js). Cabecera: llamar y «⋯» (Cargar historial · Fijar este tema · Quitar lo
+   fijado · Cerrar) y la barra de lo fijado. Caja en píldora: cámara a la izquierda; micrófono, emoji e imagen a la derecha
+   (la imagen abre foto, archivo y plantillas). Con texto, enviar toma el lugar del micrófono y la imagen. ── */
+.sa-chat-cb{ width:44px; height:44px; flex:none; border:0; border-radius:50%; padding:0; display:grid; place-items:center; cursor:pointer; background:transparent; color:#3E3F3F; -webkit-tap-highlight-color:transparent; }
+.sa-chat-cb:active{ transform:scale(.92); background:#F3EFEB; }
+.sa-chat-menu3{ position:absolute; right:10px; top:calc(100% - 4px); z-index:6; min-width:200px; padding:6px; border-radius:16px; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,.05),0 16px 40px -10px rgba(60,40,30,.28); display:flex; flex-direction:column; }
+.sa-chat-menu3[hidden], .sa-chat-menu3 button[hidden]{ display:none; }
+.sa-chat-menu3 button{ border:0; background:transparent; text-align:left; padding:11px 14px; min-height:44px; border-radius:10px; font:500 14px var(--chat-sans, Montserrat, system-ui, sans-serif); color:#262423; cursor:pointer; }
+.sa-chat-fijado{ flex:none; display:flex; align-items:center; gap:12px; width:100%; min-height:52px; padding:8px 8px 8px 14px; border:0; border-bottom:1px solid #EFEBE7; background:#FFFDFB; text-align:left; cursor:pointer; font:500 14px/1.3 var(--chat-sans, Montserrat, system-ui, sans-serif); color:#262423; }
+.sa-chat-fijado[hidden]{ display:none; }
+.sa-chat-fijado .pin{ width:34px; height:34px; flex:none; border-radius:50%; display:grid; place-items:center; background:#F3EFEB; color:#6F6867; }
+.sa-chat-fijado .tx{ flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sa-chat-fijado .tx small{ color:#8F8883; font-weight:400; margin-right:6px; font-size:inherit; }
+.sa-chat-fijado .x{ width:40px; height:40px; flex:none; border-radius:50%; display:grid; place-items:center; color:#9A938E; }
+.sa-chat-pil{ position:relative; flex:1; min-width:0; display:flex; align-items:flex-end; gap:2px; min-height:52px; padding:4px 6px; box-sizing:border-box; border-radius:26px; background:#F4F1EE; border:1px solid #E9E4DF; transition:border-color .18s cubic-bezier(.22,.61,.36,1), background .18s; }
+.sa-chat-pil:focus-within{ border-color:#DDD6CF; background:#fff; }
+.sa-chat-pil textarea, .sa-chat-pil textarea:focus{ flex:1; min-width:0; border:0; background:transparent; padding:11px 6px; height:42px; border-radius:0; }
+.sa-chat-pb{ width:42px; height:42px; flex:none; border:0; border-radius:50%; padding:0; display:grid; place-items:center; cursor:pointer; background:transparent; color:#4A4746; -webkit-tap-highlight-color:transparent; transition:background .15s, transform .1s; }
+.sa-chat-pb:active{ transform:scale(.9); }
+.sa-chat-pil .sa-chat-env{ width:40px; height:40px; margin:1px; flex:none; border:0; border-radius:50%; padding:0; display:none; place-items:center; cursor:pointer; background:#3B6FD8; color:#fff; }
+.sa-chat-pie[data-lleno="1"] .sa-chat-pil .sa-chat-env{ display:grid; }
+.sa-chat-pie[data-lleno="1"] .sa-chat-pil .sa-chat-pb--vacio{ display:none; }
+.sa-chat-emojis{ position:absolute; right:0; bottom:calc(100% + 10px); z-index:6; display:grid; grid-template-columns:repeat(6,40px); gap:2px; padding:8px; border-radius:18px; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,.05),0 16px 40px -10px rgba(60,40,30,.28); }
+.sa-chat-emojis[hidden]{ display:none; }
+.sa-chat-emojis button{ width:40px; height:40px; border:0; border-radius:10px; background:transparent; font-size:22px; line-height:1; cursor:pointer; }
+@media (hover:hover){ .sa-chat-cb:hover, .sa-chat-pb:hover, .sa-chat-menu3 button:hover, .sa-chat-emojis button:hover, .sa-chat-fijado .x:hover{ background:#F3EFEB; } }
+.sa-chat-cb:focus-visible, .sa-chat-pb:focus-visible, .sa-chat-fijado:focus-visible, .sa-chat-env:focus-visible{ outline:2px solid #E9826A; outline-offset:1px; }
+/* El archivo o la foto cargada, sobre la caja: «Leyendo…», «Listo» o el problema, con «×» para quitarlo. */
+.sa-chat-adj{ display:flex; align-items:center; gap:10px; padding:8px 8px 8px 10px; border:1px solid #EEEEEE; border-radius:16px; background:#FAF8F6; font:500 13px/1.3 var(--chat-sans); color:#222222; }
+.sa-chat-adj[hidden]{ display:none; }
+.sa-chat-adj .ic{ width:36px; height:36px; flex:none; border-radius:10px; display:grid; place-items:center; background:#fff center/cover; color:#E9826A; box-shadow:inset 0 0 0 1px #EEEEEE; }
+.sa-chat-adj .tx{ flex:1; min-width:0; } .sa-chat-adj b{ display:block; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sa-chat-adj small{ display:block; color:#8A8A8A; font-size:12px; } .sa-chat-adj.mal small{ color:#B4452A; }
+.sa-chat-adj .x{ width:44px; height:44px; margin:-4px -4px -4px 0; flex:none; border:0; background:none; border-radius:50%; display:grid; place-items:center; cursor:pointer; color:#8A8A8A; }

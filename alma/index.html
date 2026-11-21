@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="../ds/tokens/fonts.css">
 <link rel="stylesheet" href="../ds/tokens/colors.css">
 <link rel="stylesheet" href="../ds/tokens/typography.css">
-<link rel="stylesheet" href="../ds/chat.css?v=2026-11-21a">
+<link rel="stylesheet" href="../ds/chat.css?v=2026-11-21-panel">
 <!-- «Alma aquí»: Alma sola, abierta desde cualquier página con el atajo de Compartir o el marcador
      (instalar.html). Recibe qué estaba viendo la persona (?t=título&sel=texto&desde=<url>, desde al final)
      y se lo pasa a Alma como contexto, en el chat y en la voz. -->
@@ -42,8 +42,6 @@
   textarea::placeholder { color: #8A8A8A; }
   @supports (-webkit-touch-callout: none) { textarea { font-size: 16px; } }
   button { font: inherit; }
-  #enviar { display: none; }
-  footer.lleno #mic { display: none; } footer.lleno #enviar { display: grid; }
   .rocaw { position: relative; flex: none; }
   #roca.vivo { animation: graba 1.2s ease-in-out infinite; }
   @keyframes graba { 50% { box-shadow: 0 0 0 10px rgba(233,130,106,.2); } }
@@ -82,10 +80,12 @@
   body.escribe .estado { color: #E9826A; }
   main { padding: 14px 14px 18px; }
   footer { border-top: 0; padding-left: 14px; padding-right: 14px; }
-  .caja { background: #F4F1EE; border: 1px solid #E9E4DF; border-radius: 26px; transition: border-color .18s cubic-bezier(.22,.61,.36,1), background .18s; }
-  .caja:focus-within { border-color: #DDD6CF; background: #fff; }
   .caja textarea, .caja textarea:focus { border: 0; background: transparent; }
-  #enviar { background: #3B6FD8; }
+  /* Cabecera y píldora completas, como el chat del inicio (#952): llamar y «⋯», la barra de lo fijado y la caja con cámara,
+     micrófono, emoji e imagen (ds/chat.css: .sa-chat-cb, .sa-chat-menu3, .sa-chat-fijado, .sa-chat-pil). */
+  .tit { position: relative; }
+  .tit .sa-chat-cb + .sa-chat-cb { margin-left: -6px; }
+  .sa-chat-adj { margin: 0 14px 8px; }
   .entrar a { display: inline-block; margin-top: 12px; padding: 12px 20px; border-radius: 999px; background: var(--fg, #1D1D1B); color: #fff; text-decoration: none; }
 </style>
 <link rel="stylesheet" href="../ds/esqueleto.css">
@@ -94,18 +94,32 @@
 <header>
   <div class="tit"><span class="sa-chat-avatar-w"><span class="sa-chat-avatar sa-chat-avatar--alma" aria-hidden="true"></span><i class="enlinea" aria-hidden="true"></i><i class="sa-chat-total" id="total" hidden></i></span>
     <div class="t"><h1>Alma<svg class="insignia" viewBox="0 0 24 24" aria-label="Alma, de Spacio AM" role="img"><path fill="currentColor" d="M12 1.8l2.6 1.9 3.2-.1 1 3 2.6 1.9-1 3 1 3-2.6 1.9-1 3-3.2-.1L12 22.2l-2.6-1.9-3.2.1-1-3-2.6-1.9 1-3-1-3 2.6-1.9 1-3 3.2.1z"/><path d="M8 12.3l2.7 2.6L16.2 9.4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></h1>
-    <small class="estado" id="estado" aria-live="polite">En línea</small></div></div>
+    <small class="estado" id="estado" aria-live="polite">En línea</small></div>
+    <button type="button" class="sa-chat-cb" id="llamar" aria-label="Llamar a Alma"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></button>
+    <button type="button" class="sa-chat-cb" id="mas3" aria-label="Más opciones del chat" aria-haspopup="menu" aria-expanded="false"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></button>
+    <div class="sa-chat-menu3" id="menu3" role="menu" hidden><button type="button" role="menuitem" data-m="historial">Cargar historial</button><button type="button" role="menuitem" data-m="fijar">Fijar este tema</button>
+      <button type="button" role="menuitem" data-m="desfijar" hidden>Quitar lo fijado</button><button type="button" role="menuitem" data-m="cerrar">Cerrar</button></div></div>
   <div class="viendo" id="viendo">Abierta sin página de origen.</div>
   <div class="sel" id="sel" hidden></div>
   <div class="captura" id="captura" hidden></div>
 </header>
+<button type="button" class="sa-chat-fijado" id="fijado" hidden><span class="pin" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6l-1 5 3 3v2H7v-2l3-3z"/><path d="M12 14v6"/></svg></span><span class="tx"></span><span class="x" role="button" tabindex="0" aria-label="Quitar lo fijado"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span></button>
 <div class="sa-chat-esferas" id="esferas" hidden></div>
 <main id="hilo"></main>
+<div class="sa-chat-adj" id="adj" hidden aria-live="polite"></div>
 <footer id="pie" class="sa-chat-pie" data-lleno="0">
-  <button id="mas" class="sa-chat-mas" type="button" aria-label="Plantillas" title="Plantillas"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
-  <div class="caja" id="caja"><textarea id="txt" rows="1" placeholder="Mensaje…" enterkeyhint="enter" aria-label="Mensaje para Alma"></textarea></div>
-  <button id="mic" class="sa-chat-redondo" type="button" aria-label="Dictar: toca y habla" title="Dictar: toca y habla"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
-  <button id="enviar" class="sa-chat-redondo" type="button" aria-label="Enviar" title="Enviar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:block; margin-left:2px"><path d="M4.5 12 3 4.5l17.5 7.5L3 19.5z"/><path d="M4.5 12H11"/></svg></button>
+  <!-- La caja en píldora del chat del inicio (#952): cámara a la izquierda; micrófono, emoji e imagen a la derecha (la imagen
+       abre foto, archivo y plantillas, lo que antes abría el «+»). Con texto, enviar toma el lugar del micrófono y la imagen. -->
+  <div class="caja sa-chat-pil" id="caja">
+    <button id="cam" class="sa-chat-pb" type="button" aria-label="Mandar una foto"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.7l1.3-2h5l1.3 2h1.7A2.5 2.5 0 0 1 20 8.5v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.4"/></svg></button>
+    <textarea id="txt" rows="1" placeholder="Mensaje…" enterkeyhint="enter" aria-label="Mensaje para Alma"></textarea>
+    <button id="mic" class="sa-chat-pb sa-chat-pb--vacio" type="button" aria-label="Dictar: toca y habla" title="Dictar: toca y habla"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+    <button id="emo" class="sa-chat-pb" type="button" aria-label="Emoji" aria-haspopup="true" aria-expanded="false"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 14.2a4.2 4.2 0 0 0 7 0"/><circle cx="9.3" cy="10" r=".9" fill="currentColor"/><circle cx="14.7" cy="10" r=".9" fill="currentColor"/></svg></button>
+    <button id="mas" class="sa-chat-pb sa-chat-pb--vacio" type="button" aria-label="Foto, archivo y plantillas" title="Foto, archivo y plantillas"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.7"/><path d="M20.5 15.5l-5-5-9 9"/></svg></button>
+    <button id="enviar" class="sa-chat-env" type="button" aria-label="Enviar" title="Enviar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+    <div class="sa-chat-emojis" id="emojis" role="dialog" aria-label="Emojis" hidden></div>
+  </div>
+  <input type="file" id="fotoF" accept="image/*" hidden><input type="file" id="camF" accept="image/*" capture="environment" hidden><input type="file" id="docF" hidden>
   <div class="rocaw"><span class="tip" aria-hidden="true">Mejorar</span><button id="roca" class="sa-chat-roca" type="button" data-sa-dock="1" aria-label="Alma" title="Un toque: mejorar · dos toques: hablar con Alma"><svg width="18" height="18" viewBox="0 0 24 24" fill="#E9826A" aria-hidden="true"><path d="M12 2.5c.7 4.7 2.8 6.8 7.5 7.5-4.7.7-6.8 2.8-7.5 7.5-.7-4.7-2.8-6.8-7.5-7.5 4.7-.7 6.8-2.8 7.5-7.5z"/></svg></button></div>
 </footer>
 <script src="../js/sa-auth-client.js?v=2026-11-18a"></script>
@@ -113,7 +127,7 @@
 <script src="../js/sa-compositor.js?v=2026-11-09b"></script>
 <script src="../js/sa-nav.js?v=2026-11-21-escritorio"></script>
 <script src="../js/alma-voz.js?v=2026-11-19-unavoz"></script>
-<script src="../js/sa-chat.js?v=2026-11-21a"></script>
+<script src="../js/sa-chat.js?v=2026-11-21-panel"></script>
 <script>
 (function () {
   "use strict";
@@ -229,25 +243,35 @@
   if (esferaUrl && SAChat.esfera(esferaUrl)) hilo.filtro(esferaUrl, true);
 
   function enviar() {
-    var t = $("txt").value.trim(); if (!t) return;
-    $("txt").value = ""; crecer(); enviarTexto(t);
+    var t = $("txt").value.trim(), a = adj; if (!t && !a) return;
+    $("txt").value = ""; adj = null; adjPintar(); crecer();
+    if (!a) { enviarTexto(t); return; }
+    /* Con una foto o un archivo cargado: se ve la foto (o «📎 nombre») y tu texto; a Alma le llega lo que tiene y tu texto. */
+    if (a.foto) hilo.foto(a.foto);
+    var m = hilo.yo(a.foto ? (t || "Mira esta foto") : "📎 " + a.nombre + (t ? "\n" + t : "")); if (!m) return;
+    hilo.pensando(true);
+    a.p.then(function (r) {
+      if (!r.ok) { hilo.pensando(false); hilo.nota(r.error || "No pude leer «" + a.nombre + "». Mándalo otra vez."); return; }
+      enviarTexto(t || "¿Qué ves?", m, r.texto);
+    });
   }
   /* Tu mensaje sale al instante con «pensando»; si la captura aún se está leyendo, espera a tenerla para mandarlo.
      El contexto de la página (y de la captura) va solo en el primero, sin pintarse. */
-  function enviarTexto(t, m) {
+  function enviarTexto(t, m, extra) {
     if (!m) { m = hilo.yo(t); if (!m) return; }
-    if (capturaP && !captura) { hilo.pensando(true); $("enviar").disabled = true; capturaP.then(function () { capturaP = null; enviarTexto(t, m); }); return; }
+    if (capturaP && !captura) { hilo.pensando(true); $("enviar").disabled = true; capturaP.then(function () { capturaP = null; enviarTexto(t, m, extra); }); return; }
+    if (extra) t = extra + " " + t;
     var texto = !ctxEnviado && ctx ? ctx + "\n\n" + t : t; ctxEnviado = true;
     hilo.mandar(m, texto);
   }
   $("enviar").onclick = enviar;   // solo el botón envía: Enter salta de línea (el nuevo chat, #304)
 
   /* El cuadro crece hasta 5 líneas y luego hace scroll; con texto sale el «+», el micrófono se cambia por enviar y aparece «Mejorar». */
-  function alto() { var t = $("txt"); t.style.height = "44px"; t.style.height = Math.min(124, t.scrollHeight + 2) + "px"; t.style.overflowY = t.scrollHeight + 2 > 124 ? "auto" : "hidden"; }
+  function alto() { var t = $("txt"); t.style.height = "42px"; t.style.height = Math.min(124, Math.max(42, t.scrollHeight)) + "px"; t.style.overflowY = t.scrollHeight > 124 ? "auto" : "hidden"; }
   function crecer() {
     alto();
-    var lleno = !!$("txt").value.trim(), pie = $("pie"); $("roca").setAttribute("aria-label", lleno ? "Mejorar" : "Alma");
-    if (pie.classList.contains("lleno") !== lleno) { pie.classList.toggle("lleno", lleno); pie.setAttribute("data-lleno", lleno ? "1" : "0"); setTimeout(alto, 200); }   // el «+» angosta el cuadro (180 ms): se mide otra vez
+    var lleno = !!$("txt").value.trim() || !!adj, pie = $("pie"); $("roca").setAttribute("aria-label", lleno ? "Mejorar" : "Alma");
+    if (pie.classList.contains("lleno") !== lleno) { pie.classList.toggle("lleno", lleno); pie.setAttribute("data-lleno", lleno ? "1" : "0"); setTimeout(alto, 0); }   // enviar toma el lugar del micrófono y la imagen: se mide otra vez
   }
   function poner(t) { var x = $("txt"); x.value = t; crecer(); try { x.focus(); x.setSelectionRange(t.length, t.length); } catch (e) {} }
   $("txt").addEventListener("input", crecer);
@@ -256,8 +280,77 @@
     if (!window.SAComp) return;
     SAComp.dictar({ caja: $("caja"), onTexto: function (t) { var p = $("txt").value.replace(/\s+$/, ""); poner(p ? p + " " + t : t); } });
   };
-  /* El «+»: mis plantillas (tocar una la pone en el cuadro, no la envía) y guardar este texto como plantilla. */
-  $("mas").onclick = function () { if (window.SAComp) SAComp.mas({ ancla: $("mas"), texto: function () { return $("txt").value; }, poner: poner }); };
+  /* La imagen (lo que antes abría el «+»): una foto, un archivo y mis plantillas (tocar una la pone en el cuadro, no la envía). */
+  var fotoOk = !!ALMA.almaFoto, docOk = !!ALMA.almaArchivo, ICO = function (d) { return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>'; };
+  $("docF").accept = SAChat.DOC_ACCEPT;
+  $("mas").onclick = function () {
+    if (!window.SAComp) return;
+    SAComp.mas({ ancla: $("mas"), texto: function () { return $("txt").value; }, poner: poner,
+      extras: (fotoOk ? [{ txt: "Foto", icono: ICO('<path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.7l1.3-2h5l1.3 2h1.7A2.5 2.5 0 0 1 20 8.5v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.4"/>'), fn: function () { $("fotoF").click(); } }] : [])
+        .concat(docOk ? [{ txt: "Archivo", icono: ICO('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>'), fn: function () { $("docF").click(); } }] : []) });
+  };
+  /* La cámara: una foto para Alma. */
+  $("cam").onclick = function () { if (fotoOk) $("camF").click(); else hilo.nota("Aquí no puedo recibir fotos."); };
+  ["fotoF", "camF", "docF"].forEach(function (id) { $(id).onchange = function () { var x = this.files && this.files[0]; this.value = ""; if (x) adjCargar(x); }; });
+  /* Lo cargado queda arriba de la caja (SAChat.leerAdjunto: el mismo camino del chat del inicio) hasta que lo mandas. */
+  var adj = null;
+  function adjCargar(x) {
+    var a = adj = { nombre: x.name || "Foto", foto: "", estado: "leyendo" };
+    a.p = SAChat.leerAdjunto(x, ALMA, function (du) { a.foto = du; adjPintar(); }).then(function (r) {
+      a.estado = r.ok ? "listo" : "mal"; a.error = r.error; if (r.ok) a.nombre = r.nombre; adjPintar(); return r;
+    });
+    adjPintar(); crecer();
+  }
+  function adjPintar() {
+    var c = $("adj"), a = adj; c.innerHTML = ""; c.hidden = !a; c.className = "sa-chat-adj" + (a ? " " + a.estado : ""); if (!a) return;
+    var ic = document.createElement("span"); ic.className = "ic"; if (a.foto) ic.style.backgroundImage = "url(" + a.foto + ")"; else ic.textContent = "📎";
+    var tx = document.createElement("span"), b = document.createElement("b"), sm = document.createElement("small"); tx.className = "tx";
+    b.textContent = a.nombre; sm.textContent = a.estado === "leyendo" ? (a.foto ? "Mirando la foto…" : "Leyendo…") : a.estado === "mal" ? a.error : "Listo · escribe qué quieres que haga";
+    tx.appendChild(b); tx.appendChild(sm);
+    var x = document.createElement("button"); x.type = "button"; x.className = "x"; x.setAttribute("aria-label", "Quitar"); x.textContent = "×"; x.style.fontSize = "22px";
+    x.onclick = function () { adj = null; adjPintar(); crecer(); };
+    c.appendChild(ic); c.appendChild(tx); c.appendChild(x);
+  }
+  /* Emojis: tocar uno lo pone donde está el cursor (SAChat.emojis, los mismos del chat del inicio). */
+  SAChat.emojis($("emo"), $("emojis"), $("txt"), crecer);
+
+  /* La cabecera del chat del inicio (#952): llamar a Alma y «⋯» con Cargar historial, Fijar este tema, Quitar lo fijado y Cerrar. */
+  $("llamar").onclick = function () { hablar(); };
+  var menu3 = SAChat.desplegable($("mas3"), $("menu3"));
+  $("menu3").onclick = function (e) {
+    var x = e.target.closest && e.target.closest("[data-m]"); if (!x) return; e.stopPropagation(); menu3(false);
+    var q = x.getAttribute("data-m");
+    if (q === "historial") hilo.cargar();
+    else if (q === "fijar") { SAChat.fijado.poner(yo, SAChat.fijado.deHilo($("hilo"), hilo.esfera())); fijPintar(); }
+    else if (q === "desfijar") { SAChat.fijado.poner(yo, null); fijPintar(); }
+    else if (q === "cerrar") cerrar();
+  };
+  /* Cerrar: en el navegador cierra la pestaña o vuelve atrás; en el panel de la app, si sigue abierto, dice cómo cerrarlo. */
+  function cerrar() {
+    if (llamada) llamada.end();
+    try { window.close(); } catch (e) {}
+    setTimeout(function () {
+      if (document.visibilityState === "hidden") return;
+      if (history.length > 1) { history.back(); return; }
+      hilo.nota("Para cerrar, desliza el panel hacia abajo.");
+    }, 250);
+  }
+  /* Lo fijado (la misma barra del chat del inicio y guardada igual, por persona): tocarla filtra el hilo en su esfera o, si es
+     un pedido, deja lista la pregunta; la «×» lo quita. */
+  function fijPintar() {
+    var v = SAChat.fijado.leer(yo), b = $("fijado"); $("menu3").querySelector('[data-m="desfijar"]').hidden = !v;
+    b.hidden = !v; if (!v) return;
+    var tx = b.querySelector(".tx"); tx.textContent = ""; var sm = document.createElement("small"); sm.textContent = v.tipo === "pedido" ? "Pedido" : "Tema"; tx.appendChild(sm); tx.appendChild(document.createTextNode(v.texto));
+    b.setAttribute("aria-label", "Fijado: " + v.texto);
+  }
+  $("fijado").onclick = function (e) {
+    var v = SAChat.fijado.leer(yo); if (!v) return;
+    if (e.target.closest && e.target.closest(".x")) { e.stopPropagation(); SAChat.fijado.poner(yo, null); fijPintar(); return; }
+    if (v.tipo === "pedido") { poner("¿Cómo va «" + v.texto + "»?"); return; }
+    if (v.esfera && SAChat.esfera(v.esfera)) hilo.filtro(v.esfera, true);
+  };
+  $("fijado").querySelector(".x").addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); SAChat.fijado.poner(yo, null); fijPintar(); } });
+  fijPintar();
 
   /* Voz: el mismo agente del Hub; lo que hay en pantalla es la página de origen. */
   var voz = SAAlmaVoz.crear({ contexto: function () {

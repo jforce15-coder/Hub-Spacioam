@@ -12,8 +12,11 @@
      leyó (leer otra vez no cambia nada): pidió pasar_al_completo, pidió una herramienta que no tiene, dijo que no sabe o no
      puede (escalarNoPudo_), dijo que algo quedó hecho (no tiene cómo hacerlo), falló la API, se negó, se le acabaron los
      tokens, pasó de VOZ_RAPIDO_VUELTAS_ vueltas o de VOZ_RAPIDO_MS_. Juan no lo nota: solo tarda lo de antes.
-     Excepción (guardia 18-nov-2026): si paró solo por tiempo o por vueltas, lo que ya leyó pasa al de siempre y no se
-     vuelve a leer (rapidoReusar_; el cronómetro guarda reuso = cuántos mensajes pasaron). Y otra vuelta empieza solo si
+     Excepción (guardia 18-nov-2026; desde la del 21-nov por cualquier motivo): lo que ya leyó pasa al de siempre y no se
+     vuelve a leer (rapidoReusar_; el cronómetro guarda reuso = cuántos mensajes pasaron). Leer es leer: si después pidió
+     el completo u otra herramienta, lo leído sigue siendo cierto y releerlo costaba 4-6 s por herramienta.
+     Fotos o pantalla (guardia 21-nov-2026): el rápido no tiene cómo mostrarlas y siempre se rendía tras 3,5-4,9 s; ahora
+     esos pedidos arrancan directo con el de siempre (VOZ_RAPIDO_COMPLETO_RE_). Y otra vuelta empieza solo si
      cabe en el tope (rapidoMs_, 5 s) contando lo que tardó la anterior (guardia 19-nov-2026: se pasaba hasta ~13 s).
    · Mismo system: lo que Alma sabe y cómo habla no cambia. Al final de este_turno, una línea le dice qué herramientas tiene.
    · El modelo rápido no acepta temperatura (400): va sin ella y con esfuerzo bajo (output_config.effort = low).
@@ -65,6 +68,8 @@ var VOZ_RAPIDO_HACER_RE_ = new RegExp('\\b' + VOZ_RAPIDO_HACER_ + '(?:a|e|o|as|e
   'arle|erle|irle|arlo|erlo|irlo|aselo|eselo|ate|ete|ite|amos|emos|aron|ieron)\\b');
 /* Los imperativos cortos, los que cambian la raíz y los que también son sustantivos («agenda», «pregunta»), tal cual. */
 var VOZ_RAPIDO_HACER_EXTRA_RE_ = /\b(?:dile|diles|decirle|decirles|haz|hazme|hazlo|pon|ponle|ponme|poner|une|unelo|unir|abre|abrele|abrir|cierra|cierrala|cerrar|mueve|muevela|mover|crea|crear|creale|pide|pidele|pedir|pedirle|sube|subir|paga|pagar|deja|dejale|dejar|recuerdame|ten en cuenta|agendar|agendale|agendalo|agendala|agendame|preguntale|preguntales|preguntarle|preguntarles)\b/;
+/* Pide fotos, videos o algo en pantalla: el rápido no tiene esas herramientas; va directo al de siempre. */
+var VOZ_RAPIDO_COMPLETO_RE_ = /\b(?:foto|fotos|fotografia|fotografias|imagen|imagenes|video|videos|pantalla|muestrame|muestramelo|muestramela|muestramelas|muestramelos|ensename|ensenamelo|ensenamelas)\b/;
 /* Pregunta o pide leer. */
 var VOZ_RAPIDO_LEER_RE_ = /\?|\b(?:que|quien|quienes|cuando|cuanto|cuantos|cuantas|cual|cuales|donde|como|hay|tiene|tienen|tengo|llega|llegan|llego|sale|salen|salio|verifica|verificar|revisa|revisar|busca|buscar|consulta|consultar|dime|dame|ver|checa|checar|confirma|confirmar|sabes|muestrame|lee|leeme|leer|esta|estan)\b/;
 /* Dice que hizo algo: el rápido no tiene cómo, así que no se le cree. */
@@ -115,6 +120,8 @@ function rapidoDecide_(texto, o) {
   if (t.length > VOZ_RAPIDO_MAX_LARGO_) return { usar: false, motivo: 'pedido largo' };
   var hacer = t.match(VOZ_RAPIDO_HACER_RE_) || t.match(VOZ_RAPIDO_HACER_EXTRA_RE_);
   if (hacer) return { usar: false, motivo: 'pide hacer algo («' + hacer[0] + '»)', portero: 'reglas' };   // la red de seguridad: gana hacer
+  var ver = t.match(VOZ_RAPIDO_COMPLETO_RE_);
+  if (ver) return { usar: false, motivo: 'pide fotos o pantalla («' + ver[0] + '»)', portero: 'reglas' };   // el rápido no tiene cómo mostrarlas
   var j = jevPortero_(texto);
   if (j.ok) {
     var d = { portero: 'jev', jev_conf: j.confianza, jev_ms: j.ms };
@@ -127,11 +134,11 @@ function rapidoDecide_(texto, o) {
   return r;
 }
 
-/* Lo que el rápido leyó y el completo puede usar tal cual: solo si paró por tiempo o por vueltas (no si se equivocó, pidió
-   otra cosa o dijo algo raro), y solo pares completos (pedido de herramienta + su resultado), hasta el último resultado
-   (leido). Del modelo rápido quedan solo texto y herramientas, nada que dependa de su modelo. → mensajes para agregar. */
-function rapidoReusar_(motivo, m, base, leido) {
-  if (motivo !== 'tiempo' && motivo !== 'muchas vueltas') return [];
+/* Lo que el rápido leyó y el completo puede usar tal cual, pare por lo que pare (guardia 21-nov-2026: antes solo por tiempo
+   o vueltas, y «pidió el completo» volvía a leer todo): solo pares completos (pedido de herramienta + su resultado), hasta
+   el último resultado (leido); su respuesta o su pedido de pasar no pasan. Del modelo rápido quedan solo texto y
+   herramientas, nada que dependa de su modelo. → mensajes para agregar. */
+function rapidoReusar_(m, base, leido) {
   if (!(leido > base) || !m || leido > m.length) return [];
   return m.slice(base, leido).map(function (x) {
     if (x.role !== 'assistant' || !Array.isArray(x.content)) return x;
@@ -253,10 +260,10 @@ function rapidoIntentar_(adm, texto, system, msgs, tools, ctx, o) {
   } catch (e) { console.error('rapidoIntentar_: ' + (e.stack || e)); motivo = 'error: ' + String(e.message || e).slice(0, 60); fin = null; }
   ms.rapido = Date.now() - t0;
   if (fin !== null && !motivo) { ms.via = 'rapido'; ms.motivo = d.motivo; ms.modelo = modelo; return agCerrarTurno_(adm, fin, ctx); }
-  /* No pudo: el de siempre sigue desde el mismo pedido. Si solo se le acabó el tiempo o las vueltas mientras leía
-     (rapidoReusar_), lo que ya leyó le sirve: va en msgs y no se vuelve a leer (guardia 18-nov-2026: «rapido>completo
-     por tiempo» hizo esperar 50 s a Juan, con 23 s de herramientas leídas dos veces). Si no, lo leído no queda. */
-  var reusa = rapidoReusar_(motivo, m, msgs.length, leido);
+  /* No pudo: el de siempre sigue desde el mismo pedido, con lo que el rápido ya leyó (rapidoReusar_): va en msgs y no se
+     vuelve a leer (guardia 18-nov-2026: «rapido>completo por tiempo» hizo esperar 50 s a Juan, con 23 s de herramientas
+     leídas dos veces; desde el 21-nov, pare por lo que pare). Si no leyó nada, empieza limpio. */
+  var reusa = rapidoReusar_(m, msgs.length, leido);
   ctx.hechas.length = hechas0; ctx.parcial = null;
   if (reusa.length) { Array.prototype.push.apply(msgs, reusa); ms.reuso = reusa.length; }
   else if (ctx.llamadas) ctx.llamadas.length = llamadas0;

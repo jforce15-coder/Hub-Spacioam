@@ -133,10 +133,31 @@ var AG_MS_ = null;
    { h: nombre, s: segundos, v: 'r' camino rápido · 'c' completo }: así la próxima guardia ve cuál tarda 10-16 s. */
 function agMsHerr_(nombre, ms, via) {
   if (!AG_MS_) return;
+  agHerrAprender_(nombre, ms);
   AG_MS_.herr += ms; AG_MS_.nh++;
   var l = AG_MS_.lentas || (AG_MS_.lentas = []);
   l.push({ h: String(nombre || ''), s: Math.round(ms / 100) / 10, v: via || 'c' });
   l.sort(function (a, b) { return b.s - a.s; }); if (l.length > 4) l.length = 4;
+}
+/* Cuánto tarda una herramienta (guardia 21-nov-2026, Maricarmen parte 2): el plazo de la voz se miraba con 2,5 s de margen
+   antes de cada herramienta, pero agendar_en_epi tarda ~9 s y buscar_reservas ~6 s: empezaban a tiempo y terminaban
+   muy pasadas (la secretaria contestó en 26-51 s). Ahora una herramienta empieza solo si cabe lo que suele tardar:
+   lo medido en las últimas llamadas (promedio en caché, agHerrAprender_) o, sin medida, AG_HERR_TARDA_. */
+var AG_HERR_TARDA_ = { agendar_en_epi: 9500, buscar_reservas: 6000, buscar_contacto: 4500 }, AG_HERR_TARDA_MAX_ = 15000, AG_HERR_TARDA_MEMO_ = {};
+function agHerrTarda_(nombre) {
+  nombre = String(nombre || '');
+  if (!(nombre in AG_HERR_TARDA_MEMO_)) {
+    var n = 0; try { n = Number(CacheService.getScriptCache().get('herr_ms_' + nombre)) || 0; } catch (e) {}
+    AG_HERR_TARDA_MEMO_[nombre] = n;
+  }
+  return Math.min(AG_HERR_TARDA_MAX_, Math.max(AGENTE_MARGEN_HERR_, AG_HERR_TARDA_MEMO_[nombre] || AG_HERR_TARDA_[nombre] || 0));
+}
+function agHerrAprender_(nombre, ms) {
+  nombre = String(nombre || ''); if (!nombre || !(ms >= 0)) return;
+  try {
+    var c = CacheService.getScriptCache(), k = 'herr_ms_' + nombre, ant = Number(c.get(k)) || 0, nuevo = Math.round(ant ? ant * 0.6 + ms * 0.4 : ms);
+    c.put(k, String(nuevo), 21600); AG_HERR_TARDA_MEMO_[nombre] = nuevo;
+  } catch (e) {}
 }
 /* Destinatario (#583 T5): una sola frase para persona y número en todas las herramientas que escriben a alguien. */
 var AG_DEST_ = { type: 'string', description: 'Nombre o rol («Recepción Ignacio», «socio de 633»): se resuelve solo, con su fuente' }, AG_NUM_ = { type: 'string', description: 'WhatsApp con código de país, si no lo tengo' };
@@ -1030,7 +1051,7 @@ function opAgente_(adm, texto, canal, fotos, previos) {
 }
 /* El bucle: Claude piensa, usa herramientas y vuelve a pensar (máx. 8 vueltas). Con AGENTE_PLAZO_ (el plazo de una
    llamada, retomar.js) se detiene cuando ya no alcanza el tiempo: antes de otra vuelta de Claude (si quedan menos de
-   AGENTE_MARGEN_VUELTA_) y antes de CADA herramienta (si quedan menos de AGENTE_MARGEN_HERR_). Guarda dónde iba, con las
+   AGENTE_MARGEN_VUELTA_ o lo que tardó la anterior) y antes de CADA herramienta (si no cabe lo que suele tardar, agHerrTarda_). Guarda dónde iba, con las
    herramientas que ya corrieron (parcial), y lo termina en segundo plano (devuelve { seguira: true }).
    seguir = true: retoma una conversación guardada (puede terminar en herramientas sin ejecutar o a medias).
    yaEspero = true: el camino rápido ya gastó tiempo (rapido.js): el plazo se mira también antes de la primera vuelta. */
@@ -1057,8 +1078,9 @@ function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir, yaEspero) 
   for (var vuelta = desde || 0; vuelta < 8; vuelta++) {
     var usos = usosDe(msgs[msgs.length - 1]);
     if (!usos.length) {
-      /* Tras el rápido (yaEspero, guardia 20-nov-2026): la vuelta nueva empieza solo si cabe contando lo que tardó la anterior. */
-      var margenV = yaEspero ? Math.max(AGENTE_MARGEN_VUELTA_, iaUltimaMs) : AGENTE_MARGEN_VUELTA_;
+      /* La vuelta nueva empieza solo si cabe contando lo que tardó la anterior (guardia 20-nov-2026 tras el rápido; desde la
+         del 21-nov, en todo turno con plazo: una vuelta del completo tardó 8-12 s y empezaba con 6 s de margen). */
+      var margenV = Math.max(AGENTE_MARGEN_VUELTA_, iaUltimaMs);
       if ((vuelta > (desde || 0) || yaEspero || AGENTE_PLAZO_PRIMERA_) && vencido(margenV)) { var cv = cortar(); if (cv) return cv; }
       var tIa = Date.now(), j = claudeTools_(CFG.MODELO_REDACTOR, system, msgs, tools, 1600); iaUltimaMs = Date.now() - tIa;
       if (!j) { final = 'No pude procesarlo ahora. Intenta de nuevo en un momento.'; break; }
@@ -1075,7 +1097,7 @@ function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir, yaEspero) 
     for (var iu = 0; iu < usos.length; iu++) {
       var u = usos[iu], ya = hechos.filter(function (h) { return h && h.tool_use_id === u.id; })[0];
       if (ya) { resultados.push(ya); continue; }
-      if (vencido(AGENTE_MARGEN_HERR_)) { var ch = cortar(resultados); if (ch) return ch; }   // lo que falta se ejecuta en segundo plano
+      if (vencido(agHerrTarda_(u.name))) { var ch = cortar(resultados); if (ch) return ch; }   // lo que falta se ejecuta en segundo plano; cuenta lo que suele tardar (agHerrTarda_)
       if (typeof ORBITA_ACTUAL_ !== 'undefined' && ORBITA_ACTUAL_) { try { orbitaPaso_(u.name); } catch (e) {} }   // el paso del anillo en el inicio (orbita.js)
       var res, th = Date.now(); try { res = agEjecutar_(adm, u.name, u.input, ctx); } catch (e) { console.error('agEjecutar_ ' + u.name + ': ' + (e.stack || e)); res = { error: String(e.message || e).slice(0, 200) }; }
       agMsHerr_(u.name, Date.now() - th, 'c');

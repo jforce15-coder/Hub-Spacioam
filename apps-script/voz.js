@@ -956,12 +956,15 @@ function vozTranscript_(id) {
 
 /* La secretaria por voz: el administrador pide algo en la llamada y ALMA lo ejecuta con las mismas herramientas del chat operativo.
    Queda registrado en su chat operativo (canal llamada).
-   PLAZO DURO (VOZ_PLAZO_DURO_, 18 s): contesta antes, pase lo que pase. El bucle de la secretaria mira el plazo antes de
+   PLAZO DURO (VOZ_PLAZO_DURO_, 15 s desde que el pedido llegó al Hub, VOZ_T0_): contesta antes, pase lo que pase. El bucle de la secretaria mira el plazo antes de
    cada vuelta de Claude y de cada herramienta (agente.js); si no alcanza, guarda lo hecho, lo termina en segundo plano
    (vozSeguirPronto, retomar.js) y Alma dice que le avisa al terminar. Si ya pasó el plazo al cerrar el turno, la esfera
    se marca después (chatMarcarLuego_). Antes: hasta 8 vueltas de Sonnet y el issue de GitHub antes de contestar → dos
    llamadas del 1-nov llegaron a los 60 s de ElevenLabs. */
-var VOZ_PLAZO_DURO_ = 18000;
+/* Guardia 21-nov-2026 (Maricarmen, parte 2): con 18 s contados desde vozSecretaria_ la secretaria contestó en 26-51 s. Ahora
+   son 15 s desde que el pedido llegó (como el Modo calle, calle.js) y el agente se corta VOZ_RESERVA_CORTE_ antes, porque
+   pasar a segundo plano (cola, chat, «Esto toma un rato») también tarda. La conferencia sigue con su plazo. */
+var VOZ_PLAZO_DURO_ = 15000, VOZ_RESERVA_CORTE_ = 3500;
 /* MODO CONFERENCIA (Juan, 3-nov-2026: «en conferencia necesito respuestas»): la llamada que abrió «Alma, …» en una reunión
    espera más antes de pasar a segundo plano (VOZ_PLAZO_CONFERENCIA_S, de entrada 45 s; entre 20 y 55) y, si pasa de 15 s,
    la app dice «Sigo en eso, ya casi» con la voz de Alma (vozEsperaAudio_). La app avisa que es conferencia al vincular la
@@ -990,7 +993,8 @@ function vozSecretaria_(b) {   // la envuelve vozSecretariaGuardada_ (vozficha.j
     if (esMejora && (intento || (claudeNivelPedido_(resto) && !claudeNivelQuitar_(resto)))) return { ok: true, resultado: 'YA ESTABA PEDIDO: no hay nada esperando. No digas nada más sobre eso.' };
     if (esMejora) return vozParaClaude_(adm, pedido);
   }
-  var conf = vozEsConferencia_(b.conv_id), plazo = conf ? vozPlazoConferencia_() : Math.min(vozTolerancia_(), VOZ_PLAZO_DURO_);
+  var conf = vozEsConferencia_(b.conv_id), llego = VOZ_T0_ && VOZ_T0_ <= t0 ? VOZ_T0_ : t0;
+  var plazoFin = conf ? t0 + vozPlazoConferencia_() : Math.min(t0 + vozTolerancia_(), llego + VOZ_PLAZO_DURO_ - VOZ_RESERVA_CORTE_);
   if (String(b.modo || '').toLowerCase() === 'segundo_plano') return vozSecEncolar_(tel, pedido, conf);
   AGENTE_APP_ = !!(b.conv_id && CacheService.getScriptCache().get('vozapp_' + String(b.conv_id)));   // música y casa solo desde la app de Alma
   /* Música sin dispositivo de Spotify despierto: se contesta en 1 a 2 s, sin la IA (musica.js, Hub #793). */
@@ -1012,7 +1016,7 @@ function vozSecretaria_(b) {   // la envuelve vozSecretariaGuardada_ (vozficha.j
   var yoF = opGuardar_(adm, 'yo', 'llamada', pedido);
   var esApp = AGENTE_APP_; TV_CANDIDATA_ = null;   // tarjeta de la llamada (tarjeta.js): la deja agEjecutar_ en este turno
   /* Tolerancia (retomar.js): si tarda más de lo que la llamada puede esperar, sigue en segundo plano y la llamada cuelga. */
-  AGENTE_PLAZO_ = t0 + plazo; AGENTE_PEDIDO_ = pedido; AGENTE_CONF_ = conf;   // AGENTE_CONF_: si sigue en segundo plano, el resultado se dice al oído (pendientes.js)
+  AGENTE_PLAZO_ = plazoFin; AGENTE_PEDIDO_ = pedido; AGENTE_CONF_ = conf;   // AGENTE_CONF_: si sigue en segundo plano, el resultado se dice al oído (pendientes.js)
   var r, tA = Date.now(); VOZ_MS_.antes = tA - t0; AG_MS_ = VOZ_MS_;
   AGENTE_RAPIDO_ = true;   // camino rápido (rapido.js, #498 T4): un pedido de leer lo contesta primero el modelo rápido
   try { r = opAgente_(adm, pedido, 'llamada', [], previos); } finally { AGENTE_APP_ = false; AGENTE_PLAZO_ = 0; AGENTE_PEDIDO_ = ''; AGENTE_CONF_ = false; AGENTE_RAPIDO_ = false; AG_USO_FUNCION_ = ''; AG_MS_ = null; VOZ_MS_.agente = Date.now() - tA; }

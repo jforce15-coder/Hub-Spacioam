@@ -166,6 +166,8 @@
       ['de', 'antes', 'n', 'esfera', 'subcategoria'].forEach(function (k) { if (o[k] != null && o[k] !== '') b[k] = o[k]; });
       return call('opHilo', b);
     },
+    /* Buscador de Alma (escritorio): reservas, propiedades y contactos que coinciden con q (apps-script/buscador.js). */
+    buscar: function (q) { return call('buscarEscritorio', { q: String(q || '').slice(0, 80) }); },
     /* foto del chat de Alma: el Hub la describe (IA con visión) para que Alma sepa qué se ve */
     almaFoto: function (dataUrl, captura) { return call('almaFoto', { foto: dataUrl, captura: !!captura }); },
     /* Un archivo para Alma (PDF, Word, Excel, CSV, audio): el Hub lo guarda privado y le pasa lo que dice (adjuntos.js, #544). */

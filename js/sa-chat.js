@@ -154,14 +154,36 @@
   var norm = function (t) { return String(t || "").toLowerCase().replace(/\s+/g, " ").replace(/[.!¡¿?]+$/, "").trim(); };
   var hora = function (t) { try { return new Date(t).toLocaleTimeString("es-GT", { hour: "numeric", minute: "2-digit" }); } catch (e) { return ""; } };
 
+  /* Separador de hora del estilo messenger: «Hoy a las 12:45», «Ayer a las 9:05», «18 nov a las 4:10 p. m.». */
+  var DIA_MS = 86400000, SEP_MS = 900000;
+  var separador = function (t, ahora) {
+    var d = new Date(t), h = new Date(ahora || Date.now()); if (isNaN(d)) return "";
+    var d0 = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(), h0 = new Date(h.getFullYear(), h.getMonth(), h.getDate()).getTime();
+    var dia = d0 === h0 ? "Hoy" : h0 - d0 === DIA_MS ? "Ayer" : d.toLocaleDateString("es-GT", { day: "numeric", month: "short" }).replace(/\.$/, "");
+    return dia + " a las " + hora(t);
+  };
+
   /* o = { alElegir(titulo): envía la opción como tu mensaje · alAbrir(fila): abre una fila con «›» (si falta: la URL en
-     pestaña nueva y la reserva en el Hub con ?conv=) · alPintar(): después de cada cambio (si falta, baja al final) }. */
+     pestaña nueva y la reserva en el Hub con ?conv=) · alPintar(): después de cada cambio (si falta, baja al final) ·
+     estilo: "messenger" (Chat con Alma, 21-nov-2026: separadores de hora centrados en vez de la etiqueta de cada grupo,
+     «Visto» bajo tu último mensaje y «escribiendo» con tres puntos) · alPensando(on): avisa cuando Alma empieza o deja de
+     escribir (la cabecera dice «Escribiendo…») }. */
   var pintor = function (cont, o) {
     o = o || {};
-    var doc = cont.ownerDocument, ult = null, pens = null;
+    var doc = cont.ownerDocument, ult = null, pens = null, msn = o.estilo === "messenger", sepT = 0;
     cont.classList.add("sa-chat-hilo");
+    if (msn) cont.classList.add("sa-chat-hilo--msn");
     var el = function (tag, cls, html) { var x = doc.createElement(tag); if (cls) x.className = cls; if (html) x.innerHTML = html; return x; };
-    var listo = function () { if (o.alPintar) o.alPintar(); else cont.scrollTop = cont.scrollHeight; };
+    /* «Visto»: bajo tu último mensaje cuando Alma ya contestó después o está escribiendo. */
+    var visto = function () {
+      if (!msn) return;
+      Array.prototype.forEach.call(cont.querySelectorAll(".sa-chat-visto"), function (x) { x.parentNode.removeChild(x); });
+      var mias = cont.querySelectorAll(".sa-chat-msg--mia"), m = mias[mias.length - 1]; if (!m) return;
+      var vio = !!pens; for (var x = m.nextElementSibling; x && !vio; x = x.nextElementSibling) if (x.classList.contains("sa-chat-msg--otro")) vio = true;
+      if (!vio) return;
+      var v = el("span", "sa-chat-visto"); v.textContent = "Visto"; m.appendChild(v);
+    };
+    var listo = function () { visto(); if (o.alPintar) o.alPintar(); else cont.scrollTop = cont.scrollHeight; };
     var poner = function (x) { cont.insertBefore(x, pens && pens.parentNode === cont ? pens : null); };
     var avatar = function () { var a = el("span", "sa-chat-avatar sa-chat-avatar--alma"); a.setAttribute("aria-hidden", "true"); return a; };
     /* Un mensaje nuevo: sigue el grupo si es del mismo lado, de la misma esfera y llegó en menos de 5 min.
@@ -169,9 +191,13 @@
     var mensaje = function (de, t, meta) {
       var z = de === "alma" && meta ? esfera(meta.esfera) : null, sub = z && meta.subcategoria ? String(meta.subcategoria) : "";
       var clave = z ? z.n + "·" + sub : "";
-      var junto = !!ult && ult.de === de && ult.el.parentNode === cont && Math.abs(t - ult.t) < 300000 && ult.clave === clave;
+      var corte = msn && (!sepT || Math.abs(t - sepT) > SEP_MS);
+      if (corte) { var sp = el("div", "sa-chat-sep"); sp.setAttribute("role", "separator"); sp.textContent = separador(t); poner(sp); }
+      if (msn) sepT = t;
+      var junto = !corte && !!ult && ult.de === de && ult.el.parentNode === cont && Math.abs(t - ult.t) < 300000 && ult.clave === clave;
       var m = el("div", "sa-chat-msg sa-chat-msg--" + (de === "alma" ? "otro" : "mia") + (junto ? " sa-chat-msg--sigue" : ""));
-      if (!junto) {
+      if (msn && z) m.title = "Alma · " + z.n + (sub ? " · " + sub : "");
+      if (!junto && !msn) {
         var e = el("span", "sa-chat-etiqueta");
         if (de === "alma") {
           e.appendChild(doc.createTextNode("Alma · "));
@@ -245,18 +271,19 @@
       /* «Pensando»: la burbuja con las 2 barras que brillan, mientras Alma responde. Lleva el avatar del grupo. */
       pensando: function (on) {
         if (!on) {
-          if (pens) { if (pens.parentNode) pens.parentNode.removeChild(pens); pens = null; if (ult && ult.el.parentNode === cont) Array.prototype.forEach.call(ult.el.querySelectorAll(".sa-chat-avatar,.sa-chat-esf-punto"), function (x) { x.style.visibility = ""; }); }
+          if (pens) { if (pens.parentNode) pens.parentNode.removeChild(pens); pens = null; if (ult && ult.el.parentNode === cont) Array.prototype.forEach.call(ult.el.querySelectorAll(".sa-chat-avatar,.sa-chat-esf-punto"), function (x) { x.style.visibility = ""; }); if (o.alPensando) o.alPensando(false); }
           return;
         }
         if (pens && pens.parentNode === cont) return;
         var junto = !!ult && ult.de === "alma" && ult.el.parentNode === cont && Date.now() - ult.t < 300000;
-        pens = el("div", "sa-chat-msg sa-chat-msg--otro" + (junto ? " sa-chat-msg--sigue" : ""), '<div class="sa-chat-fila"><span class="sa-chat-slot"></span><div class="sa-chat-pensando"><span class="sa-chat-barra"></span><span class="sa-chat-barra"></span></div></div>');
-        pens.setAttribute("role", "status"); pens.setAttribute("aria-label", "Alma está pensando");
+        pens = el("div", "sa-chat-msg sa-chat-msg--otro" + (junto ? " sa-chat-msg--sigue" : ""), '<div class="sa-chat-fila"><span class="sa-chat-slot"></span>' +
+          (msn ? '<div class="sa-chat-puntos"><i></i><i></i><i></i></div>' : '<div class="sa-chat-pensando"><span class="sa-chat-barra"></span><span class="sa-chat-barra"></span></div>') + '</div>');
+        pens.setAttribute("role", "status"); pens.setAttribute("aria-label", msn ? "Alma está escribiendo" : "Alma está pensando");
         pens.querySelector(".sa-chat-slot").appendChild(avatar());
         if (junto) { var a0 = ult.el.querySelector(".sa-chat-avatar"), p0 = ult.el.querySelector(".sa-chat-esf-punto"); if (a0) a0.style.visibility = "hidden"; if (p0) p0.style.visibility = "hidden"; }
-        cont.appendChild(pens); listo();
+        cont.appendChild(pens); listo(); if (o.alPensando) o.alPensando(true);
       },
-      vaciar: function () { cont.innerHTML = ""; ult = null; pens = null; }
+      vaciar: function () { cont.innerHTML = ""; ult = null; pens = null; sepT = 0; }
     };
     return api;
   };
@@ -280,7 +307,7 @@
     reiniciar();
     var pt = pintor(o.hilo, {
       alElegir: function (t) { if (o.alElegir) o.alElegir(t); else u.enviar(t); },
-      alAbrir: o.alAbrir,
+      alAbrir: o.alAbrir, estilo: o.estilo, alPensando: o.alPensando,
       alPintar: function () { if (!pintando) { o.hilo.scrollTop = o.hilo.scrollHeight; abajo = true; } }
     });
     /* Si estabas al final y el hilo cambia de alto (el encabezado se agranda al soltar el teclado), sigues al final. */
@@ -422,7 +449,7 @@
     return u;
   };
 
-  var SAChat = { opciones: opciones, enlaces: enlaces, iconoOpcion: iconoOpcion, pintor: pintor, unico: unico, filaEsferas: filaEsferas, ESFERAS: ESFERAS, esfera: esfera };
+  var SAChat = { separador: separador, opciones: opciones, enlaces: enlaces, iconoOpcion: iconoOpcion, pintor: pintor, unico: unico, filaEsferas: filaEsferas, ESFERAS: ESFERAS, esfera: esfera };
   if (typeof module !== "undefined" && module.exports) module.exports = SAChat;
   raiz.SAChat = SAChat;
 })(typeof window !== "undefined" ? window : globalThis);

@@ -204,3 +204,26 @@
 .sa-chat-borrador-sube{ animation:sa-borrador-sube .24s cubic-bezier(.22,.61,.36,1) both; }
 @keyframes sa-borrador-sube{ from{ opacity:0; transform:translateY(10px); } }
 @media (prefers-reduced-motion: reduce){ .sa-chat-pill, .sa-chat-pill[aria-pressed="true"], .sa-chat-borrador-sube{ animation:none; } .sa-chat-pill{ transition:none; } }
+
+/* ── Chat con Alma estilo messenger (Juan, 21-nov-2026): los colores claros de Alma con la estructura de un chat moderno.
+   Burbujas grandes y redondeadas (las de Alma gris claro a la izquierda con su avatar en la última del grupo; las tuyas
+   azules a la derecha con letra blanca), separadores de hora al centro, «Visto» bajo tu último mensaje y «escribiendo»
+   con tres puntos. Solo en el hilo con .sa-chat-hilo--msn (SAChat.pintor con estilo "messenger"). ── */
+.sa-chat-hilo--msn{ --msn-alma:#F1EEEA; --msn-tuya:#3B6FD8; --msn-tenue:#9A938E; gap:10px; }
+.sa-chat-hilo--msn > .sa-chat-msg--sigue{ margin-top:-7px; }
+.sa-chat-hilo--msn .sa-chat-burbuja{ max-width:min(78vw,540px); padding:11px 17px; border-radius:22px; font-size:15px; line-height:1.45; }
+.sa-chat-hilo--msn .sa-chat-burbuja--otro{ background:var(--msn-alma); color:#262423; }
+.sa-chat-hilo--msn .sa-chat-burbuja--mia{ background:var(--msn-tuya); color:#FFFFFF; }
+.sa-chat-hilo--msn .sa-chat-burbuja--mia a{ color:#FFFFFF; }
+.sa-chat-hilo--msn .sa-chat-fila{ gap:8px; }
+.sa-chat-hilo--msn .sa-chat-slot{ width:30px; }
+.sa-chat-hilo--msn .sa-chat-avatar--alma{ width:30px; height:30px; }
+.sa-chat-hilo--msn .sa-chat-foto img{ border-radius:22px; }
+.sa-chat-hilo--msn .sa-chat-tarjeta{ border-radius:22px; box-shadow:0 1px 2px rgba(60,40,30,.05),0 8px 28px -10px rgba(60,40,30,.18); }
+.sa-chat-sep{ align-self:center; margin:10px 0 2px; font-family:var(--chat-sans); font-size:12px; font-weight:500; letter-spacing:.01em; color:var(--msn-tenue,#9A938E); font-variant-numeric:tabular-nums; }
+.sa-chat-visto{ font-family:var(--chat-sans); font-size:11.5px; color:var(--msn-tenue,#9A938E); padding:2px 6px 0 0; animation:sa-chat-entra .26s cubic-bezier(.22,.61,.36,1) both; }
+.sa-chat-puntos{ display:flex; align-items:center; gap:5px; height:42px; padding:0 17px; border-radius:22px; background:var(--msn-alma,#F1EEEA); box-sizing:border-box; }
+.sa-chat-puntos i{ width:8px; height:8px; border-radius:50%; background:#A9A29C; animation:sa-chat-punto 1.2s ease-in-out infinite; }
+.sa-chat-puntos i:nth-child(2){ animation-delay:.16s; } .sa-chat-puntos i:nth-child(3){ animation-delay:.32s; }
+@keyframes sa-chat-punto{ 0%,60%,100%{ opacity:.45; transform:none; } 30%{ opacity:1; transform:translateY(-3px); } }
+@media (prefers-reduced-motion: reduce){ .sa-chat-puntos i{ animation:none; opacity:.7; } .sa-chat-visto{ animation:none; } }

@@ -72,6 +72,10 @@ jobs:
         # 19-nov-2026 (#810): Juan eligió la opción A con la roca del mismo tamaño y los subtítulos legibles; 7 GIFs por tema.
         run: node .github/bento-vivo.js
 
+      - name: Escritorio de Alma (Dock editable que se guarda, Buscador que manda la pregunta al chat, sin botón «Chat») y Chat con Alma estilo messenger (dobles)
+        # 21-nov-2026: Juan eligió la opción A del escritorio estilo macOS y el chat con estructura de messenger y colores claros de Alma.
+        run: node .github/escritorio.js apps-script
+
       - name: Despedida única por voz (una sola despedida y, sin respuesta, cuelga)
         # 19-nov-2026: Alma se despedía y no colgaba (o se despedía otra vez). Una despedida; sin nada nuevo, end_call.
         run: node .github/despedida-unica.js apps-script

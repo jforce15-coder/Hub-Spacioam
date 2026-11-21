@@ -3483,6 +3483,7 @@ function hubApi_(body) {
       case 'conexiones': return json_(conexiones_(ses, body));                               // hub.spacioam.com/alma/conexiones.html               // hub.spacioam.com/claude.html: guarda CLAUDE_RUTINA_TOKEN (paraclaude.js)
       case 'almaFoto': return json_(body.captura ? almaFoto_(ses, body.foto, true, !!body.voz) : archivoEnOrbita_(ses, almaFoto_(ses, body.foto, false, !!body.voz), body.nombre || 'Foto', 'foto'));                          // foto del chat de Alma: la describe para que Alma la entienda
       case 'almaArchivo': return json_(archivoEnOrbita_(ses, almaArchivo_(ses, body), body.nombre, ''));                             // archivo del chat de Alma (PDF, Word, Excel, CSV, audio): lo guarda privado y lo lee (adjuntos.js, #544)
+      case 'buscarEscritorio': return json_(buscadorApi_(ses, body));                      // Buscador de Alma del escritorio: reservas, propiedades y contactos (buscador.js)
       case 'pedidosOrbita': return json_(orbitaApi_(ses));                                // app de Alma: lo que Alma sigue trabajando, para los anillos alrededor de la roca (orbita.js)
       case 'archivosOrbita': return json_(archivosOrbitaApi_(ses, body));                  // app de Alma: Archivos en órbita y la Carpeta de archivos (archivosorbita.js)
       case 'notifAjustes': return json_(notifAjustesApi_(ses));                            // Ajustes → Notificaciones por tipo, de quien tiene la sesión (notifajustes.js · alma/avisos.html)

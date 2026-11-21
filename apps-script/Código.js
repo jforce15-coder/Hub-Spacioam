@@ -97,7 +97,7 @@ const C = {}; COLA_HEADERS.forEach((h, i) => C[h] = i);
 const LOG_HEADERS = ['fecha', 'codigo', 'propiedad', 'nivel', 'razon', 'pregunta', 'respuesta', 'modo', 'corregida', 'accion',
   'huesped', 'checkin', 'checkout', 'apartamento', 'fotos', 'reservation_id', 'voto'];
 
-const FINALES = ['silencio', 'respondido', 'borrador', 'sombra', 'omitido', 'escalado', 'error', 'agrupado'];
+const FINALES = ['silencio', 'respondido', 'borrador', 'sombra', 'omitido', 'escalado', 'error', 'agrupado', 'descartado'];   // descartado: el robot la cerró sin mandar nada (cola_descartar, colareproceso.js)
 const NIVELES = ['VERDE', 'AMARILLO', 'ROJO', 'SILENCIO'];
 
 // Tiempos editables desde el hub (filas de ALMA_CONTROL). cfg_(k) devuelve el valor de la hoja o el de CFG.
@@ -850,6 +850,12 @@ function procesarColaNucleo_() {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(2000)) return;
   const inicio = Date.now();
+  /* 21-nov-2026 (mensaje doble): una función que se llama a media pasada (registrar una promesa, un pendiente…) puede
+     soltar este mismo candado sin querer y dejar entrar otra pasada que manda la misma fila. La marca COLA_EN_CURSO dice
+     que ya hay una pasada viva (una ejecución de Apps Script dura 6 min como mucho). */
+  const enCurso = Number(props.getProperty('COLA_EN_CURSO') || 0);
+  if (enCurso && inicio - enCurso < 330000) { lock.releaseLock(); return; }
+  props.setProperty('COLA_EN_CURSO', String(inicio));
   try {
     const sh = hoja_(CFG.TAB_COLA);
     const ultima = sh.getLastRow();
@@ -863,6 +869,10 @@ function procesarColaNucleo_() {
     const ahora = ahora_();
     const ctrl = leerControl_();
     let trabajos = 0;
+
+    // a0) Una fila que se quedó en «enviando» (la ejecución se cortó a medio envío): a «error» para revisar, nunca se reenvía sola.
+    filas.filter(f => { const t = new Date(f.v[C.proximo]).getTime(); return f.v[C.estado] === 'enviando' && t > 0 && ahora.getTime() - t > 600000; })
+      .forEach(f => set_(sh, f, { estado: 'error', nota: 'se cortó a medio envío (pudo haber salido): revisar el hilo antes de reprocesar' }));
 
     // a) Envíos AUTO cuyo delay ya venció
     filas.filter(f => f.v[C.estado] === 'esperando_envio' && vence_(f, ahora)).forEach(f => {
@@ -916,6 +926,7 @@ function procesarColaNucleo_() {
     const postReciente = Number(props.getProperty('ULTIMO_POST') || 0) >= inicio;
     if (!vivos && !postReciente) props.setProperty('ALMA_ACTIVO', '0');
   } finally {
+    try { if (props.getProperty('COLA_EN_CURSO') === String(inicio)) props.deleteProperty('COLA_EN_CURSO'); } catch (e) {}
     lock.releaseLock();
   }
 }
@@ -954,7 +965,7 @@ function procesarTurno_(sh, grupo, ctrl, ahora) {
     try { r = convInq ? inquiryResponder_(convInq, grupo.map(f => s_(f.v[C.texto])).join('\n'), s_(lider.v[C.huesped]), ctrl, new Date(grupo[0].v[C.recibido]).getTime()) : null; } catch (e) { console.error('inquiryResponder_: ' + e); }
     if (r && r.esperar) return set_(sh, lider, { proximo: new Date(ahora.getTime() + 60000).toISOString(), nota: r.nota });
     marcarTodos(r && r.estado ? r.estado : 'omitido', r ? r.nota : 'inquiry sin conversación');
-    return log_({ resId: convInq, huesped: s_(lider.v[C.huesped]) || (r && r.huesped) || '', propiedad: (r && r.propiedad) || '', nivel: r && r.nivel ? r.nivel : 'INQUIRY',
+    return log_({ resId: convInq, huesped: s_(lider.v[C.huesped]) || (r && r.huesped) || '', propiedad: (r && r.propiedad) || '', nivel: r && r.nivel ? r.nivel : 'INQUIRY', promesaAsegurada: !!(r && r.promesaAsegurada),
       razon: r ? r.razon : 'Consulta sin reserva', texto: grupo.map(f => f.v[C.texto]).join('\n'), modo: ctrl.modo }, r ? r.texto : '', r ? r.accion : 'revisar manualmente');
   }
 
@@ -1075,6 +1086,7 @@ function procesarTurno_(sh, grupo, ctrl, ahora) {
     return log_(ctx, '', 'sin respuesta: nada nuevo que agregar');
   }
   if (red.ok && red.texto) { try { red.texto = escrituraClara_(red.texto, { canal: 'huesped' }); } catch (e) { console.error('escrituraClara_ huésped: ' + e); } }   // ya pasó el control de calidad; conserva datos o sale el original (escrituraclara.js)
+  if (red.texto) { try { red.texto = respuestaFija_(ctx, red.texto); } catch (e) { console.error('respuestaFija_: ' + e); } }   // disculpa por la demora, piso y precio que falten, con frase fija (respuestafija.js)
   const borrador = red.texto;
   if (!borrador) return reintentar_(sh, lider, 'redactor sin respuesta');
   if (red.problema) ctx.razon += ' · QA: ' + red.problema;
@@ -1127,6 +1139,11 @@ function enviarPendiente_(sh, f, ctrl, filas) {
   // Si el huésped escribió algo nuevo, el turno nuevo (que ya lo incluye todo) se encarga
   const nuevo = filas.some(x => x.fila > f.fila && x.v[C.reservation_id] === d.resId && x.v[C.estado] === 'pendiente');
   if (nuevo) return set_(sh, f, { estado: 'omitido', nota: 'llegó otro mensaje; se responde en el siguiente turno' });
+  /* Una sola respuesta por conversación (21-nov-2026, mensaje doble): si otra fila de la misma conversación ya tiene su
+     respuesta lista o saliendo, sale solo la más nueva; y la fila se relee de la hoja y se marca «enviando» antes de mandar. */
+  const otra = filas.filter(x => x.fila > f.fila && x.v[C.estado] === 'esperando_envio' && (x.v[C.reservation_id] === d.resId || x.v[C.conversation_id] === d.resId))[0];
+  if (otra) return set_(sh, f, { estado: 'omitido', nota: 'duplicado: la respuesta de esta conversación sale por la fila ' + otra.fila });
+  if (!colaTomarFila_(sh, f)) return;
 
   const r = hiloConv_(d.resId);
   if (r.code !== 200) return reintentar_(sh, f, 'verificación HTTP ' + r.code, 'esperando_envio');
@@ -1142,7 +1159,20 @@ function enviarPendiente_(sh, f, ctrl, filas) {
     set_(sh, f, { estado: 'silencio', nota: 'bloqueado: el borrador era un marcador interno' });
     return log_(d, '', 'no enviado: marcador interno bloqueado');
   }
-  const env = enviarCanal_(d, d.borrador);
+  /* Toda promesa al huésped («lo confirmo», «te escribimos») queda con dueño antes de salir; si no se puede, la frase no
+     sale (promesas.js). */
+  let prom = null;
+  if (typeof promesaAsegurar_ === 'function') {
+    prom = promesaAsegurar_(d, d.borrador);
+    if (prom.texto !== d.borrador) {
+      if (!textoEnviable_(prom.texto)) { set_(sh, f, { estado: 'borrador', nota: 'retenido: la promesa no quedó registrada y sin ella no queda respuesta · revisar en Pendientes' }); return log_(d, d.borrador, 'RETENIDO (no enviado): promesa sin dueño'); }
+      d.borrador = prom.texto;
+    }
+    d.promesaAsegurada = true;
+  }
+  set_(sh, f, { estado: 'enviando', nota: (d.nivel || '') + ' · enviando' }); try { SpreadsheetApp.flush(); } catch (e) {}
+  const env = enviarCanal_(Object.assign({}, d, { cola: true }), d.borrador);
+  if ((env.code < 200 || env.code >= 300) && prom && prom.promesa && !prom.promesa.repetida) { try { promesaAnular_(prom.promesa.id, 'el mensaje no salió'); } catch (e) {} }
   if (env.bloqueado === 'razonamiento') {   // traía el análisis interno de Alma y no se pudo separar: no se reintenta, queda en revisión (salidahuesped.js)
     set_(sh, f, { estado: 'borrador', nota: 'retenido: el borrador traía razonamiento interno · revisar en Pendientes' });
     return log_(d, d.borrador, 'RETENIDO (no enviado): razonamiento interno en el borrador');
@@ -1161,7 +1191,8 @@ function enviarPendiente_(sh, f, ctrl, filas) {
   /* Un rechazo de Hospitable (400, 404, 409, 410, 422) no cambia con reintentar: va a «error» y al aviso ya, con su motivo. */
   if ([400, 404, 409, 410, 422].indexOf(env.code) >= 0 && d.canal !== 'whatsapp') f.v[C.intentos] = Math.max(Number(f.v[C.intentos] || 0), CFG.MAX_INTENTOS - 1);
   if (env.code < 200 || env.code >= 300) return reintentar_(sh, f, 'envío ' + (d.canal === 'whatsapp' ? 'WhatsApp ' + (env.error || env.code) : 'HTTP ' + env.code + (env.error ? ' · ' + env.error : (env.code >= 400 && env.json && (env.json.message || env.json.error || env.json.errors) ? ' · ' + String(env.json.message || env.json.error || JSON.stringify(env.json.errors)).slice(0, 160) : ''))), 'esperando_envio');
-  set_(sh, f, { estado: 'respondido', nota: d.nivel + ' · enviado' });
+  set_(sh, f, { estado: 'respondido', nota: d.nivel + (env.duplicado ? ' · ya había salido (no se repitió)' : ' · enviado') });
+  if (env.duplicado) return log_(d, d.borrador, 'no repetido: el mismo texto ya había salido a esta conversación');
   log_(d, d.borrador, 'ENVIADO al huésped' + (d.seguimiento ? ' · seguimiento avisado' : ''));
   avisarSeguimiento_(d);
   try { earlyRegistrar_(d); } catch (e) { console.error('earlyRegistrar_: ' + e); }   // solo si el mensaje sí salió
@@ -1380,6 +1411,7 @@ function contexto_(resId, hilo, modo) {
   if (!ctx) return null;
   if (hito) ctx.hitoResuelta = Utilities.formatDate(new Date(hito), CFG.TZ, 'd MMM HH:mm');
   if (!esWA && !ctx.reservaConfirmada) { try { aplicarSinConfirmar_(ctx); } catch (e) { console.error('sinConfirmar: ' + e); } }
+  try { respuestaFijaPreparar_(ctx, hilo); } catch (e) { console.error('respuestaFijaPreparar_: ' + e); }   // demora, piso y tarifa (respuestafija.js)
   const ultG = hilo.filter(m => m.tipo === 'guest').pop() || {};
   ctx.canal = ultG.canal === 'whatsapp' ? 'whatsapp' : 'hospitable';
   ctx.wa = (hilo.filter(m => m.wa).pop() || {}).wa || (esWA ? String(resId).slice(3) : '');
@@ -1466,7 +1498,7 @@ function contextoHosp_(resId, hilo, modo) {
     ultimoGuestAt: turno.length ? turno[turno.length - 1].created : '',
     hiloTexto: hilo.map(m => '[' + (m.tipo === 'guest' ? 'HUÉSPED' : (m.auto ? 'SPACIO AM · automático' : 'SPACIO AM')) + (m.llamada ? ' · en llamada' : m.canal === 'whatsapp' ? ' · por WhatsApp' : '') + '] ' + m.texto)
       .join('\n---\n').slice(-8000),
-    propiedadInfo: infoPropiedad_(nombreProp, idiomaCtx),
+    propiedadInfo: (function () { const i = infoPropiedad_(nombreProp, idiomaCtx); try { return i + fichaPublicaLineas_(i, nombreProp, prop); } catch (e) { return i; } })(),   // + piso y referencia pública (respuestafija.js)
     codigos: codigosEnHilo_(hilo),
     instrucciones: prompt_('REGLAS_EXTRA'),
     dispSolicitud: (function () { const conf = ['accepted', 'confirmed', 'checked_in', 'checkpoint'].some(x => estado.indexOf(x) !== -1); if (conf) return ''; try { return dispSolicitud_(s_(prop.id || prop.uuid), nombreProp, checkin, checkout, resId + checkin + checkout, codigo); } catch (e) { console.error('dispSolicitud_: ' + e); return ''; } })()
@@ -2202,6 +2234,17 @@ function despedida_(ctx, hilo) {
   return true;
 }
 function redactarVerificado_(ctx) {
+  const r = redactarVerificadoBase_(ctx);
+  if (!r || !r.texto || r.silencio || !r.ok || typeof controlRespuesta_ !== 'function') return r;
+  /* Control fijo (respuestafija.js): disculpa por la demora, el piso que preguntó y la tarifa de la plataforma. Rechaza y
+     re-redacta una vez; lo que aún falte lo agrega procesarTurno_ con una frase fija. */
+  const faltas = controlRespuesta_(ctx, r.texto); if (!faltas.length) return r;
+  const otra = redactar_(ctx, controlCorreccion_(faltas) + ' Escríbelo de nuevo corrigiéndolo.\n\nBORRADOR ANTERIOR:\n' + r.texto);
+  if (ctx.pidioSilencio || !textoEnviable_(otra) || controlRespuesta_(ctx, otra).length >= faltas.length) { ctx.pidioSilencio = false; return r; }
+  const v = verificar_(ctx, otra);
+  return v.ok ? { texto: otra, ok: true, problema: 'control fijo: ' + faltas.map(x => x.k).join(', ') } : r;
+}
+function redactarVerificadoBase_(ctx) {
   let borrador = redactar_(ctx);
   if (ctx.pidioSilencio) return { texto: '', ok: true, silencio: true };
   if (!borrador) return { texto: '', ok: false, problema: 'redactor sin respuesta' };
@@ -2427,9 +2470,16 @@ function hosp_(metodo, ruta, payload, o) {
     payload = Object.assign({}, payload, { body: acortarEnTexto_(sal.texto, 'hospitable') });
   }
   if (payload) { opt.contentType = 'application/json'; opt.payload = JSON.stringify(payload); }
+  /* Mensaje al huésped (21-nov-2026, el mismo texto salió dos veces con 3 s de diferencia): el mismo texto a la misma
+     conversación en 15 min no sale otra vez (salidahuesped.js). La cola de Alma además manda sin reintentos (sinReintentos):
+     un 429 puede llegar con el mensaje ya entregado; la cola reintenta después de releer el hilo. */
+  const rutaN = String(ruta).replace(/^\/reservations\/inq:/, '/inquiries/');
+  const esMsg = String(metodo).toLowerCase() === 'post' && payload && typeof payload.body === 'string' && /^\/(reservations|inquiries)\/[^\/?]+\/messages/.test(rutaN);
+  const claveRep = esMsg && !(o && o.repetirOk) ? salidaRepetidaTomar_(rutaN, payload.body) : '';
+  if (claveRep === 'repetido') return { code: 200, json: null, duplicado: true, error: 'no se mandó otra vez: el mismo texto ya salió a esta conversación hace menos de ' + SALIDA_REPETIDA_MIN_ + ' min' };
   try {
     // Consultas previas a la reserva (Pre-approved / Inquiry): Hospitable las expone en /inquiries/{uuid}.
-    ruta = String(ruta).replace(/^\/reservations\/inq:/, '/inquiries/');
+    ruta = rutaN;
     let r = uf_(CFG.HOSPITABLE_API + ruta, opt);
     /* 429 (límite de Hospitable): hasta 2 reintentos con espera corta, respetando Retry-After si es breve. */
     for (let k = 0; k < (o && o.sinReintentos ? 0 : 2) && r.getResponseCode() === 429; k++) {
@@ -2439,6 +2489,7 @@ function hosp_(metodo, ruta, payload, o) {
     }
     let json = null; try { json = JSON.parse(r.getContentText()); } catch (e) { }
     const code = r.getResponseCode();
+    if (claveRep && code >= 300) salidaRepetidaSoltar_(claveRep);   // no salió: un reintento sí puede mandarlo
     /* Enviado a una consulta (ALMA o el equipo): queda en el hilo y cuenta como respuesta aunque el webhook no llegue ligado. */
     const mr = String(metodo).toLowerCase() === 'post' && code < 300 && ruta.match(/^\/reservations\/([^\/?]+)\/messages/);
     if (mr && payload && payload.body) { try { cacheEnvio_(mr[1], payload.body); } catch (e) {} }
@@ -2449,6 +2500,7 @@ function hosp_(metodo, ruta, payload, o) {
     return { code: code, json: json };
   } catch (err) {
     /* code 0 = la llamada ni salió (sin cupo de Google, red caída): el motivo viaja para que la nota no diga solo «HTTP 0». */
+    if (claveRep) salidaRepetidaSoltar_(claveRep);   // el reintento de la cola relee el hilo antes de volver a mandar
     return { code: 0, json: null, error: String((err && err.message) || err).slice(0, 120) };
   }
 }
@@ -2904,7 +2956,7 @@ function log_(c, respuesta, accion) {
   };
   sh.appendRow(h.map(k => val[k] !== undefined ? val[k] : ''));
   /* ALMA envió algo que promete un seguimiento del equipo → pendiente rastreable (promesas.js). */
-  if (respuesta && /^ENVIADO/i.test(String(accion || '')) && !/equipo|llamada atendida/i.test(String(accion || ''))) { try { promesaRegistrar_(c, respuesta, 'texto'); } catch (e) { console.error('promesa: ' + e); } }
+  if (respuesta && !c.promesaAsegurada && /^ENVIADO/i.test(String(accion || '')) && !/equipo|llamada atendida/i.test(String(accion || ''))) { try { promesaRegistrar_(c, respuesta, 'texto'); } catch (e) { console.error('promesa: ' + e); } }
 }
 
 function set_(sh, f, cambios) {
@@ -2927,7 +2979,12 @@ function reintentar_(sh, f, motivo, estadoBase) {
 }
 
 function protegido_(sh, f, fn) {
-  try { fn(); } catch (err) { console.error(err.stack || err); reintentar_(sh, f, 'excepción: ' + err, f.v[C.estado]); }
+  try { fn(); } catch (err) {
+    console.error(err.stack || err);
+    /* Falló a medio envío: pudo haber salido. Nunca se reintenta solo (un reintento podía mandarlo dos veces). */
+    if (f.v[C.estado] === 'enviando') { set_(sh, f, { estado: 'error', nota: 'excepción al enviar (pudo haber salido, revisar el hilo antes de reprocesar): ' + String(err).slice(0, 140) }); return; }
+    reintentar_(sh, f, 'excepción: ' + err, f.v[C.estado]);
+  }
 }
 
 /* ═══════════════════════════════ 8. UTILIDADES ═══════════════════════════════ */
@@ -3955,8 +4012,8 @@ function aplicarSinConfirmar_(ctx) {
   ctx.tokensPrivados = tokensPrivados_(ctx.propiedad, info, ctx.apartamento);
   ctx.propiedadPublica = [zona, edif].filter(Boolean).join(' · ') || 'Spacio AM';
   ctx.apartamento = '';
-  const parq = (info.match(/^Parqueo: (.+)$/m) || [])[1] || '';
-  ctx.propiedadInfo = 'RESERVA SIN CONFIRMAR · datos que SÍ puedes compartir:\nZona: ' + (zona || '—') + '\nEdificio: ' + (edif || '—') + (piso ? '\nPiso: ' + piso : '') +
+  const parq = (info.match(/^Parqueo: (.+)$/m) || [])[1] || '', refP = (info.match(/^Referencia pública: (.+)$/m) || [])[1] || '';
+  ctx.propiedadInfo = 'RESERVA SIN CONFIRMAR · datos que SÍ puedes compartir:\nZona: ' + (zona || '—') + '\nEdificio: ' + (edif || '—') + (piso ? '\nPiso: ' + piso : '') + (refP ? '\nReferencia pública: ' + refP : '') +
     (parq && !/\d{3,}/.test(parq) ? '\nParqueo: ' + parq : '') + '\nNo compartas número de apartamento, códigos (edificio, portería, puerta), WiFi ni pasos de acceso hasta que la reserva esté confirmada.';
 }
 /* ¿Están libres esas noches? El calendario de Hospitable manda; si no responde, la hoja Reservas (solo si muestra una
@@ -4120,6 +4177,11 @@ function inquiryResponder_(convInq, pregunta, huesped, ctrl, desdeMs) {
   ev.respuesta = inqSinPrivado_(inf.propiedad, ficha, s_(ev.respuesta));
   if (!ev.respuesta) return Object.assign(base, { estado: 'omitido', nota: 'inquiry: la respuesta solo traía datos privados', nivel: 'AMARILLO', razon: 'La pregunta pide un dato privado (apartamento, WiFi o código): ' + s_(ev.pregunta).slice(0, 140) + (prog ? ' · el automático sale tal cual' : preaprobar), accion: 'revisar manualmente' });
   const idioma = s_(ev.idioma) || inf.idioma || 'es';
+  /* 21-nov-2026: también aquí, disculpa si respondemos tarde y toda promesa con dueño antes de salir (respuestafija.js, promesas.js). */
+  if (desdeMs && Date.now() - desdeMs >= disculpaHoras_() * 3600000) ev.respuesta = conDisculpa_(s_(ev.respuesta), idioma);
+  const pa = promesaAsegurar_({ resId: 'inq:' + inf.uuid, huesped: base.huesped, propiedad: base.propiedad, texto: pregunta }, s_(ev.respuesta));
+  if (!textoEnviable_(pa.texto)) return Object.assign(base, { estado: 'omitido', nota: 'inquiry: promesa sin dueño', nivel: 'AMARILLO', razon: 'La respuesta solo prometía algo y la promesa no quedó registrada: ' + s_(ev.pregunta).slice(0, 140), accion: 'revisar manualmente' });
+  ev.respuesta = pa.texto; base.promesaAsegurada = true;
   if (prog) {
     const nuevo = String(claude_(CFG.MODELO_REDACTOR, 1400, prompt_('INQUIRY_FUSIONAR'),
       'IDIOMA: ' + idioma + '\nPREGUNTA DEL HUÉSPED:\n' + pregunta + '\n\nRESPUESTA (de la ficha):\n' + ev.respuesta + '\n\nMENSAJE AUTOMÁTICO ORIGINAL:\n' + prog.texto, 0.3) || '').trim();
@@ -5184,7 +5246,7 @@ function enviarCanal_(d, texto, autor) {
   if (!textoEnviable_(texto)) { console.error('enviarCanal_ bloqueó un texto no enviable: ' + String(texto).slice(0, 80)); return { code: 422, error: 'texto bloqueado (marcador interno o vacío)', bloqueado: true }; }
   if (d.canal === 'whatsapp' && d.wa) { const w = waResponder_(d.wa, texto, d.resId, autor || 'alma', d.idioma, d.huesped); return { code: w.ok ? 200 : (w.code || 500), error: w.error, bloqueado: w.bloqueado }; }
   if (/^(ig|fb):/.test(String(d.resId))) { const rr = redesEnviar_(d.resId, texto, autor || 'alma'); return { code: rr.ok ? 200 : (rr.code || 500), error: rr.error, bloqueado: rr.bloqueado }; }   // Instagram y Messenger (redesmeta.js)
-  return hosp_('post', '/reservations/' + d.resId + '/messages', { body: texto });
+  return hosp_('post', '/reservations/' + d.resId + '/messages', { body: texto }, d.cola ? { sinReintentos: true } : undefined);   // la cola de Alma no reintenta al momento (mensaje doble, 21-nov-2026)
 }
 /* Ejecuta una vez desde el editor para revisar la conexión con Meta. */
 function probarWhatsApp() {
@@ -5820,6 +5882,7 @@ function dsBotApi_(body) {
       case 'amano_voz': return json_(amanoVozPrueba_(body.tema, body.que));   // A la mano: a_mano como si llamara el principal (solo tiempo y si lo tenía)
       case 'cola_errores': return json_(colaErrores_(body));   // filas de ALMA_COLA en «error», solo lectura (colareproceso.js)
       case 'cola_reprocesar': return json_(colaReprocesar_(body));   // vuelve a «pendiente» las filas pedidas; Alma decide por el camino normal (colareproceso.js)
+      case 'cola_descartar': return json_(colaDescartar_(body));   // { filas, motivo }: filas en «error» pasan a «descartado», con registro; nunca manda nada (colareproceso.js)
       case 'op_ultimos': return json_({ ok: true, filas: opFilas_('', 12).map(m => ({ ts: m.ts, quien: m.de === 'yo' ? m.nombre : 'ALMA', canal: m.canal, texto: m.texto.slice(0, 400), acciones: m.acciones.map(x => (x.resumen || x.tipo) + (x.error ? ' ✗ ' + x.error : '')) })) });   // diagnóstico
       case 'diag_admin': { const tel = String(body.tel || ''), sh = ssAlma_().getSheetByName('ALMA_WHATSAPP'), n = sh.getLastRow(), v = sh.getRange(Math.max(2, n - 400), 1, Math.min(400, n - 1), WA_CAB_.length).getValues().filter(r => fin8_(r[1]) === fin8_(tel)).slice(-8);
         const a = adminPorTel_(tel); return json_({ ok: true, admin: a ? { nombre: a.nombre, principal: a.principal, tels: a.tels.length } : null, admins: adminsOp_().map(x => x.nombre + (x.principal ? ' (principal)' : '') + ' · tels ' + x.tels.length),

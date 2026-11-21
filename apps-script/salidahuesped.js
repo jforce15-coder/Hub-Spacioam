@@ -75,3 +75,23 @@ function salidaHuespedAvisar_(destino, motivo, texto) {
     'No le mandé este mensaje al huésped porque traía mi análisis interno (' + motivo + ') y no pude separar la respuesta.\n' +
     'Conversación: ' + destino + '\nRevísalo y respóndele tú desde el Hub.\n\nTexto retenido:\n' + String(texto || '').slice(0, 1500), false);
 }
+
+/* ═══ El mismo mensaje no sale dos veces (21-nov-2026) ═══════════════════════════════════════════════════════════════════
+   Al reprocesar consultas atrasadas, un huésped recibió el mismo texto dos veces con 3 s de diferencia (dos POST a
+   Hospitable). La puerta de salida (hosp_) toma una marca por conversación + texto ANTES de mandar: si ya estaba, no
+   manda y devuelve 200 con duplicado (ya le llegó). Si el envío falla (4xx/5xx o sin respuesta), la marca se suelta: el
+   reintento de la cola relee el hilo antes de volver a mandar. */
+var SALIDA_REPETIDA_MIN_ = 15;
+function salidaRepetidaClave_(destino, texto) {
+  var d = String(destino || '').replace(/^\/reservations\/inq:/, '/inquiries/').replace(/\/messages.*$/, '');
+  var t = String(texto || '').toLowerCase().replace(/\s+/g, ' ').trim();
+  return 'srep_' + salidaHuespedClave_(d + '|' + t).slice(8);
+}
+/* Devuelve la clave tomada (para soltarla si falla), 'repetido' si ya salió, o '' si no hay caché (sale igual). */
+function salidaRepetidaTomar_(destino, texto) {
+  var k = salidaRepetidaClave_(destino, texto), cache = null;
+  try { cache = CacheService.getScriptCache(); } catch (e) { return ''; }
+  try { if (cache.get(k)) { console.error('salida repetida bloqueada · ' + destino); return 'repetido'; } cache.put(k, String(Date.now()), SALIDA_REPETIDA_MIN_ * 60); } catch (e) { return ''; }
+  return k;
+}
+function salidaRepetidaSoltar_(k) { try { if (k && k !== 'repetido') CacheService.getScriptCache().remove(k); } catch (e) {} }

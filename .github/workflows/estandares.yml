@@ -380,6 +380,10 @@ jobs:
       - name: Cola en error, cola_errores y cola_reprocesar buscan en toda la hoja por bloques y un 400 de Hospitable trae su motivo (dobles)
         # 21-nov-2026: solo se miraban las últimas 500 filas y las del 16-17 nov no se podían ver ni reprocesar.
         run: node .github/cola-reproceso.js apps-script
+      - name: Consultas atrasadas, sin mensaje doble, disculpa por la demora, piso y precio de la plataforma, promesas con dueño y cola_descartar (dobles)
+        # 21-nov-2026: al reprocesar 4 consultas atrasadas un huésped recibió el mismo texto dos veces, nadie pidió disculpa,
+        # no se dio el piso y una promesa de precio quedó sin dueño (casos anonimizados).
+        run: node .github/consultas-atrasadas.js apps-script
       - name: Página explicativa, solo administradores, token de una vez, vence a los 7 días, tope diario y HTML sin scripts de fuera (dobles)
         # 20-nov-2026: Juan pidió «Explícamelo en una página» (diagrama o calculadora por enlace), truco del mismo video.
         run: node .github/pagina-explicativa.js apps-script

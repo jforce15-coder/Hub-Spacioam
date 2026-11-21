@@ -97,18 +97,18 @@ const c2 = {
 };
 HEAD.forEach((h, i) => { c2.C[h] = i; });
 vm.createContext(c2);
-vm.runInContext(SAL + '\n' + ['hosp_', 'limpiarSalida_', 'textoEnviable_', 'enviarCanal_', 'enviarPendiente_', 'reintentar_'].map(n => sacar(COD, n)).join('\n') +
+vm.runInContext(SAL + '\n' + COLA + '\n' + ['hosp_', 'limpiarSalida_', 'textoEnviable_', 'enviarCanal_', 'enviarPendiente_', 'reintentar_'].map(n => sacar(COD, n)).join('\n') +
   '\nvar TOKEN_SILENCIO_ = /\\[?\\s*\\b(SIN[\\s_-]*RESPUESTA|NO[\\s_-]*RESPONDER)\\b\\s*\\]?\\.?/ig;', c2);
 const env = c2.hosp_('post', '/reservations/inq:q-1/messages', { body: 'Hola, con gusto te ayudo con tu consulta de hoy.' });
 ok(env.code === 400 && env.error === 'Bad Request: inquiry is closed', '4. hosp_ trae el cuerpo crudo de un 400 sin «message»');
 const fila = { fila: 9, v: [] }; fila.v[c2.C.datos] = JSON.stringify({ resId: 'inq:q-1', borrador: 'Hola, con gusto te ayudo con tu consulta de hoy.', ultimoGuestAt: 'T1', nivel: 'VERDE' });
 fila.v[c2.C.intentos] = 0;
-c2.enviarPendiente_({ getRange: () => ({ setValue() {} }) }, fila, { toggle: 'ON', modo: 'AUTO' }, [fila]);
+c2.enviarPendiente_({ getRange: () => ({ setValue() {}, getValue: () => 'esperando_envio' }) }, fila, { toggle: 'ON', modo: 'AUTO' }, [fila]);
 const ult = filasSet[filasSet.length - 1] || {};
 ok(ult.estado === 'borrador' && /HTTP 400 · Bad Request: inquiry is closed/.test(ult.nota) && /plataforma/.test(ult.nota) && k.pend.length === 1 && /borrador de Alma/.test(k.pend[0]), '4. una consulta que Hospitable rechaza queda en revisión con el motivo y el borrador va a Pendientes, sin reintentar');
 filasSet.length = 0;
 const fila2 = { fila: 10, v: [] }; fila2.v[c2.C.datos] = JSON.stringify({ resId: 'r-77', borrador: 'Hola, con gusto te ayudo con tu consulta de hoy.', ultimoGuestAt: 'T1', nivel: 'VERDE' }); fila2.v[c2.C.intentos] = 0;
-c2.enviarPendiente_({ getRange: () => ({ setValue() {} }) }, fila2, { toggle: 'ON', modo: 'AUTO' }, [fila2]);
+c2.enviarPendiente_({ getRange: () => ({ setValue() {}, getValue: () => 'esperando_envio' }) }, fila2, { toggle: 'ON', modo: 'AUTO' }, [fila2]);
 const ult2 = filasSet[filasSet.length - 1] || {};
 ok(ult2.estado === 'error' && /HTTP 400 · Bad Request: inquiry is closed/.test(ult2.nota) && k.avisos.length === 1, '4. en una reserva, el 400 va a «error» al primer intento, con el motivo de Hospitable y un aviso');
 

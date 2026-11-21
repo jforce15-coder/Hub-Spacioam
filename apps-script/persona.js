@@ -75,6 +75,8 @@ function almaPrompt_(canal, audiencia, o) {
     /* Parte C del recorte (Juan, 21-nov-2026): solo la cabecera. Cada herramienta ya trae en ElevenLabs su descripción
        completa (cuándo usarla y sus límites); las líneas de alma.json quedan como índice (.github/alma-json.js). */
     if (hs.length) L.push('', A.herramientas.titulo.toUpperCase() + (A.herramientas.cabecera_voz ? ': ' + r(A.herramientas.cabecera_voz) : ''));
+    /* Las de los administradores (en_prompt) quedan con su línea: sin la de enviar_confirmado la compuerta salió peor (G29). */
+    hs.filter(function (n) { return H[n].en_prompt; }).forEach(function (n) { L.push('· ' + n + ': ' + r(H[n].linea)); });
   }
   L.push('', A.prohibiciones.titulo.toUpperCase()); A.prohibiciones.reglas.forEach(function (x) { linea(x.texto); });
   if (!o.sinEjemplos) {

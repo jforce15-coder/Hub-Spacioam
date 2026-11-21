@@ -91,7 +91,7 @@ aplica a una audiencia o un dispositivo; C: ~2 000 quitando lo duplicado). Orden
 borra la línea), luego A4–A6, luego A9 y A1, luego B. A8 toca ElevenLabs: solo con una llamada real de prueba.
 
 **Hecho el 21-nov-2026** (Juan: «Vámonos con las tres partes de una vez, pero con prueba de calidad en cada parte»):
-de 42 798 a 34 472 caracteres (−8 326; tope nuevo 36 200 en `.github/presupuesto-prompts.json`). Ninguna regla se borró:
+de 42 798 a 34 832 caracteres (−7 966; tope nuevo 36 600 en `.github/presupuesto-prompts.json`). Ninguna regla se borró:
 - **A** (−~2 980): A1, A2, A3, A4–A6, A5, A9 y A11 viven en `apps-script/vozficha.js` (guardas de secretaria,
   `codigo_puerta` y `momento` de property_info y lookup_reservation, la ficha por número) y en la descripción de secretaria.
   **A10** no se aplicó: sin «TIEMPO Y FECHAS» en el prompt, la compuerta salió peor (un huésped que aún no llega: 2 de 4
@@ -101,7 +101,9 @@ de 42 798 a 34 472 caracteres (−8 326; tope nuevo 36 200 en `.github/presupues
   ficha de la app; mejoras, derivar a Claudio y avísame cuando solo en la ficha de Juan, con su **formato para el modo
   agente** (esfera y proyecto, una decisión a la vez). En el prompt quedan dos líneas cortas: sin la app no hay pantalla,
   y las mejoras solo las pide Juan.
-- **C** (−2 182): de la lista de herramientas queda la cabecera; cada una ya trae su descripción completa en ElevenLabs.
+- **C** (−1 822): de la lista de herramientas queda la cabecera y las tres de los administradores (secretaria, a_mano,
+  enviar_confirmado): sin la de enviar_confirmado la compuerta salió peor (6 de 8 contra 4 de 4). Las demás ya traen su
+  descripción completa en ElevenLabs.
 - Compuerta: 30 casos anonimizados con las pruebas de ElevenLabs (antes en main, después en una rama sin tráfico) y el
   check `.github/recorte-voz.js` (38 revisiones en código).
 

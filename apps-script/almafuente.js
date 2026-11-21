@@ -332,18 +332,21 @@ var ALMA_FUENTE_ = {
     "canales": [
      "voz"
     ],
+    "en_prompt": true,
     "linea": "Hace lo que pide un administrador (mensajes, correos, rutas, tareas, reservas, datos, música, pedidos para Claudio): pásale sus palabras completas, una sola vez. Para la persona es «mi sistema»."
    },
    "a_mano": {
     "canales": [
      "voz"
     ],
+    "en_prompt": true,
     "linea": "Lo ya listo de limpieza, socio o reserva, al instante: va primero."
    },
    "enviar_confirmado": {
     "canales": [
      "voz"
     ],
+    "en_prompt": true,
     "linea": "Envío ya confirmado: «Lo estoy enviando» y sigues."
    },
    "lookup_reservation": {

@@ -1,6 +1,7 @@
 {
  "version": 1,
  "nombre": "Voz oficial de Alma · guion de 3 sesiones",
+ "plan": "3 sesiones de 1 hora, una por sesión del guion (Juan, 21-nov-2026; no 4).",
  "marcas": {
   "[pausa]": "Pausa corta (casi un segundo)",
   "[pausa larga]": "Pausa larga (piensa)",

@@ -61,9 +61,11 @@ Ejemplos en Spacio AM:
    *Recomendación: visible con huéspedes y socios (confianza), margen solo en paquetes cerrados.*
 3. **¿A nombre de quién cobra Alma?** — **tinta (Juan, 20-nov-2026): Spacio AM.** Spacio AM (la empresa) · una empresa nueva para Alma. *Recomendación: Spacio AM
    al principio; separar cuando el modelo se use fuera de Spacio.*
-4. **Riesgo si el proveedor falla** (niebla): Alma devuelve y reclama al proveedor · el proveedor responde directo al cliente.
+4. **Riesgo si el proveedor falla** — **tinta (Juan, 21-nov-2026): A, Alma le devuelve al cliente y luego le reclama al
+   proveedor.** Alma devuelve y reclama al proveedor · el proveedor responde directo al cliente.
 5. **Cuánto es la comisión** por tipo (margen, referido, gestión) y por cliente (niebla). Mientras tanto, el Libro mide
-   con un margen supuesto: `LIBRO_MARGEN_PCT` (Propiedad del script, 10 por defecto).
+   con un margen supuesto: `LIBRO_MARGEN_PCT` (Propiedad del script, 10 por defecto). Juan confirmó dejar el 10 %
+   (21-nov-2026); el porcentaje real de la comisión sigue en niebla.
 
 ## 6. Rebanadas para cuando se retome (cada una se prueba sola)
 1. ✅ **Libro de transacciones** (sin dinero real; #935 T1, `apps-script/libro.js`): hoja ALMA_TRANSACCIONES y

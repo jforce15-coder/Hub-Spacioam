@@ -334,10 +334,21 @@ function gastoParaAlma_(adm) {
    «fallo»). Los planes fijos no entran: bajarlos es decisión de Juan.
    La pantalla muestra cada proyecto con su ahorro medido y la calidad verificada (lo lee del PR: «Ahorro medido: N %»,
    «Veredicto: igual|mejor|peor»). En GitHub (público) solo van porcentajes, nunca montos.
+   SE APLICA SOLO (Juan, 21-nov-2026): el proyecto que pasa la compuerta de calidad (mismas preguntas reales antes y
+   después, la respuesta no sale peor, ahorro medido mayor que 0) y tiene sus revisiones en verde, el Hub lo une solo
+   (squash, con el sha de la cabeza), sin preguntarle; el que sale peor o no ahorra se cierra y queda «descartado». Lo que
+   toca el prompt de voz o ElevenLabs (la herramienta, el agente o un lugar de ElevenLabs) nunca se aplica solo: queda
+   «espera a Juan» (gastoAhorroRevisar_, cada hora desde aprender; gastoAhorroDecidir_ es la regla, sin red).
+   Gasto de Alma muestra qué se aplicó, cuándo, cuánto ahorra al mes (estimado: el gasto de 30 días por el ahorro medido)
+   y la calidad. GASTO_AHORRO_AUTO = 0 lo vuelve a como era (nada se une solo).
    GASTO_PARETO = 0 en las propiedades lo apaga sin un PR. */
-var GASTO_AHORRO_CAB_ = ['id', 'creado', 'lugar', 'tipo', 'pct_gasto', 'usd_30d', 'hipotesis', 'ahorro_esperado_pct', 'calidad_como', 'micro', 'issue', 'pr', 'estado', 'ahorro_medido_pct', 'calidad', 'actualizado'];
+var GASTO_AHORRO_CAB_ = ['id', 'creado', 'lugar', 'tipo', 'pct_gasto', 'usd_30d', 'hipotesis', 'ahorro_esperado_pct', 'calidad_como', 'micro', 'issue', 'pr', 'estado', 'ahorro_medido_pct', 'calidad', 'actualizado', 'decision', 'motivo', 'aplicado'];
 var GASTO_PARETO_MAX_ = 2, GASTO_PARETO_CORTE_ = 80;
-function gastoAhorroHoja_() { return hojaCrear_('GASTO_AHORRO', GASTO_AHORRO_CAB_); }
+function gastoAhorroHoja_() {
+  var sh = hojaCrear_('GASTO_AHORRO', GASTO_AHORRO_CAB_);
+  try { if (sh.getLastColumn() < GASTO_AHORRO_CAB_.length) sh.getRange(1, 1, 1, GASTO_AHORRO_CAB_.length).setValues([GASTO_AHORRO_CAB_]); } catch (e) {}   // la hoja de antes no tenía decision, motivo ni aplicado
+  return sh;
+}
 function gastoAhorroFilas_() {
   var sh = ssAlma_().getSheetByName('GASTO_AHORRO'); if (!sh || sh.getLastRow() < 2) return [];
   return sh.getRange(2, 1, sh.getLastRow() - 1, GASTO_AHORRO_CAB_.length).getValues().map(function (r, i) { var o = { fila: i + 2 }; GASTO_AHORRO_CAB_.forEach(function (k, j) { o[k] = r[j]; }); return o; });
@@ -346,7 +357,9 @@ function gastoAhorroLista_() {
   try {
     return gastoAhorroFilas_().map(function (x) { return { id: String(x.id), lugar: String(x.lugar), tipo: String(x.tipo), pct_gasto: Number(x.pct_gasto) || 0, hipotesis: String(x.hipotesis),
       ahorro_esperado_pct: Number(x.ahorro_esperado_pct) || 0, calidad_como: String(x.calidad_como), estado: String(x.estado || 'propuesto'), pr: String(x.pr || ''),
-      ahorro_medido_pct: x.ahorro_medido_pct === '' ? null : Number(x.ahorro_medido_pct), calidad: String(x.calidad || 'pendiente'), usd_30d: Number(x.usd_30d) || 0 }; }).reverse().slice(0, 20);
+      ahorro_medido_pct: x.ahorro_medido_pct === '' ? null : Number(x.ahorro_medido_pct), calidad: String(x.calidad || 'pendiente'), usd_30d: Number(x.usd_30d) || 0,
+      decision: String(x.decision || ''), motivo: String(x.motivo || ''), aplicado: x.aplicado ? new Date(x.aplicado).toISOString() : '',
+      ahorro_usd_mes: x.ahorro_medido_pct === '' || x.ahorro_medido_pct == null ? null : gastoR2_((Number(x.usd_30d) || 0) * Math.max(0, Number(x.ahorro_medido_pct) || 0) / 100) }; }).reverse().slice(0, 20);
   } catch (e) { return []; }
 }
 /* Los lugares de gasto por uso, de mayor a menor, y los que suman el 80 %. */
@@ -378,7 +391,7 @@ function gastoParetoSiToca_() {
 /* seco = true: solo dice qué abriría (robot «gasto_pareto»). */
 function gastoPareto_(seco) {
   var p = gastoParetoLugares_(), filas = gastoAhorroFilas_(), abiertos = {};
-  filas.forEach(function (x) { if (!/descartado|unido/.test(String(x.estado))) abiertos[String(x.lugar)] = true; });
+  filas.forEach(function (x) { if (!/descartado|unido|aplicado/.test(String(x.estado))) abiertos[String(x.lugar)] = true; });
   var nuevos = p.top.filter(function (x) { return !abiertos[x.lugar]; }).slice(0, GASTO_PARETO_MAX_), hechos = [];
   nuevos.forEach(function (x) {
     var prop = gastoAhorroPropuesta_(x);
@@ -412,7 +425,8 @@ function gastoAhorroPropuesta_(x) {
         'Haz el cambio más chico que logre la hipótesis.',
         'Corre la comparación antes y después con los MISMOS casos reales y anota caso por caso si el resultado útil es igual, mejor o peor.',
         'Abre el PR con título que empiece con «Ahorro ·» y la sección «## Compuerta de calidad» con las líneas «Antes:», «Después:», «Veredicto: igual|mejor|peor» y «Ahorro medido: N %».',
-        'Si algún caso sale peor en algo que vea un huésped o Juan, el veredicto es «peor»: cierra el PR sin unir y responde «descartado: …».'],
+        'Si algún caso sale peor en algo que vea un huésped o Juan, el veredicto es «peor»: cierra el PR sin unir y responde «descartado: …».',
+        'No lo unas tú: con la compuerta en verde (igual o mejor y ahorro mayor que 0) y las revisiones en verde, el Hub lo aplica solo (decisión de Juan, 21-nov-2026). Si toca el prompt de voz o ElevenLabs, espera a Juan.'],
       restricciones: ['Si deterioramos la calidad, no es un buen proyecto: nada se une sin la compuerta de calidad en verde.',
         'Ningún monto en GitHub (el repo es público): solo porcentajes.',
         'No cambies en ElevenLabs end_call, guardrails, LLM ni voz sin evidencia de llamadas reales (memoria del proyecto).',
@@ -420,26 +434,83 @@ function gastoAhorroPropuesta_(x) {
         'Sin datos personales de huéspedes en el PR ni en el issue.'],
       formato_de_respuesta: 'PR con la plantilla (Resumen · Evidencia antes y después · Compuerta de calidad · Peligros al unir · Cómo probarlo) y, al responder, una línea: «Ahorro medido: N % · Calidad: igual|mejor|peor».' } };
 }
-/* Lee de cada proyecto su microproyecto y su PR: estado, ahorro medido y veredicto de calidad. */
-function gastoAhorroSincronizar_() {
+/* Lee de cada proyecto su microproyecto y su PR: estado, ahorro medido y veredicto de calidad. Con aplicar (la vuelta de
+   cada hora), además une solo lo que pasó la compuerta y cierra lo que salió peor (gastoAhorroDecidir_). */
+function gastoAhorroSincronizar_(aplicar) {
   var sh = ssAlma_().getSheetByName('GASTO_AHORRO'); if (!sh) return { ok: true, n: 0 };
-  var n = 0;
+  var autoOn = PropertiesService.getScriptProperties().getProperty('GASTO_AHORRO_AUTO') !== '0', n = 0, hechos = [], auto = aplicar && autoOn;
+  if (auto) gastoAhorroHoja_();
   gastoAhorroFilas_().forEach(function (x) {
-    if (/descartado|unido/.test(String(x.estado)) || !x.micro) return;
+    if (/descartado|unido|aplicado/.test(String(x.estado)) || !x.micro) return;
     var m = null; try { m = microLeer_(String(x.micro)); } catch (e) {}
     if (!m) return;
     var pr = m.pr || String(x.pr || ''), est = String(x.estado), med = x.ahorro_medido_pct, cal = String(x.calidad || 'pendiente');
+    var dec = String(x.decision || ''), mot = String(x.motivo || ''), apl = x.aplicado || '';
     var mm = /github\.com\/([^\/]+\/[^\/]+)\/pull\/(\d+)/.exec(pr);
     if (mm) {
       var d = unirGh_('get', '/repos/' + mm[1] + '/pulls/' + mm[2]).j || {}, cuerpo = String(d.body || '');
       var v = gastoCompuerta_(cuerpo);
       if (v.veredicto) cal = v.veredicto;
       if (v.ahorro != null) med = v.ahorro;
-      est = d.merged_at ? 'unido' : d.state === 'closed' ? 'descartado' : v.veredicto === 'peor' ? 'descartado' : 'en revisión';
+      /* Con el PR abierto, el que salió peor lo cierra la vuelta de cada hora (y ahí queda descartado); sin ella, como antes. */
+      est = d.merged_at ? 'unido' : d.state === 'closed' ? 'descartado' : v.veredicto === 'peor' && !autoOn ? 'descartado' : 'en revisión';
+      if (auto && !d.merged_at && d.state !== 'closed') {
+        var ck = null, voz = '';
+        if (gastoCompuertaPasa_(v)) {
+          voz = gastoAhorroTocaVoz_(mm[1], mm[2], String(x.tipo));
+          if (!voz && d.head && d.head.sha) { try { ck = paraClaudeChecks_(mm[1], d.head.sha); } catch (e) {} }
+        }
+        var r = gastoAhorroDecidir_(d, v, ck, voz);
+        est = r.estado; dec = r.decision; mot = r.motivo;
+        if (r.unir) {
+          var u = unirGh_('put', '/repos/' + mm[1] + '/pulls/' + mm[2] + '/merge', { merge_method: 'squash', sha: d.head.sha,
+            commit_title: String(d.title || 'Ahorro').slice(0, 200) + ' (#' + mm[2] + ')' });
+          if (u.codigo === 200) { apl = new Date(); try { microUnido_(pr); } catch (e) {} hechos.push({ lugar: String(x.lugar), aplicado: true }); }
+          else { est = 'en revisión'; dec = ''; mot = 'GitHub no lo dejó unir (' + u.codigo + ')'; }
+        }
+        if (r.cerrar) {
+          unirGh_('post', '/repos/' + mm[1] + '/issues/' + mm[2] + '/comments', { body: 'Descartado por el equipo de ahorro: ' + r.motivo + '. Regla de Juan (21-nov-2026): solo se aplica lo que pasa la compuerta de calidad.' });
+          unirGh_('patch', '/repos/' + mm[1] + '/pulls/' + mm[2], { state: 'closed' });
+          hechos.push({ lugar: String(x.lugar), descartado: true });
+        }
+      }
     } else if (m.estado === MICRO_ESTADOS_.cerrado) est = 'descartado';
-    sh.getRange(x.fila, 12, 1, 5).setValues([[pr, est, med === '' || med == null ? '' : med, cal, new Date()]]); n++;
+    sh.getRange(x.fila, 12, 1, 8).setValues([[pr, est, med === '' || med == null ? '' : med, cal, new Date(), dec, mot, apl]]); n++;
   });
-  return { ok: true, n: n };
+  return { ok: true, n: n, hechos: hechos };
+}
+/* Cada hora (aprender): solo si hay algún proyecto vivo. */
+function gastoAhorroRevisar_() {
+  if (PropertiesService.getScriptProperties().getProperty('GASTO_PARETO') === '0') return null;
+  var vivos = gastoAhorroFilas_().filter(function (x) { return x.micro && !/descartado|unido|aplicado/.test(String(x.estado)); });
+  return vivos.length ? gastoAhorroSincronizar_(true) : null;
+}
+/* ¿Pasó la compuerta? Antes y después, veredicto igual o mejor y un ahorro medido mayor que 0. */
+function gastoCompuertaPasa_(v) { return !!(v && v.hay && v.antes && v.despues && /^(igual|mejor)$/.test(v.veredicto) && v.ahorro != null && v.ahorro > 0); }
+/* Lo que toca la voz (prompt o ElevenLabs) nunca se aplica solo. Si no se pueden leer los archivos, tampoco. */
+var GASTO_AHORRO_VOZ_RE_ = /(^|\/)(voz[^\/]*\.js|weebo\.js|persona\.js|promptjson\.js|almafuente\.js|alma-fuente\.js|claudio[^\/]*\.js|familia\.js|muestrasvoz\.js|alma\.json)$/i;
+function gastoAhorroTocaVoz_(repo, num, tipo) {
+  if (tipo === 'elevenlabs') return 'es de ElevenLabs';
+  var f = unirGh_('get', '/repos/' + repo + '/pulls/' + num + '/files?per_page=100').j;
+  if (!Array.isArray(f)) return 'no pude leer sus archivos';
+  var t = f.filter(function (y) { return GASTO_AHORRO_VOZ_RE_.test(String(y.filename)) || /^\+.*(elevenlabs|convai)/im.test(String(y.patch || '')); })[0];
+  return t ? 'toca la voz (' + String(t.filename).split('/').pop() + ')' : '';
+}
+/* La regla, sin red: d = el PR de GitHub, v = gastoCompuerta_, ck = paraClaudeChecks_, voz = gastoAhorroTocaVoz_. */
+function gastoAhorroDecidir_(d, v, ck, voz) {
+  var r = function (estado, decision, motivo, o) { return Object.assign({ estado: estado, decision: decision, motivo: motivo, unir: false, cerrar: false }, o || {}); };
+  if (d.merged_at) return r('unido', '', '');
+  if (d.state === 'closed') return r('descartado', 'descartado', 'se cerró sin unir');
+  if (v.veredicto === 'peor') return r('descartado', 'descartado', 'la calidad salió peor', { cerrar: true });
+  if (v.hay && v.veredicto && v.ahorro != null && v.ahorro <= 0) return r('descartado', 'descartado', 'no ahorra', { cerrar: true });
+  if (!gastoCompuertaPasa_(v)) return r('en revisión', '', 'falta la compuerta de calidad completa');
+  if (voz) return r('espera a Juan', 'juan', voz);
+  if (d.draft) return r('en revisión', '', 'todavía es un borrador');
+  if (d.mergeable === false) return r('en revisión', '', 'choca con lo último de main');
+  if (!ck || ck.corriendo || !ck.total) return r('en revisión', '', 'sus revisiones siguen corriendo');
+  if (ck.fallas) return r('en revisión', '', 'sus revisiones están en rojo');
+  if (!d.head || !d.head.sha) return r('en revisión', '', 'sin cabeza del PR');
+  return r('aplicado', 'auto', 'pasó la compuerta: se aplicó solo', { unir: true });
 }
 /* Lo que la compuerta lee de un PR (la misma regla que .github/gasto-calidad.js). */
 function gastoCompuerta_(cuerpo) {

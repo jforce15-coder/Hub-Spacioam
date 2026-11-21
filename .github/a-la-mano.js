@@ -8,6 +8,8 @@
    5. a_mano: al administrador le da el resumen al instante; a quien no es administrador, no; sin paquete, «usa secretaria».
    6. El bloque del chat solo aparece si el mensaje nombra el tema.
    7. Medición: solo números (sin textos ni nombres).
+   8. Atajo en la secretaria (21-nov-2026): el caso medido (la voz nunca llamó a a_mano y cada «revisa las limpiezas»
+      tardó ~27 s en la secretaria) se contesta con el paquete sin IA; lo que el paquete no tiene, va a la secretaria.
    node .github/a-la-mano.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -151,5 +153,32 @@ const RESERVAS = [{ code: 'R1', checkin_date: '2026-11-15', checkout_date: HOY, 
   const c = caja({ op }), m = c.X.amanoMedir_(3), d = m.por_dia.find((x) => x.dia === HOY);
   ok(d && d.pedidos === 2 && d.leer_tema === 1 && d.s_prom_leer_tema === 15, '7 · cuenta los pedidos a la secretaria, los de leer un tema y sus segundos');
   ok(!/Ana|limpiezas de hoy/.test(JSON.stringify(m)), '7 · sin textos ni nombres');
+}
+/* 8 · Atajo en la secretaria: reproduce el 19/20-nov (pedidos de leer limpieza que la voz mandó a la secretaria) */
+{ const c = caja(), X = c.X;
+  const a = X.amanoAtajo_(JUAN, 'Revisar las limpiezas de hoy', 'conv_1');
+  ok(a && /^A LA MANO \(dato de las 15:00/.test(a.resultado) && /3 trabajos/.test(a.resultado) && /Técnico Dos/.test(a.resultado), '8 · «Revisar las limpiezas de hoy»: lo contesta el paquete, con su hora y el detalle');
+  ok(/secretaria con el mismo pedido/.test(a.regla), '8 · si no alcanza, la voz sabe volver a la secretaria');
+  ok(X.amanoAtajo_(JUAN, '¿Y quién limpia el 202?', 'conv_1') === null, '8 · la segunda pregunta del mismo tema en la llamada va a la secretaria completa');
+  ok(X.amanoAtajo_(JUAN, '¿Quién limpia hoy?', 'conv_2') !== null, '8 · otra llamada vuelve a usar el atajo');
+  ok(X.amanoAtajo_(JUAN, 'Envía a Ana la ruta de hoy', 'conv_3') === null, '8 · un pedido de hacer nunca toma el atajo');
+  ok(X.amanoAtajo_(JUAN, '¿Qué le contestó el técnico de la limpieza?', 'conv_4') === null, '8 · lo que dijo alguien no está en el paquete: secretaria');
+  ok(X.amanoAtajo_(JUAN, '¿Qué pasó con la limpieza del 101?', 'conv_5') === null, '8 · «qué pasó» (sin acentos o con ellos): secretaria');
+  ok(X.amanoAtajo_(JUAN, '¿Quién limpia mañana?', 'conv_6') === null, '8 · «mañana» antes de las 7 p. m. no está en el paquete: secretaria');
+  ok(X.amanoAtajo_(JUAN, '¿Quién limpia el lunes?', 'conv_7') === null, '8 · otro día: secretaria');
+  ok(X.amanoAtajo_(JUAN, '¿Cómo van las limpiezas en la mañana?', 'conv_8') !== null, '8 · «en la mañana» es hoy: atajo');
+  ok(X.amanoAtajo_(JUAN, 'Busca la reserva R2', 'conv_9') === null, '8 · sin paquete del tema: secretaria');
+  ok(X.amanoAtajo_({ email: '' }, 'Revisar las limpiezas de hoy', 'conv_10') === null, '8 · sin administrador: nada');
+  c.cache.AMANO_DUDA_limpieza = '1';
+  ok(X.amanoAtajo_(JUAN, 'Revisar las limpiezas de hoy', 'conv_11') === null, '8 · en duda (no coincidió con Epi en vivo): secretaria');
+  delete c.cache.AMANO_DUDA_limpieza;
+  const n = caja({ hora: '20:00' });
+  ok(n.X.amanoAtajo_(JUAN, '¿Quién limpia mañana?', 'conv_12') !== null, '8 · desde las 7 p. m. «mañana» sí está en el paquete');
+  const u = JSON.parse(c.props.AMANO_USO || '{}')[HOY] || {};
+  ok(u.atajo_limpieza === 3, '8 · cada atajo cuenta como uso de A la mano (' + JSON.stringify(u) + ')');
+  /* La secretaria de voz lo llama antes de la IA (voz.js). */
+  const vz = leer('voz.js'), sec = sacar(vz, 'vozSecretaria_');
+  const iA = sec.indexOf('amanoAtajo_('), iO = sec.indexOf('opAgente_(');
+  ok(iA > 0 && iO > 0 && iA < iO, '8 · vozSecretaria_ prueba el atajo antes de la IA (opAgente_)');
 }
 process.exit(fallo);

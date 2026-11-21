@@ -994,6 +994,14 @@ function vozSecretaria_(b) {
     try { opGuardar_(adm, 'yo', 'llamada', pedido); opGuardar_(adm, 'alma', 'llamada', mp.error); } catch (e) {}
     return { ok: false, error: 'NO SE PUSO LA MÚSICA: ' + mp.error + ' Díselo en una o dos frases cortas y no lo reintentes en esta llamada.' };
   }
+  /* A la mano (amano.js, 21-nov-2026): un pedido de leer limpieza, socio o reserva con paquete listo se contesta con él,
+     sin la IA (~1 s en vez de ~27 s). La voz casi nunca llama a a_mano: el atajo vive aquí, donde sí llegan los pedidos. */
+  var at = null; try { at = typeof amanoAtajo_ === 'function' ? amanoAtajo_(adm, pedido, b.conv_id) : null; } catch (e) { console.error('amanoAtajo_: ' + e); }
+  if (at) {
+    AGENTE_APP_ = false;
+    try { opGuardar_(adm, 'yo', 'llamada', pedido); opGuardar_(adm, 'alma', 'llamada', at.corto + ' (' + at.de + ')'); } catch (e) {}
+    return { ok: true, a_la_mano: true, resultado: at.resultado, regla: at.regla };
+  }
   var previos = opFilas_(adm.email, 20);
   var yoF = opGuardar_(adm, 'yo', 'llamada', pedido);
   var esApp = AGENTE_APP_; TV_CANDIDATA_ = null;   // tarjeta de la llamada (tarjeta.js): la deja agEjecutar_ en este turno

@@ -13,6 +13,7 @@
    node .github/avisos-humanos.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
+const CANDADO_ = fs.readFileSync(path.join(DIR, 'candado.js'), 'utf8') + '\n';   // el candado único (apps-script/candado.js)
 let fallo = 0; const ok = (c, m) => { if (c) console.log('✓ ' + m); else { console.log('::error::' + m); fallo = 1; } };
 
 /* ── T2 ── */
@@ -21,7 +22,7 @@ function cajaTexto() {
   const ctx = { console: { log() {}, warn() {}, error() {} }, JSON, Date, Math, String, Number, Object, Array, RegExp,
     vozAvisoPoner_: (adm, t, id, o) => puestos.push({ t, id, o }) };
   vm.createContext(ctx);
-  vm.runInContext(fs.readFileSync(path.join(DIR, 'avisotexto.js'), 'utf8'), ctx, { filename: 'avisotexto.js' });
+  vm.runInContext(CANDADO_ + fs.readFileSync(path.join(DIR, 'avisotexto.js'), 'utf8'), ctx, { filename: 'avisotexto.js' });
   return { ctx, puestos };
 }
 const { ctx: T, puestos } = cajaTexto();
@@ -109,7 +110,7 @@ function cajaVoz(props, respuestas, extra) {
     pendFilas_: () => [], retLeer_: () => [], pendVivo_: () => true, chatOpciones_: () => null
   }, extra || {});
   vm.createContext(ctx);
-  vm.runInContext(fs.readFileSync(path.join(DIR, 'calle.js'), 'utf8'), ctx, { filename: 'calle.js' });
+  vm.runInContext(CANDADO_ + fs.readFileSync(path.join(DIR, 'calle.js'), 'utf8'), ctx, { filename: 'calle.js' });
   return { ctx, llamadas, triggers, cache, props, dormidas };
 }
 { const { ctx: C } = cajaVoz({}, []);

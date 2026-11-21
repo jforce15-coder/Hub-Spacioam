@@ -30,7 +30,7 @@ function pendFilas_(todas) {
 /* ── Entrada 1: cada pedido a Alma (en cola; se clasifica en procesarCola) ── */
 function pendEncolar_(adm, pedido, respuesta, canal, o) {
   if (!adm || !adm.email || !esAdminPrincipal_(adm) || !String(respuesta || '').trim()) return;
-  var lock = LockService.getScriptLock(); if (!lock.tryLock(5000)) return;
+  var soltar = candadoTomar_(5000); if (!soltar) return;
   try {
     var p = PropertiesService.getScriptProperties(), cola = []; try { cola = JSON.parse(p.getProperty('PEND_COLA') || '[]'); } catch (e) {}
     var x = { email: adm.email, pedido: String(pedido || '').slice(0, 1500), respuesta: String(respuesta).slice(0, 3500), canal: canal || '', t: Date.now() };
@@ -39,12 +39,12 @@ function pendEncolar_(adm, pedido, respuesta, canal, o) {
     try { var ped = abrePedidosDe_(adm, o); if (ped.length) x.pedidos = ped; } catch (e) {}   // de qué pedidos es resultado (Alma abre, almaabre.js)
     cola.push(x);
     p.setProperty('PEND_COLA', JSON.stringify(cola.slice(-25)));
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
 }
 function pendProcesar_() {
-  var p = PropertiesService.getScriptProperties(), lock = LockService.getScriptLock(), cola = [];
-  if (!lock.tryLock(5000)) return;
-  try { try { cola = JSON.parse(p.getProperty('PEND_COLA') || '[]'); } catch (e) {} if (cola.length) p.deleteProperty('PEND_COLA'); } finally { lock.releaseLock(); }
+  var p = PropertiesService.getScriptProperties(), cola = [];
+  var soltar = candadoTomar_(5000); if (!soltar) return;
+  try { try { cola = JSON.parse(p.getProperty('PEND_COLA') || '[]'); } catch (e) {} if (cola.length) p.deleteProperty('PEND_COLA'); } finally { soltar(); }
   cola.slice(0, 8).forEach(function (x) {
     var adm = adminPorEmail_(x.email); if (!adm) return;
     try {
@@ -117,8 +117,8 @@ function pendCrear_(adm, c, o) {
     tarjeta: c.tarjeta ? JSON.stringify(c.tarjeta).slice(0, 1500) : '', acciones: JSON.stringify(c.acciones || []), estado: 'abierto', origen: o.origen || '', ret_id: it ? it.id : '', importancia: c.importancia || 2, tema_id: o.tema || '', motivo: '', repregunta: '' };
   /* Lo que espera a Juan es un tema (temas.js): el del turno o uno propio que se cierra cuando la tarjeta se resuelve. */
   if (c.tipo === 'atencion' && !fila.tema_id) { try { fila.tema_id = temaCrear_(adm, { tipo: 'pendiente', titulo: fila.titulo, origen: 'pendiente', origen_id: fila.id, ultimo_paso: fila.resumen.slice(0, 200), espera: 'juan' }).id; } catch (e) { console.error('pendCrear_ tema: ' + e); } }
-  var lock = LockService.getScriptLock(); lock.waitLock(10000);
-  try { hojaPend_().appendRow(PEND_CAB_.map(function (k) { return fila[k]; })); } finally { lock.releaseLock(); }
+  var soltar = candadoTomar_(10000, { lanzar: true });
+  try { hojaPend_().appendRow(PEND_CAB_.map(function (k) { return fila[k]; })); } finally { soltar(); }
   /* Lo que no pide nada (Para leer, Listo hoy) también llega a la app como notificación de nivel 3 (calle.js), con el id
      de la tarjeta; no entra al historial porque Notificaciones ya la muestra. */
   /* Solo avisa lo que TERMINÓ (segundo plano); lo demás queda en la tarjeta sin notificación (Juan, 2-nov: nada de «ya se envió»). */

@@ -741,12 +741,12 @@ function vozEstado_(extra) {
 
 /* ═══ Respaldo del webhook: cada pocos minutos el Hub trae de ElevenLabs las llamadas terminadas que no le llegaron ═══ */
 function vozMarcar_(id) {
-  var lock = LockService.getScriptLock(); try { lock.waitLock(10000); } catch (e) {}
+  var soltar = candadoTomar_(10000) || function () {};
   try {
     var p = PropertiesService.getScriptProperties(), l = []; try { l = JSON.parse(p.getProperty('VOZ_HECHAS') || '[]'); } catch (e) {}
     if (l.indexOf(id) >= 0) return false;
     l.push(id); p.setProperty('VOZ_HECHAS', JSON.stringify(l.slice(-300))); return true;
-  } finally { try { lock.releaseLock(); } catch (e) {} }
+  } finally { soltar(); }
 }
 function vozRecoger_(forzar) {
   var c = CacheService.getScriptCache(); if (!forzar && c.get('voz_recoger')) return { ok: true, omitido: true }; c.put('voz_recoger', '1', 240);
@@ -1132,7 +1132,7 @@ function vozEnvioFallo_(adm, r, pedido, orbs) {
 function vozSecEncolar_(tel, pedido, conf, envio) {
   var admE = null; try { admE = adminPorTel_(tel); } catch (e) {}
   var orb = ''; try { if (admE) orb = orbitaEmpieza_(admE.email, pedido, 'segundo_plano', 'En fila'); } catch (e) {}   // su anillo en el inicio (orbita.js)
-  var lock = vozColaLock_(); lock.waitLock(10000);   // retomar.js: el del script lo tiene procesarCola con los huéspedes
+  var soltar = candadoTomar_(10000, { usuario: true, lanzar: true });   // retomar.js: el del script lo tiene procesarCola con los huéspedes
   try {
     var p = PropertiesService.getScriptProperties(), cola = []; try { cola = JSON.parse(p.getProperty('VOZ_SEC_COLA') || '[]'); } catch (e) {}
     var x = { tel: tel, pedido: String(pedido).slice(0, 3000), t: Date.now() }; if (conf) x.conf = 1;
@@ -1142,7 +1142,7 @@ function vozSecEncolar_(tel, pedido, conf, envio) {
     if (orb) x.orb = orb;
     cola.push(x);
     p.setProperty('VOZ_SEC_COLA', JSON.stringify(cola.slice(-20)));
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
   try { if (admE) vozTrabajando_(admE, 1); } catch (e) {}
   /* Espera breve: si en la misma llamada piden algo más (p. ej. «revisa también la imagen»), todo se hace junto en un solo WhatsApp. */
   try {
@@ -1158,10 +1158,10 @@ function vozSecretariaPronto() {
   try { pendProcesar_(); } catch (e) { console.error('pendProcesar_: ' + e); }   // el resultado a Pendientes (y su aviso) ya, sin esperar al minuto
 }
 function vozSecProcesar_() {
-  var p = PropertiesService.getScriptProperties(), lock = vozColaLock_();
+  var p = PropertiesService.getScriptProperties();
   for (var n = 0; n < 3; n++) {
     var grupo = [];
-    if (!lock.tryLock(5000)) return;
+    var soltar = candadoTomar_(5000, { usuario: true }); if (!soltar) return;
     try {
       var cola = []; try { cola = JSON.parse(p.getProperty('VOZ_SEC_COLA') || '[]'); } catch (e) {}
       if (!cola.length) return;
@@ -1170,7 +1170,7 @@ function vozSecProcesar_() {
       if (!suyos.every(function (x) { return x.envio; }) && Date.now() - Math.max.apply(null, suyos.map(function (x) { return x.t; })) < 40000) return;   // un envío confirmado no espera
       grupo = suyos;
       p.setProperty('VOZ_SEC_COLA', JSON.stringify(cola.filter(function (x) { return x.tel !== tel; })));
-    } finally { lock.releaseLock(); }
+    } finally { soltar(); }
     var adm = adminPorTel_(grupo[0].tel); if (!adm) continue;
     grupo.forEach(function (x) { if (x.largo) { var t = CacheService.getScriptCache().get(x.largo); if (t) x.pedido = t; } });   // el pedido completo (vozSecEncolar_)
     var pedido = grupo.length === 1 ? grupo[0].pedido : 'Me pediste varias cosas en la misma llamada; resuélvelas juntas y respóndeme en un solo mensaje:\n' + grupo.map(function (x, i) { return (i + 1) + ') ' + x.pedido; }).join('\n');
@@ -1643,7 +1643,7 @@ var VOZ_AVISOS_MAX_ = 10;
 function vozAvisoPoner_(adm, texto, retId, o) {
   o = o || {};
   if (!adm || !adm.email || !String(texto || '').trim()) return;
-  var p = PropertiesService.getScriptProperties(), lock = LockService.getScriptLock(), nuevo = null; lock.waitLock(10000);
+  var p = PropertiesService.getScriptProperties(), nuevo = null, soltar = candadoTomar_(10000, { lanzar: true });
   try {
     var t = {}; try { t = JSON.parse(p.getProperty('VOZ_AVISOS') || '{}'); } catch (e) {}
     var l = (t[adm.email] || []).filter(function (a) { return Date.now() - a.ts < 6 * 3600000; });
@@ -1678,7 +1678,7 @@ function vozAvisoPoner_(adm, texto, retId, o) {
       h = h.filter(function (a) { return Date.now() - a.ts < 3 * 86400000; });
       if (!h.some(function (a) { return retId && String(a.id) === String(retId); })) { h.push(nuevo); p.setProperty(hk, JSON.stringify(h.slice(-30))); }
     }
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
   /* La voz lista antes (#509 T1, calle.js): su audio se arma en segundo plano, sin hacer esperar a quien la creó. */
   if (nuevo && !nuevo.prueba) { try { avisoVozEncolar_(adm, nuevo); } catch (e) { console.error('avisoVozEncolar_: ' + e); } }
   if (nuevo && nuevo.push) { try { nuevo.pushRes = pushAppMandar_(adm, nuevo); } catch (e) { console.error('pushAppMandar_: ' + e); } }
@@ -1702,13 +1702,13 @@ function vozAvisoCorto_(texto) {
    y cuántas cosas sigue trabajando Alma en segundo plano (mientras haya, la app queda lista para el anillo). resultado = terminó algo de segundo plano: en modo conferencia la app lo dice por voz en la llamada, sea cual sea su nivel. */
 function vozAvisos_(ses, b) {
   var adm = vozWebAdmin_(ses); if (!adm) return { ok: false, error: 'usuario' };
-  var p = PropertiesService.getScriptProperties(), lock = LockService.getScriptLock(), mios = [];
-  lock.waitLock(10000);
+  var p = PropertiesService.getScriptProperties(), mios = [];
+  var soltar = candadoTomar_(10000, { lanzar: true });
   try {
     var t = {}; try { t = JSON.parse(p.getProperty('VOZ_AVISOS') || '{}'); } catch (e) {}
     mios = (t[adm.email] || []).filter(function (a) { return Date.now() - a.ts < 6 * 3600000; });
     if (mios.length) { delete t[adm.email]; p.setProperty('VOZ_AVISOS', JSON.stringify(t)); }
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
   /* Notificación hablada (calle.js): cada aviso trae su nivel (1 urgente · 2 acción · 3 aviso), su frase corta para decirla
      al oído e importante (nivel 1 o 2: pide algo de él). */
   /* Con su tarjeta de Pendientes, la notificación lleva la respuesta: titulo y hasta 3 líneas cortas del resultado (avisoLineas_). */

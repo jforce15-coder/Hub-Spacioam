@@ -30,14 +30,14 @@ function avisoWaRespaldo_() {
   var toca = viejos.filter(function (a) { return !a.push && !avisoEsDeUnir_(a) && (a.resultado || avisoNivel_(a, rets, pends) <= 2); });
   /* Lo que no toca también se marca: así no se vuelve a calcular su nivel en cada pasada. */
   var ids = {}; viejos.forEach(function (a) { ids[String(a.id)] = true; });
-  var lock = LockService.getScriptLock(); lock.waitLock(10000);
+  var soltar = candadoTomar_(10000, { lanzar: true });
   try {
     var t = leer(), l = t[jefe.email] || [], sigue = {};
     l.forEach(function (a) { if (a && ids[String(a.id)] && !a.wa) { a.wa = ahora; sigue[String(a.id)] = true; } });
     if (!Object.keys(sigue).length) return;   // la app la recogió en medio: no se manda
     t[jefe.email] = l; p.setProperty('VOZ_AVISOS', JSON.stringify(t));
     toca = toca.filter(function (a) { return sigue[String(a.id)]; });
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
   if (!toca.length) return;
   var texto = avisoWaTexto_(toca); if (!texto) return;
   try {

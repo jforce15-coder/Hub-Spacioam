@@ -8,6 +8,7 @@
    node .github/registro-pruebas.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
+const CANDADO_ = fs.readFileSync(path.join(DIR, 'candado.js'), 'utf8') + '\n';   // el candado único (apps-script/candado.js)
 let fallo = 0; const ok = (c, m) => { if (c) console.log('✓ ' + m); else { console.log('::error::' + m); fallo = 1; } };
 const leer = f => fs.readFileSync(path.join(DIR, f), 'utf8');
 const sacar = (src, nombre) => { const m = new RegExp('\\nfunction ' + nombre + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}').exec(src); if (!m) throw new Error('no encontré ' + nombre); return m[0]; };
@@ -33,7 +34,7 @@ function caja(principal) {
     agPrincipal_: () => ({ email: 'p@x' }), pendAvisar_: (a, t) => avisos.push(t), pushA_() {}
   };
   vm.createContext(ctx);
-  vm.runInContext(sacar(CALLE, 'vozCaidaLimpiar_') + '\n' + PR, ctx);
+  vm.runInContext(CANDADO_ + sacar(CALLE, 'vozCaidaLimpiar_') + '\n' + PR, ctx);
   return { ctx, props, filas, avisos, triggers, mover: ms => { ahora += ms; }, ahora: () => ahora };
 }
 const SES = { t: 'ses' };

@@ -98,8 +98,8 @@ function enlaceHub_(u, por) {
   try {
     var cache = CacheService.getScriptCache(), k = enlaceClaveCache_(u), ya = cache.get(k);
     if (ya && ENLACES_RX_.test(ya)) return ENLACES_BASE_ + ya;
-    var lock = LockService.getUserLock(), mio = !lock.hasLock();
-    if (mio && !lock.tryLock(5000)) return u;
+    var soltar = candadoTomar_(5000, { usuario: true });
+    if (!soltar) return u;
     try {
       var sh = enlacesHoja_(true), v = sh.getDataRange().getValues(), usados = {};
       for (var i = 1; i < v.length; i++) {
@@ -113,7 +113,7 @@ function enlaceHub_(u, por) {
       sh.getRange(fila, 1, 1, ENLACES_CAB_.length).setValues([[codigo, u, 'hub', new Date().toISOString(), celdaTexto_(String(por || 'alma').slice(0, 80)), 0, '']]);
       cache.put(k, codigo, 21600);
       return ENLACES_BASE_ + codigo;
-    } finally { if (mio) lock.releaseLock(); }
+    } finally { soltar(); }
   } catch (e) { console.error('enlaceHub_: ' + e); return u; }
 }
 
@@ -189,12 +189,12 @@ function enlacePublico_(codigo) {
       var url = enlaceValido_(v[i][1]);   // por si alguien editó la hoja a mano: nunca redirige a otro dominio
       if (!url) return NO;
       try {   // contar el clic nunca frena la apertura
-        var lock = LockService.getUserLock(), mio = !lock.hasLock();
-        if (!mio || lock.tryLock(3000)) {
+        var soltar = candadoTomar_(3000, { usuario: true });
+        if (soltar) {
           try {
             var celdas = sh.getRange(i + 1, 6, 1, 2), act = celdas.getValues()[0];
             celdas.setValues([[(Number(act[0]) || 0) + 1, new Date().toISOString()]]);
-          } finally { if (mio) lock.releaseLock(); }
+          } finally { soltar(); }
         }
       } catch (e) { console.warn('enlacePublico_ clic: ' + e); }
       return { ok: true, data: { url: url } };

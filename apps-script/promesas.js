@@ -143,7 +143,7 @@ function promesaRegistrar_(c, texto, origen, pYa) {
   c = c || {}; var convId = String(c.resId || c.conv_id || ''); if (!convId || /^op:/.test(convId)) return null;
   if (promEsInterna_({ conv_id: convId, huesped: c.huesped, propiedad: c.propiedad })) return null;
   var p = pYa || promesaDetectar_(texto, c.texto || c.pregunta || ''); if (!p) return null;
-  var lock = LockService.getScriptLock(), yaTenia = false; try { yaTenia = !!lock.hasLock(); } catch (e) {} try { if (!yaTenia) lock.waitLock(10000); } catch (e) {}   // dentro de la cola el candado ya es de esta ejecución: no se suelta aquí
+  var soltar = candadoTomar_(10000) || function () {};   // dentro de la cola el candado ya es de esta ejecución: no se toma ni se suelta aquí (candado.js)
   try {
     var d = promFilas_(), ahora = Date.now(), tipo = promTipo_(p.que);
     /* Ya hay una abierta en esta conversación de hace menos de 30 min: esa es la del equipo (cuenta una vez). */
@@ -157,7 +157,7 @@ function promesaRegistrar_(c, texto, origen, pYa) {
     try { decisionCrear_(Object.assign({}, c, { resId: convId }), 'promesa', p.que); } catch (e) { console.error('decisionCrear_ promesa: ' + e); }   // opciones A/B/C para el equipo (decisiones.js)
     /* Sin aviso al crearla: el seguimiento queda en el Hub y, si vence, entra en el resumen periódico (promesasRevisar_). */
     return { id: id, que: p.que, vence: vence };
-  } finally { try { if (!yaTenia) lock.releaseLock(); } catch (e) {} }
+  } finally { soltar(); }
 }
 
 /* ═══ Toda promesa al huésped tiene dueño (21-nov-2026) ═══════════════════════════════════════════════════════════════

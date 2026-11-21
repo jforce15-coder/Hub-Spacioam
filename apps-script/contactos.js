@@ -20,14 +20,14 @@ function contactosTodos_() {
 }
 function contactoFicha_(wa) { var k = fin8_(wa); return k ? contactosTodos_().filter(function (o) { return fin8_(o.tel) === k; })[0] || null : null; }
 function contactoGuardar_(wa, o) {
-  var lock = LockService.getScriptLock(); try { lock.waitLock(6000); } catch (e) { return; }
+  var soltar = candadoTomar_(6000); if (!soltar) { return; }
   try {
     CacheService.getScriptCache().remove('contactos_v1');
     var sh = hojaContactos_(), prev = contactoFicha_(wa), cur = prev || {};
     var fila = CONTACTOS_CAB_.map(function (k) { return k === 'tel' ? normTel_(wa) : k === 'actualizado' ? new Date().toISOString() : (o[k] != null && String(o[k]).trim() !== '' ? String(o[k]).slice(0, k === 'resumen' ? 2500 : 200) : (cur[k] || '')); });
     if (prev) sh.getRange(prev.fila, 1, 1, CONTACTOS_CAB_.length).setValues([fila]); else sh.appendRow(fila);
     CacheService.getScriptCache().remove('contactos_v1');
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
 }
 /* Todo lo que se ha hablado con un número (la hoja entera, no solo lo reciente), del más viejo al más nuevo. */
 function contactoHistorial_(wa, n) {

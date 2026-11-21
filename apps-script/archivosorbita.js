@@ -39,8 +39,7 @@ function archOrbGuardar_(email, d) {
   PropertiesService.getScriptProperties().setProperty(archOrbClave_(email), s);
 }
 function archOrbCandado_(fn) {
-  var lk = LockService.getScriptLock(); try { lk.waitLock(8000); } catch (e) { return fn(); }
-  try { return fn(); } finally { try { lk.releaseLock(); } catch (e) {} }
+  return conCandado_(fn, { espera: 8000, ocupado: fn });   // ocupado: igual se hace (candado.js)
 }
 /* La descripción corta y el resumen: el modelo rápido una vez por archivo; si no responde, el nombre y el principio del texto. */
 function archOrbDescribir_(nombre, texto) {

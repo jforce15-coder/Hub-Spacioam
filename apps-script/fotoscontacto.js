@@ -136,7 +136,7 @@ function fctGuardar_(tel, foto, origen) {
   if (!tel) return { ok: false, error: 'Número inválido.' };
   if (!FCT_RANGO_[origen] || origen === 'quitada') return { ok: false, error: 'Origen inválido.' };
   var r = typeof foto === 'string' ? fctRevisar_(foto) : fctRevisarBytes_(foto); if (!r.ok) return r;
-  var lock = LockService.getScriptLock(); try { lock.waitLock(8000); } catch (e) { return { ok: false, error: 'Ocupado, intenta de nuevo.' }; }
+  var soltar = candadoTomar_(8000); if (!soltar) { return { ok: false, error: 'Ocupado, intenta de nuevo.' }; }
   try {
     var act = fctIndice_()[k];
     if (act && act.o && !fctGana_(origen, act.o)) return { ok: true, omitida: true, tel: tel };
@@ -145,18 +145,18 @@ function fctGuardar_(tel, foto, origen) {
     var ahora = new Date().toISOString(), c = {}; c[tel] = { archivo: f.getId(), origen: origen, actualizado: ahora };
     fctEscribir_(c);
     return { ok: true, tel: tel, clave: k + '.' + fctVersion_(ahora) };
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
 }
 function fctQuitar_(tel) {
   tel = normTel_(tel); var k = fin8_(tel); if (!tel) return { ok: false, error: 'Número inválido.' };
-  var lock = LockService.getScriptLock(); try { lock.waitLock(8000); } catch (e) { return { ok: false, error: 'Ocupado, intenta de nuevo.' }; }
+  var soltar = candadoTomar_(8000); if (!soltar) { return { ok: false, error: 'Ocupado, intenta de nuevo.' }; }
   try {
     var act = fctIndice_()[k];
     if (act && act.a) { try { DriveApp.getFileById(act.a).setTrashed(true); } catch (e) {} }
     var c = {}; c[tel] = { archivo: '', origen: 'quitada', actualizado: new Date().toISOString() };
     fctEscribir_(c);
     return { ok: true };
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
 }
 /* La foto como data: URL (en caché 6 h; cabe holgada: 64 KB → ~86 KB en base64). */
 function fctDatos_(k, x) {
@@ -213,9 +213,9 @@ function fotosGoogleRepasar_(o) {
       if (g.ok && !g.omitida) n++;
     } catch (e) { console.error('fotosGoogle ' + k + ': ' + e); }
   });
-  var lock = LockService.getScriptLock(); try { lock.waitLock(8000); } catch (e) { return { ok: true, buscados: faltan.length, encontradas: n }; }
+  var soltar = candadoTomar_(8000); if (!soltar) { return { ok: true, buscados: faltan.length, encontradas: n }; }
   try { var c = {}, iso = new Date(ahora).toISOString(); faltan.forEach(function (t) { c[t] = { google_buscado: iso }; }); fctEscribir_(c); }
-  finally { lock.releaseLock(); }
+  finally { soltar(); }
   return { ok: true, buscados: faltan.length, encontradas: n };
 }
 /* { últimos 8: true } → { últimos 8: enlace de la foto } de los contactos de Google con foto propia (no la de la letra). */

@@ -36,12 +36,12 @@ function abreLeer_() {
   return { p: s.p && typeof s.p === 'object' ? s.p : {}, a: Array.isArray(s.a) ? s.a : [], h: (Array.isArray(s.h) ? s.h : []).filter(function (t) { return Number(t) > corte; }) };
 }
 function abreCambiar_(fn) {
-  var lock = vozColaLock_(); if (!lock.tryLock(3000)) { console.error('almaabre: candado ocupado'); return null; }
+  var soltar = candadoTomar_(3000, { usuario: true }); if (!soltar) { console.error('almaabre: candado ocupado'); return null; }
   try {
     var s = abreLeer_(), r = fn(s);
     PropertiesService.getScriptProperties().setProperty('ALMA_ABRE', JSON.stringify({ p: s.p, a: s.a.slice(-ABRE_ABIERTOS_MAX_), h: s.h }));
     return r;
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
 }
 
 /* ── Un pedido nuevo de Juan entra a la fila: segundo plano (orbitaEmpieza_) o desarrollo (paraClaudeCrear_). Un ajuste

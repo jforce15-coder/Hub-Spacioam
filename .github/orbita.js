@@ -18,6 +18,7 @@
    node .github/orbita.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
+const CANDADO_ = fs.readFileSync(path.join(DIR, 'candado.js'), 'utf8') + '\n';   // el candado único (apps-script/candado.js)
 const RAIZ = path.join(DIR, '..');
 let fallo = 0; const ok = (c, m) => { if (c) console.log('✓ ' + m); else { console.log('::error::' + m); fallo = 1; } };
 
@@ -41,7 +42,7 @@ function caja() {
     MICRO_ESTADOS_: { trabajo: 'en trabajo', pregunta: 'Claude pregunta', listo: 'listo para unir', unido: 'unido', cerrado: 'cerrado' }
   };
   vm.createContext(ctx);
-  vm.runInContext(fs.readFileSync(path.join(DIR, 'orbita.js'), 'utf8'), ctx, { filename: 'orbita.js' });
+  vm.runInContext(CANDADO_ + fs.readFileSync(path.join(DIR, 'orbita.js'), 'utf8'), ctx, { filename: 'orbita.js' });
   return { ctx, dobles, pasa: ms => { ahora += ms; }, ahora: () => ahora, limpiarCacheDesarrollo: () => Object.keys(cache).filter(k => /_d$/.test(k)).forEach(k => delete cache[k]) };
 }
 

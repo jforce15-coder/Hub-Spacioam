@@ -46,7 +46,7 @@ function caja(o) {
     waEnviar_: (n, t) => { wa.push({ n, t }); return { ok: true }; }
   };
   vm.createContext(ctx);
-  ['avisotexto.js', 'calle.js', 'voz.js', 'orbita.js', 'pendientes.js', 'almaabre.js', 'notifajustes.js', 'anillo.js', 'avisowa.js', 'pushapp.js'].forEach(f => vm.runInContext(leer(f), ctx, { filename: f }));
+  ['candado.js', 'avisotexto.js', 'calle.js', 'voz.js', 'orbita.js', 'pendientes.js', 'almaabre.js', 'notifajustes.js', 'anillo.js', 'avisowa.js', 'pushapp.js'].forEach(f => vm.runInContext(leer(f), ctx, { filename: f }));
   return { ctx, props, cache, llamadas, logs, wa };
 }
 const SES = { email: JUAN.email };

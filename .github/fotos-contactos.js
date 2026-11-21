@@ -14,6 +14,7 @@
    node .github/fotos-contactos.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
+const CANDADO_ = fs.readFileSync(path.join(DIR, 'candado.js'), 'utf8') + '\n';   // el candado único (apps-script/candado.js)
 const RAIZ = path.join(DIR, '..');
 let fallo = 0; const ok = (c, m) => { if (c) console.log('✓ ' + m); else { console.log('::error::' + m); fallo = 1; } };
 const leer = (f) => fs.readFileSync(path.join(DIR, f), 'utf8');
@@ -70,7 +71,7 @@ function caja(o) {
   };
   if (o.people) ctx.People = { People: { Connections: { list: (who, q) => { uso.people++; return o.people(q); } } } };
   vm.createContext(ctx);
-  vm.runInContext([linea(COD, /const fin8_ = [^\n]*/), sacar(COD, 'normTel_'), FC].join('\n'), ctx);
+  vm.runInContext(CANDADO_ + [linea(COD, /const fin8_ = [^\n]*/), sacar(COD, 'normTel_'), FC].join('\n'), ctx);
   return { ctx, cache, props, drive, uso, hoja };
 }
 const P = { email: 'principal@x.com' }, E = { email: 'equipo@x.com' };

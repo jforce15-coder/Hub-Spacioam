@@ -16,6 +16,7 @@
    node .github/enlaces.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm'), crypto = require('crypto');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
+const CANDADO_ = fs.readFileSync(path.join(DIR, 'candado.js'), 'utf8') + '\n';   // el candado único (apps-script/candado.js)
 let fallo = 0; const ok = (c, m) => { if (c) console.log('✓ ' + m); else { console.log('::error::' + m); fallo = 1; } };
 const leer = f => fs.readFileSync(path.join(DIR, f), 'utf8');
 const COD = leer('Código.js');
@@ -91,7 +92,7 @@ function caja(o) {
       return { ok: true, codigo: c, corto: 'https://grow.spacioam.com/' + c }; }
   };
   vm.createContext(ctx);
-  vm.runInContext(['s_', 'celdaTexto_', 'json_'].map(n => linea(COD, n)).join('\n') + '\n' + ['doPost', 'doGet', 'waEnviar_', 'hosp_'].map(n => sacar(COD, n)).join('\n'), ctx, { filename: 'Código.js (extracto)' });
+  vm.runInContext(CANDADO_ + ['s_', 'celdaTexto_', 'json_'].map(n => linea(COD, n)).join('\n') + '\n' + ['doPost', 'doGet', 'waEnviar_', 'hosp_'].map(n => sacar(COD, n)).join('\n'), ctx, { filename: 'Código.js (extracto)' });
   vm.runInContext(sacar(leer('agente.js'), 'correoSimple_'), ctx, { filename: 'agente.js (extracto)' });
   vm.runInContext(leer('enlaces.js'), ctx, { filename: 'enlaces.js' });
   vm.runInContext(leer('salidahuesped.js'), ctx, { filename: 'salidahuesped.js' });

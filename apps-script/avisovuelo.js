@@ -27,13 +27,13 @@ var AVL_AL_CAMPOS_ = 'flight_iata,cs_flight_iata,dep_iata,dep_time,dep_time_utc,
 /* ── La Propiedad (con candado: la herramienta y la vuelta de cada minuto la escriben) ── */
 function avlLeer_() { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty(AVL_PROP_) || '{}') || {}; } catch (e) { return {}; } }
 function avlCambiar_(id, fn) {
-  var lock = LockService.getScriptLock(); lock.waitLock(10000);
+  var soltar = candadoTomar_(10000, { lanzar: true });
   try {
     var p = PropertiesService.getScriptProperties(), todo = avlLeer_(), x = fn(todo[id] || null);
     if (x) todo[id] = x; else delete todo[id];
     if (Object.keys(todo).length) p.setProperty(AVL_PROP_, JSON.stringify(todo)); else p.deleteProperty(AVL_PROP_);
     return x;
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
 }
 function avlNorm_(x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim(); }
 /* Las llegadas que se avisan: el último tramo de cada trayecto (las conexiones no). */

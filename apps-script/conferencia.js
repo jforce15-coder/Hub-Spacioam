@@ -30,7 +30,7 @@ function conferencia_(ses, b) {
   var adm = vozWebAdmin_(ses); if (!adm) return { ok: false, error: 'usuario' };
   var id = String(b.id || '').replace(/[^\w-]/g, '').slice(0, 40); if (!id) return { ok: false, error: 'Falta el id.' };
   var texto = String(b.texto || '').trim(), ahora = new Date().toISOString(), antes = 0;
-  var lock = LockService.getScriptLock(); lock.waitLock(10000);
+  var soltar = candadoTomar_(10000, { lanzar: true });
   var c;
   try {
     var sh = hojaConf_(); c = confFila_(id);
@@ -44,7 +44,7 @@ function conferencia_(ses, b) {
       sh.getRange(c.fila, CONF_CAB_.indexOf('actualizado') + 1).setValue(ahora);
       c.texto = junto.slice(-CONF_MAX_);
     }
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
   /* ¿Una persona o varias? Se decide con los primeros ~500 caracteres y se revisa cada ~3.000 mientras siga en dictado. */
   var modo = String(c && c.modo || '');
   if (c && c.estado === 'abierta' && modo !== 'reunion') {

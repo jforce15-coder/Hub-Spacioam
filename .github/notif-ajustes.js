@@ -48,7 +48,7 @@ function caja(o) {
     sinEmoji_: s => String(s || ''), s_: x => (x == null ? '' : String(x)), logPush_: (...a) => logs.push(a)
   };
   vm.createContext(ctx);
-  ['avisotexto.js', 'calle.js', 'voz.js', 'orbita.js', 'pendientes.js', 'almaabre.js', 'notifajustes.js', 'anillo.js'].forEach(f => vm.runInContext(leer(f), ctx, { filename: f }));
+  ['candado.js', 'avisotexto.js', 'calle.js', 'voz.js', 'orbita.js', 'pendientes.js', 'almaabre.js', 'notifajustes.js', 'anillo.js'].forEach(f => vm.runInContext(leer(f), ctx, { filename: f }));
   /* pushA_ y pushNuevo_, sacadas de Código.js tal cual */
   const COD = leer('Código.js');
   const sacar = n => { const m = new RegExp('\\nfunction ' + n + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}').exec(COD); if (!m) throw new Error('no encontré ' + n + ' en Código.js'); return m[0]; };

@@ -109,7 +109,7 @@ function claudioAccCrear_(adm, lista, o) {
   if (!ls.length) return { ok: false, error: 'Ninguna acción sirve (falta el título, el enlace https, las opciones o pedía una llave en el chat).', creadas: [] };
   var micro = String(o.micro || '').replace(/^mp:/, '').slice(0, 60), conv = String(o.conv || '').trim();
   if (!/^conv_[\w-]{4,80}$/.test(conv)) conv = '';
-  var sh = claudioAccHoja_(), lock = LockService.getScriptLock(); lock.waitLock(20000);
+  var sh = claudioAccHoja_(), soltar = candadoTomar_(20000, { lanzar: true });
   var creadas = [];
   try {
     var ya = claudioAccFilas_(sh).filter(function (x) { return x.email === adm.email && x.estado === 'pendiente'; });
@@ -123,7 +123,7 @@ function claudioAccCrear_(adm, lista, o) {
       sh.appendRow([id, adm.email, ahora + i, a.tipo, a.titulo, a.detalle, JSON.stringify(a.datos), 'pendiente', '', '', micro, conv, String(o.origen || '').slice(0, 30)]);
       creadas.push(id);
     });
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
   return { ok: true, creadas: creadas, pendientes: claudioAccPendientes_(adm.email).length };
 }
 function claudioAccDe_(r, fila) {

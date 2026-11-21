@@ -8,6 +8,7 @@
    node .github/sesion-sin-cupo.js [carpeta raíz del repo] */
 const fs = require('fs'), path = require('path'), vm = require('vm'), crypto = require('crypto');
 const RAIZ = process.argv[2] || path.join(__dirname, '..');
+const CANDADO_ = fs.readFileSync(path.join(path.join(RAIZ, 'apps-script'), 'candado.js'), 'utf8') + '\n';   // el candado único (apps-script/candado.js)
 let fallo = 0; const ok = (c, m) => { if (c) console.log('✓ ' + m); else { console.log('::error::' + m); fallo = 1; } };
 const GOOGLE = 'Exception: Service invoked too many times for one day: urlfetch.';
 const sacar = (src, nombre) => { const m = new RegExp('\\nfunction ' + nombre + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}').exec(src); if (!m) throw new Error('no encontré ' + nombre); return m[0]; };
@@ -39,7 +40,7 @@ const b64u = x => Buffer.from(x).toString('base64').replace(/=+$/, '').replace(/
     uf_: () => { llamadas++; throw new Error(GOOGLE); }, cupoAgotado_: () => true
   };
   vm.createContext(ctx);
-  vm.runInContext('const LOGIN_URL_ = "https://login";' + sacar(SRC, 'sesionLogin_') + sacar(SRC, 'sesionLoginRemota_') + sacar(SRC, 'sesionLocal_'), ctx);
+  vm.runInContext(CANDADO_ + 'const LOGIN_URL_ = "https://login";' + sacar(SRC, 'sesionLogin_') + sacar(SRC, 'sesionLoginRemota_') + sacar(SRC, 'sesionLocal_'), ctx);
   const firmar = (d, sec) => { const c = b64u(JSON.stringify(d)); return c + '.' + b64u(crypto.createHmac('sha256', sec).update(c).digest()); };
   const prof = { email: 'juan@prueba.test', nombre: 'Juan', apps: { hub: 'admin_principal' } };
   const vale = firmar({ e: prof.email, n: 'Juan', apps: prof.apps, p: prof, iat: Date.now(), exp: Date.now() + 864e5 }, SECRETO);

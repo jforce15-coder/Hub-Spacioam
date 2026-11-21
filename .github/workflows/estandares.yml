@@ -60,6 +60,10 @@ jobs:
         # 17-nov-2026: Juan pidió ordenar Ajustes al estilo de iOS, a pantalla completa en iPhone y iPad, y una sección Wearables.
         run: node .github/ajustes-pantalla.js .
 
+      - name: Candado único, nadie suelta el candado de otro (solo candado.js toca releaseLock, waitLock y tryLock) (dobles)
+        # 21-nov-2026: una función llamada a media pasada soltó el candado de la cola y un huésped recibió el mismo mensaje dos veces (#959).
+        run: node .github/candado-unico.js apps-script
+
       - name: La copia de Epi se guarda en trozos y responde al instante sin reintentos (dobles)
         # 17-nov-2026: Juan vio lentitud y «urlfetch/error interno» en las consultas de limpieza; la copia ya no cabía en la caché.
         run: node .github/epi-copia.js apps-script

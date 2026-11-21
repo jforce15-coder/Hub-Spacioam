@@ -15,6 +15,7 @@
    node .github/consultas-atrasadas.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
+const CANDADO_ = fs.readFileSync(path.join(DIR, 'candado.js'), 'utf8') + '\n';   // el candado único (apps-script/candado.js)
 let fallo = 0; const ok = (c, m) => { if (c) console.log('✓ ' + m); else { console.log('::error::' + m); fallo = 1; } };
 const leer = f => fs.readFileSync(path.join(DIR, f), 'utf8');
 const COD = leer('Código.js'), SAL = leer('salidahuesped.js'), COLA = leer('colareproceso.js'), RF = leer('respuestafija.js'), PROM = leer('promesas.js');
@@ -36,7 +37,7 @@ function cacheMem() { const m = {}; return { m, get: k => (k in m ? m[k] : null)
     uf_: (url, opt) => { llamadas.push(JSON.parse(opt.payload || '{}').body); const c = respuesta; return { getResponseCode: () => c, getContentText: () => '{}', getHeaders: () => ({}) }; }
   });
   HEAD.forEach((h, i) => { ctx.C[h] = i; });
-  vm.createContext(ctx); vm.runInContext(SAL + '\n' + sacar(COD, 'hosp_'), ctx);
+  vm.createContext(ctx); vm.runInContext(CANDADO_ + SAL + '\n' + sacar(COD, 'hosp_'), ctx);
   const T = 'Hola, Persona.\n\nEl apartamento está en el piso 4 del edificio.';
   const a = ctx.hosp_('post', '/reservations/inq:q-1/messages', { body: T });
   const b = ctx.hosp_('post', '/inquiries/q-1/messages', { body: T });
@@ -63,7 +64,7 @@ function cacheMem() { const m = {}; return { m, get: k => (k in m ? m[k] : null)
     set_: (sh, f, c) => { Object.keys(c).forEach(k => { f.v[ctx.C[k]] = c[k]; }); (setsPor[f.fila] = setsPor[f.fila] || []).push(c); }
   });
   HEAD.forEach((h, i) => { ctx.C[h] = i; });
-  vm.createContext(ctx); vm.runInContext(COLA + '\n' + ['enviarPendiente_', 'reintentar_', 'protegido_'].map(n => sacar(COD, n)).join('\n'), ctx);
+  vm.createContext(ctx); vm.runInContext(CANDADO_ + COLA + '\n' + ['enviarPendiente_', 'reintentar_', 'protegido_'].map(n => sacar(COD, n)).join('\n'), ctx);
   const fila = (n, estado) => { const v = []; v[ctx.C.reservation_id] = 'inq:q-1'; v[ctx.C.estado] = estado; v[ctx.C.intentos] = 0;
     v[ctx.C.datos] = JSON.stringify({ resId: 'inq:q-1', borrador: 'Hola, Persona. Te cuento lo que preguntaste.', ultimoGuestAt: 'T1', nivel: 'VERDE' }); return { fila: n, v }; };
   const hoja = estadoReal => ({ getRange: () => ({ setValue() {}, getValue: () => estadoReal }) });
@@ -84,7 +85,7 @@ function cacheMem() { const m = {}; return { m, get: k => (k in m ? m[k] : null)
   ok(g.v[ctx.C.estado] === 'error' && /pudo haber salido/.test(g.v[ctx.C.nota]) && !reintento, '1. un fallo a medio envío va a «error» para revisar; no se reintenta solo');
   const nucleo = sacar(COD, 'procesarColaNucleo_');
   ok(/COLA_EN_CURSO/.test(nucleo) && /inicio - enCurso < 330000/.test(nucleo) && /deleteProperty\('COLA_EN_CURSO'\)/.test(nucleo), '1. procesarColaNucleo_ no arranca si otra pasada sigue viva aunque alguien soltara el candado');
-  ok(/yaTenia/.test(sacar(PROM, 'promesaRegistrar_')) && /if \(!yaTenia\) lock\.releaseLock\(\)/.test(PROM), '1. registrar una promesa a media pasada ya no suelta el candado de la cola');
+  ok(/candadoTomar_\(/.test(sacar(PROM, 'promesaRegistrar_')) && !/releaseLock/.test(sacar(PROM, 'promesaRegistrar_')), '1. registrar una promesa a media pasada ya no suelta el candado de la cola (candadoTomar_, candado.js; lo prueba .github/candado-unico.js)');
 }
 
 /* ── 2 y 3. Disculpa, piso, referencia y precio (respuestafija.js) ── */
@@ -121,7 +122,7 @@ vm.createContext(rf); vm.runInContext(RF, rf);
   ok(!/404|1-50|9A Calle/.test(lin), '3. la referencia no trae número de apartamento ni calle');
   ok(!/Piso: /.test(rf.fichaPublicaLineas_('Piso: Cuarto', 'Z10 - Edificio A - 404', null)), '3. si la ficha ya tiene el piso no se repite');
   /* aplicarSinConfirmar_ (reserva sin confirmar) conserva piso y referencia y quita el número de apartamento. */
-  const sc = Object.assign(base(), {}); vm.createContext(sc); vm.runInContext(sacar(COD, 'tokensPrivados_') + '\n' + sacar(COD, 'aplicarSinConfirmar_'), sc);
+  const sc = Object.assign(base(), {}); vm.createContext(sc); vm.runInContext(CANDADO_ + sacar(COD, 'tokensPrivados_') + '\n' + sacar(COD, 'aplicarSinConfirmar_'), sc);
   const c = { propiedad: 'Z10 - Edificio A - 404', apartamento: '404', propiedadInfo: 'Apartamento / unidad: 404' + lin };
   sc.aplicarSinConfirmar_(c);
   ok(/Piso: 4/.test(c.propiedadInfo) && /Referencia pública: /.test(c.propiedadInfo) && c.tokensPrivados.indexOf('404') >= 0 && c.tokensPrivados.indexOf('4') < 0, '3. sin confirmar: piso y referencia se quedan; el 404 sigue privado');
@@ -156,7 +157,7 @@ function promCaja(o) {
     hojaCrear_: () => hoja, inboxUpsert_() {}, decisionCrear_: () => { o.decisiones = (o.decisiones || 0) + 1; },
     claude_: () => { if (o.modeloCaido) throw new Error('sin red'); return JSON.stringify(o.respuesta || { promesa: true, que: 'Confirmar el precio exacto con el equipo', canal: 'plataforma', horas: 2 }); }
   });
-  vm.createContext(ctx); vm.runInContext(PROM, ctx);
+  vm.createContext(ctx); vm.runInContext(CANDADO_ + PROM, ctx);
   return { ctx, filas, o };
 }
 {
@@ -195,7 +196,7 @@ function promCaja(o) {
   });
   HEAD.forEach((h, i) => { ctx.C[h] = i; });
   ctx.set_ = (s, f, c) => Object.keys(c).forEach(k => { f.v[ctx.C[k]] = c[k]; s.getRange(f.fila, ctx.C[k] + 1).setValue(c[k]); });
-  vm.createContext(ctx); vm.runInContext(COLA, ctx);
+  vm.createContext(ctx); vm.runInContext(CANDADO_ + COLA, ctx);
   ok(!ctx.colaDescartar_({ filas: [1532] }).ok && filas[1531][6] === 'error', '5. sin motivo no hace nada');
   const r = ctx.colaDescartar_({ filas: [1532, 20], motivo: 'el huésped buscaba otra fecha' });
   ok(r.ok && r.filas[0].hecho && filas[1531][6] === 'descartado' && /el huésped buscaba otra fecha/.test(filas[1531][9]) && /envío HTTP 400/.test(filas[1531][9]), '5. la fila en error queda «descartado» con el motivo (y lo que decía antes)');

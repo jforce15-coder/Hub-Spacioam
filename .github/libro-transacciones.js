@@ -10,6 +10,7 @@
    node .github/libro-transacciones.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
+const CANDADO_ = fs.readFileSync(path.join(DIR, 'candado.js'), 'utf8') + '\n';   // el candado único (apps-script/candado.js)
 let fallo = 0; const ok = (c, m) => { if (c) console.log('✓ ' + m); else { console.log('::error::' + m); fallo = 1; } };
 const leer = f => fs.readFileSync(path.join(DIR, f), 'utf8');
 const LIBRO = leer('libro.js'), RMES = leer('reportemes.js'), AG = leer('agente.js'), COD = leer('Código.js');
@@ -38,7 +39,7 @@ function caja(o) {
     ahora_: () => new DateF(), esAdminPrincipal_: a => !!(a && a.principal), bqBuscar_: () => []
   };
   vm.createContext(ctx);
-  vm.runInContext(RMES + '\n' + LIBRO, ctx);
+  vm.runInContext(CANDADO_ + RMES + '\n' + LIBRO, ctx);
   ctx.rmesFilas_ = () => { lecturasMi.n++; return (o.mi || []).map(f => Object.assign({}, f)); };   // la lectura de Mi (con su caché) es de reportemes.js
   return { ctx, props, hojas, lecturasMi, mover: ms => { ahora += ms; } };
 }

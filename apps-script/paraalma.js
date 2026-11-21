@@ -78,14 +78,13 @@ function paraAlmaGuardarEstados_(est) {
 function paraAlmaMarcar_(num, nuevo, desde) {
   /* procesarCola tiene el candado toda su pasada: desde el aviso de GitHub se espera hasta 30 s (con 5 s el resultado se
      perdía en silencio), y si esta ejecución ya lo tiene (la pasada) no se suelta aquí. */
-  var lock = LockService.getScriptLock(), mio = !(typeof lock.hasLock === 'function' && lock.hasLock());
-  if (mio && !lock.tryLock(30000)) return false;
+  var soltar = candadoTomar_(30000); if (!soltar) return false;
   try {
     var est = paraAlmaEstados_(), ya = est[num];
     if (desde && desde.indexOf(ya ? ya.e : '') < 0) return false;
     nuevo.t = Date.now(); est[num] = nuevo; paraAlmaGuardarEstados_(est);
     return true;
-  } finally { if (mio) lock.releaseLock(); }
+  } finally { soltar(); }
 }
 
 /* Lo que sale a un issue público: sin correos, teléfonos ni códigos. */

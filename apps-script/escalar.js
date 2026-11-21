@@ -224,12 +224,12 @@ function escalarPublicacion_(e) {
 /* Hace lo que Juan pidió con el código nuevo y se lo entrega con el enlace. Reserva primero (dos pasadas a la vez). */
 function escalarEntregar_(e) {
   if (Date.now() - Number(e.pub_t || 0) < 60000) return 0;
-  var lock = LockService.getScriptLock(); if (!lock.tryLock(5000)) return 0;
+  var soltar = candadoTomar_(5000); if (!soltar) return 0;
   try {
     var hoy = escalarEntregas_().filter(function (x) { return x.id === e.id; })[0];
     if (!hoy || hoy.estado !== 'publicado') return 0;
     hoy.estado = 'entregando'; escalarGuardar_(hoy); e = hoy;
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
   var adm = adminPorEmail_(e.email); if (!adm) return 0;
   var canal = e.canal === 'whatsapp' ? 'whatsapp' : /^(llamada|calle|segundo_plano)$/.test(e.canal) ? 'segundo_plano' : 'hub';
   var pedido = 'Ya está publicado el cambio que hacía falta para lo que te pedí. Hazlo ahora con tus herramientas y dame el resultado completo: ' + e.para_entregar;

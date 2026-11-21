@@ -69,7 +69,7 @@ function caja() {
     CFG: { TZ: 'America/Guatemala' }
   };
   vm.createContext(ctx);
-  ['prometer.js', 'enviodirecto.js', 'voz.js', 'claudio.js'].forEach(f => vm.runInContext(leer(f), ctx, { filename: f }));
+  ['candado.js', 'prometer.js', 'enviodirecto.js', 'voz.js', 'claudio.js'].forEach(f => vm.runInContext(leer(f), ctx, { filename: f }));
   /* dobles de lo que vive en otros archivos */
   Object.assign(ctx, {
     normTel_: t => String(t || '').replace(/\D/g, ''), adminPorTel_: t => (t === '50255550000' ? { email: 'juan@x.test', nombre: 'Juan', principal: true } : null),

@@ -11,6 +11,7 @@
    node .github/pendientes-voz.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
+const CANDADO_ = fs.readFileSync(path.join(DIR, 'candado.js'), 'utf8') + '\n';   // el candado único (apps-script/candado.js)
 let fallo = 0; const ok = (c, m) => { if (c) console.log('✓ ' + m); else { console.log('::error::' + m); fallo = 1; } };
 
 const AHORA = Date.parse('2026-11-16T22:00:00Z'), H = 3600000;
@@ -26,7 +27,7 @@ function caja(lista) {
     adminsOp_: () => [jefe], pendResolverRet_: () => {}
   };
   vm.createContext(ctx);
-  vm.runInContext(fs.readFileSync(path.join(DIR, 'retomar.js'), 'utf8'), ctx);
+  vm.runInContext(CANDADO_ + fs.readFileSync(path.join(DIR, 'retomar.js'), 'utf8'), ctx);
   if (lista) props[ctx.retClave_(jefe)] = JSON.stringify(lista);
   return { X: ctx, props, jefe, locks };
 }

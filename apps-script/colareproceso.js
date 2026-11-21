@@ -93,7 +93,7 @@ function colaErrores_(body) {
 function colaReprocesar_(body) {
   var pedidas = (body && body.filas) || [], unIntento = ((body && body.un_intento) || []).map(Number);
   if (!pedidas.length) return { ok: false, error: 'faltan filas [{fila, message_id}] o [{message_id}]' };
-  var lock = LockService.getScriptLock(); try { lock.waitLock(20000); } catch (e) { return { ok: false, error: 'cola ocupada, repite' }; }
+  var soltar = candadoTomar_(20000); if (!soltar) { return { ok: false, error: 'cola ocupada, repite' }; }
   try {
     var sh = hoja_(CFG.TAB_COLA), out = [];
     var todas = colaFilasError_({ filas: pedidas.map(function (p) { return p.fila; }).filter(Boolean), cualquier_estado: true })
@@ -116,7 +116,7 @@ function colaReprocesar_(body) {
       props.setProperty('ALMA_ACTIVO', '1');
     }
     return { ok: true, filas: out };
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
 }
 
 /* ═══ Candado por fila al enviar (21-nov-2026, mensaje doble) ═══════════════════════════════════════════════════════════
@@ -140,7 +140,7 @@ function colaDescartar_(body) {
   var motivo = s_(body.motivo).trim().slice(0, 200);
   if (!nums.length) return { ok: false, error: 'faltan filas [n…]' };
   if (!motivo) return { ok: false, error: 'falta motivo' };
-  var lock = LockService.getScriptLock(); try { lock.waitLock(20000); } catch (e) { return { ok: false, error: 'cola ocupada, repite' }; }
+  var soltar = candadoTomar_(20000); if (!soltar) { return { ok: false, error: 'cola ocupada, repite' }; }
   try {
     var sh = hoja_(CFG.TAB_COLA), todas = colaFilasError_({ filas: nums, cualquier_estado: true }), out = [], ts = new Date().toISOString();
     nums.forEach(function (n) {
@@ -156,5 +156,5 @@ function colaDescartar_(body) {
       out.push({ fila: n, hecho: true });
     });
     return { ok: true, filas: out };
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
 }

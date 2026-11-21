@@ -30,8 +30,8 @@ function waEntregaGuardar_(st) {
   var est = String(st.status || ''), ts = Number(st.timestamp || 0) * 1000 || Date.now(), k = fin8_(wa);
   /* Candado aparte (de usuario): el de script lo tiene la cola de huéspedes mucho rato y el estado se perdía (tryLock
      fallaba y se salía): Alma nunca veía «enviado». Si ni este se consigue, se guarda igual: un estado vale más. */
-  var lock = LockService.getUserLock(), tengo = false; try { tengo = lock.tryLock(4000); } catch (e) {}
-  if (!tengo) console.warn('waEntregaGuardar_ sin candado: ' + k);
+  var soltar = candadoTomar_(4000, { usuario: true });
+  if (!soltar) console.warn('waEntregaGuardar_ sin candado: ' + k);
   try {
     var p = PropertiesService.getScriptProperties(), m = waEntregaMapa_(), prev = m[k];
     var nuevo = !prev || ts > prev.ts + 1000 || (prev.id === st.id && (est === 'failed' || (ENTREGA_ORDEN_[est] || 0) > (ENTREGA_ORDEN_[prev.estado] || 0)));
@@ -39,7 +39,7 @@ function waEntregaGuardar_(st) {
     m[k] = { wa: wa, id: s_(st.id), estado: est, ts: ts, motivo: est === 'failed' ? waEntregaMotivo_(st.errors, wa) : '' };
     var ks = Object.keys(m); if (ks.length > 300) ks.sort(function (a, b) { return m[a].ts - m[b].ts; }).slice(0, ks.length - 300).forEach(function (x) { delete m[x]; });
     p.setProperty('WA_ENTREGA', JSON.stringify(m));
-  } finally { if (tengo) lock.releaseLock(); }
+  } finally { if (soltar) soltar(); }
   if (est === 'failed') {
     /* 131047 (pasaron las 24 h): no se avisa como fallo; se manda la plantilla y el mensaje sale cuando responda.
        131049 a un +1 (Meta lo trató como marketing): un reintento con la plantilla que sí le llega (masuno.js, #497). */

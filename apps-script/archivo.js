@@ -30,7 +30,7 @@ function archivoFecha_(v) {
 }
 /* seco = true: solo cuenta lo que se movería. */
 function archivar_(seco) {
-  var lock = LockService.getScriptLock(); if (!lock.tryLock(20000)) return { ok: false, error: 'ocupado' };
+  var soltar = candadoTomar_(20000); if (!soltar) return { ok: false, error: 'ocupado' };
   var out = { ok: true, seco: !!seco, tablas: {} };
   try {
     var ahora = Date.now();
@@ -56,7 +56,7 @@ function archivar_(seco) {
       var sobra = sh.getMaxRows() - quedan.length; if (sobra > 500) sh.deleteRows(quedan.length + 200, sobra - 200);
     });
     if (!seco) { PropertiesService.getScriptProperties().setProperty('ARCHIVO_ULT', new Date().toISOString()); try { CacheService.getScriptCache().removeAll(['op_admins2']); } catch (e) {} }
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
   return out;
 }
 /* Una vez al día, de madrugada en Guatemala (solo si ARCHIVO_AUTO = 1). */

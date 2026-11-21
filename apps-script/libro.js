@@ -56,9 +56,9 @@ function libroFilas_() {
 }
 function libroAgregar_(filas) {
   if (!filas.length) return;
-  var lk = LockService.getScriptLock(); try { lk.waitLock(10000); } catch (x) {}
+  var soltar = candadoTomar_(10000) || function () {};
   try { var sh = libroHoja_(); sh.getRange(sh.getLastRow() + 1, 1, filas.length, LIBRO_CAB_.length).setValues(filas); }
-  finally { try { lk.releaseLock(); } catch (x) {} }
+  finally { soltar(); }
 }
 
 /* Una fila manual. inp: { concepto, costo, moneda, proveedor, propiedad, cliente, tipo_cliente, tipo_comision, comision, precio_cliente, fecha, comprobante, nota }. */

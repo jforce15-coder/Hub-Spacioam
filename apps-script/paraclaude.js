@@ -189,7 +189,7 @@ function paraClaudeNotaFallo_(disparo, issue) {
 function paraClaudeReintentar_() {
   var p = PropertiesService.getScriptProperties(), out = { ok: true, enviados: [], sin_cupo: false, dejados: [] };
   if (!p.getProperty('CLAUDE_RUTINA_TOKEN')) return out;
-  var lock = LockService.getScriptLock(); if (!lock.tryLock(1000)) return out;
+  var soltar = candadoTomar_(1000); if (!soltar) return out;
   try {
     var sh = paraClaudeHoja_(), n = sh.getLastRow(); if (n < 2) return out;
     var C = {}; PARA_CLAUDE_CAB_.forEach(function (k, i) { C[k] = i; });
@@ -227,7 +227,7 @@ function paraClaudeReintentar_() {
     }
     Object.keys(reg).forEach(function (k) { if (!(Number(k.replace(/^pc/, '')) > desde)) delete reg[k]; });
     p.setProperty('PC_REINTENTOS', JSON.stringify(reg));
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
   if (out.enviados.length) console.log('paraClaudeReintentar_: reenviados ' + out.enviados.join(', '));
   return out;
 }
@@ -338,7 +338,7 @@ function paraClaudeRespuesta_(b) {
   b = b || {};
   var sh = ssAlma_().getSheetByName('ALMA_PARA_CLAUDE'); if (!sh || sh.getLastRow() < 2 || !b.id || !b.llave) return { ok: false, error: 'pedido' };
   sh = paraClaudeHoja_();   // con la columna «chat» (las filas viejas la tienen vacía)
-  var lock = LockService.getScriptLock(); lock.waitLock(20000);
+  var soltar = candadoTomar_(20000, { lanzar: true });
   try {
     var v = sh.getRange(2, 1, sh.getLastRow() - 1, PARA_CLAUDE_CAB_.length).getValues(), i = -1;
     for (var k = 0; k < v.length; k++) if (String(v[k][0]) === String(b.id)) { i = k; break; }
@@ -374,7 +374,7 @@ function paraClaudeRespuesta_(b) {
     opGuardar_(dest, 'alma', 'claude', paraClaudeFecha_() + ' · ' + texto, [], CHAT_DESARROLLO_);
     if (esc !== 'unir') paraClaudeAvisar_(titulo, voz || cuerpoR.slice(0, 200), estado === 'listo' && !conPr ? 'consulta' : estado, String(v[i][15] || ''));
     return { ok: true };
-  } finally { lock.releaseLock(); eqDesarrolloSuave_(); }   // el estado de Desarrollo, al día (equipos.js)
+  } finally { soltar(); eqDesarrolloSuave_(); }   // el estado de Desarrollo, al día (equipos.js)
 }
 /* Fecha legible en hora de Guatemala, ej. «28 Oct 2026». */
 function paraClaudeFecha_() {
@@ -452,7 +452,7 @@ function accionesHoja_() {
 function accionCrear_(titulo, instruccion, enlace, origen) {
   titulo = String(titulo || '').trim().slice(0, 120); if (!titulo) return { ok: false, error: 'titulo' };
   enlace = /^https:\/\//.test(String(enlace || '')) ? String(enlace).slice(0, 500) : '';
-  var sh = accionesHoja_(), lock = LockService.getScriptLock(); lock.waitLock(20000);
+  var sh = accionesHoja_(), soltar = candadoTomar_(20000, { lanzar: true });
   try {
     if (enlace && sh.getLastRow() > 1) {
       var v = sh.getRange(2, 1, sh.getLastRow() - 1, ACCIONES_CAB_.length).getValues();
@@ -461,7 +461,7 @@ function accionCrear_(titulo, instruccion, enlace, origen) {
     var id = 'ac' + Date.now();
     sh.appendRow([id, Utilities.formatDate(new Date(), CFG.TZ, 'yyyy-MM-dd HH:mm'), titulo, String(instruccion || '').trim().slice(0, 2000), enlace, 'pendiente', String(origen || '').slice(0, 60)]);
     return { ok: true, id: id };
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
 }
 /* ¿El PR de GitHub ya se unió o se cerró? true/false, o null si no se pudo saber. Repos públicos o con GITHUB_TOKEN. */
 function accionPrCerrado_(enlace) {

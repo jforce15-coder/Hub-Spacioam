@@ -59,7 +59,7 @@ function progProximo_() {
 function progProcesar_() {
   var prox = Number(PropertiesService.getScriptProperties().getProperty('PROG_PROX') || 0);
   if (!prox || prox > Date.now()) return;
-  var lock = LockService.getScriptLock(); if (!lock.tryLock(5000)) return;
+  var soltar = candadoTomar_(5000); if (!soltar) return;
   try {
     var sh = hojaWaProg_(), n = sh.getLastRow(); if (n < 2) return;
     var v = sh.getRange(2, 1, n - 1, WAPROG_CAB_.length).getValues();
@@ -81,5 +81,5 @@ function progProcesar_() {
         if (!enPend && !res.ok && adm.tels && adm.tels[0]) { try { waEnviar_(adm.tels[0], aviso); } catch (e) {} }
       }
     });
-  } finally { try { progProximo_(); } catch (e) {} lock.releaseLock(); }
+  } finally { try { progProximo_(); } catch (e) {} soltar(); }
 }

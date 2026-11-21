@@ -49,9 +49,9 @@ function pruebasInicio_(ses, b) {
     filas.push([new Date(t).toISOString(), String(e.que), vozCaidaLimpiar_(e.det).slice(0, 120), Math.round(Number(e.ms) || 0), v.id || '']);
   });
   if (filas.length) {
-    var lk = LockService.getScriptLock(); try { lk.waitLock(10000); } catch (x) {}
+    var soltar = candadoTomar_(10000) || function () {};
     try { var sh = hojaCrear_(PRUEBAS_HOJA_, PRUEBAS_CAB_); sh.getRange(sh.getLastRow() + 1, 1, filas.length, PRUEBAS_CAB_.length).setValues(filas); }
-    finally { try { lk.releaseLock(); } catch (x) {} }
+    finally { soltar(); }
   }
   return { ok: true, activo: true, hasta: v.hasta, anotados: filas.length };
 }

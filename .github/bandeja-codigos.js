@@ -13,6 +13,7 @@
    node .github/bandeja-codigos.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
+const CANDADO_ = fs.readFileSync(path.join(DIR, 'candado.js'), 'utf8') + '\n';   // el candado único (apps-script/candado.js)
 let fallo = 0; const ok = (c, m) => { if (c) console.log('✓ ' + m); else { console.log('::error::' + m); fallo = 1; } };
 const leer = (f) => fs.readFileSync(path.join(DIR, f), 'utf8');
 const COD = leer('Código.js');
@@ -91,7 +92,7 @@ function caja(opc) {
     }
   };
   vm.createContext(ctx);
-  vm.runInContext([linea(/const INBOX_CAB_ = \[[^\]]*\];/), linea(/const HITOS_CAB_ = \[[^\]]*\];/), linea(/const fecha10_ = [^\n]*/)].join('\n'), ctx, { filename: 'Código.js (constantes)' });
+  vm.runInContext(CANDADO_ + [linea(/const INBOX_CAB_ = \[[^\]]*\];/), linea(/const HITOS_CAB_ = \[[^\]]*\];/), linea(/const fecha10_ = [^\n]*/)].join('\n'), ctx, { filename: 'Código.js (constantes)' });
   vm.runInContext(['hosp_', 'preContexto_', 'convId_', 'recordarConv_', 'vincularReserva_', 'reservaDeConsulta_', 'canalPlat_', 'tsMs_', 'autoResuelve_', 'inboxUpsert_', 'inboxDesdeWebhook_', 'snapReserva_', 'reservaCambio_'].map(sacar).join('\n'), ctx, { filename: 'Código.js (extracto)' });
   vm.runInContext(leer('bandejareserva.js'), ctx, { filename: 'bandejareserva.js' });
   const inbox = hoja('ALMA_INBOX', ctx.INBOX_CAB_.slice(), (opc.inbox || []).map(CAB_FILA));

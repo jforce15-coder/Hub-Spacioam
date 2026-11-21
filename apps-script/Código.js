@@ -264,7 +264,7 @@ function vincularReserva_(cid, resId, res) {
   const inqU = vGet_('cinq_' + cid) || cid;
   if (inqU === resId) return;
   const viejos = ['inq:' + inqU].concat(inqU !== cid ? ['inq:' + cid] : []);
-  const lock = LockService.getScriptLock(); try { lock.waitLock(10000); } catch (e) { return; }
+  const soltar = candadoTomar_(10000); if (!soltar) { return; }
   let movida = false;   // solo la fila que venía de la consulta se completa aquí; las demás, con su aviso (reservaCambio_)
   try {
     const ss = ssAlma_(), sh = ss.getSheetByName('ALMA_INBOX');
@@ -289,7 +289,7 @@ function vincularReserva_(cid, resId, res) {
       ['reservation_id', 'conv_id', 'res_key'].forEach(h => { const c = cab.indexOf(h); if (c < 0) return; const rg = s2.getRange(2, c + 1, s2.getLastRow() - 1, 1); viejos.forEach(old => { try { rg.createTextFinder(old).matchEntireCell(true).replaceAllWith(resId); } catch (e) {} }); });
     });
     vSet_('cres_' + cid, resId); vSet_('inqres_' + inqU, resId); if (inqU !== cid) vSet_('inqres_' + cid, resId);   // con el candado: vSet_ no lo suelta
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
   try { CacheService.getScriptCache().removeAll(['pre2_' + resId, 'hf_' + resId, 'hr_' + resId].concat(viejos.map(x => 'hf_' + x), viejos.map(x => 'pre2_' + x))); } catch (e) {}
   if (movida) { try { bandejaReservaCompletar_(resId, res); } catch (e) { console.error('bandejaReservaCompletar_: ' + e); } }
 }
@@ -457,7 +457,7 @@ function idiomaDe_(t) {
 function inboxUpsert_(convId, o) {
   if (!convId) return;
   if (typeof vozLecturaOlvidarBandeja_ === 'function') vozLecturaOlvidarBandeja_();   // la copia de la bandeja del turno de voz ya no vale (vozlectura.js)
-  const lock = LockService.getScriptLock(); try { lock.waitLock(8000); } catch (e) { return; }
+  const soltar = candadoTomar_(8000); if (!soltar) { return; }
   try {
     const sh = hojaInbox_(), n = sh.getLastRow();
     let fila = 0;
@@ -490,7 +490,7 @@ function inboxUpsert_(convId, o) {
     cur.conv_id = convId; cur.actualizado = new Date().toISOString();
     const row = INBOX_CAB_.map(k => cur[k] instanceof Date ? cur[k].toISOString() : cur[k]);
     if (fila) sh.getRange(fila, 1, 1, row.length).setValues([row]); else sh.appendRow(row);
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
 }
 /* ── Revisión de "sin respuesta" ──
    Una conversación queda "sin respuesta" cuando el último mensaje es del huésped. A los REVISAR_SIN_RESP_MIN minutos
@@ -534,14 +534,14 @@ function revisarSinRespuesta_() {
   });
 }
 function escribirRevisionSR_(fila, id, ug, requiere, razon) {
-  const lock = LockService.getScriptLock(); try { lock.waitLock(8000); } catch (e) { return; }
+  const soltar = candadoTomar_(8000); if (!soltar) { return; }
   try {
     const sh = hojaInbox_(), ix = k => INBOX_CAB_.indexOf(k), row = sh.getRange(fila, 1, 1, INBOX_CAB_.length).getValues()[0];
     if (String(row[ix('conv_id')]) !== id) return;                                             // la fila se movió
     if ((tsMs_(row[ix('ultimo_guest_ts')]) || tsMs_(row[ix('ultimo_ts')])) !== ug) return;     // entró un mensaje nuevo
     const iso = new Date(ug).toISOString();
     sh.getRange(fila, ix('revisado_ts') + 1, 1, 3).setValues([[iso, requiere ? '' : iso, requiere ? '' : razon]]);
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
 }
 /* La API pública de Hospitable no expone el historial de una consulta (solo enviar). Cada mensaje que llega por
    webhook se guarda aquí; el hub arma el hilo con esto + la cola + el log. */
@@ -847,14 +847,14 @@ function procesarColaNucleo_() {
   const props = PropertiesService.getScriptProperties();
   if (props.getProperty('ALMA_ACTIVO') !== '1') { limpiezaDiaria_(); return; }
 
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(2000)) return;
+  const soltar = candadoTomar_(2000);
+  if (!soltar) return;
   const inicio = Date.now();
   /* 21-nov-2026 (mensaje doble): una función que se llama a media pasada (registrar una promesa, un pendiente…) puede
      soltar este mismo candado sin querer y dejar entrar otra pasada que manda la misma fila. La marca COLA_EN_CURSO dice
      que ya hay una pasada viva (una ejecución de Apps Script dura 6 min como mucho). */
   const enCurso = Number(props.getProperty('COLA_EN_CURSO') || 0);
-  if (enCurso && inicio - enCurso < 330000) { lock.releaseLock(); return; }
+  if (enCurso && inicio - enCurso < 330000) { soltar(); return; }
   props.setProperty('COLA_EN_CURSO', String(inicio));
   try {
     const sh = hoja_(CFG.TAB_COLA);
@@ -927,7 +927,7 @@ function procesarColaNucleo_() {
     if (!vivos && !postReciente) props.setProperty('ALMA_ACTIVO', '0');
   } finally {
     try { if (props.getProperty('COLA_EN_CURSO') === String(inicio)) props.deleteProperty('COLA_EN_CURSO'); } catch (e) {}
-    lock.releaseLock();
+    soltar();
   }
 }
 
@@ -2146,7 +2146,7 @@ function extraerFactura_(txt) {
 function registrarFactura_(c) {
   const fac = c && c.factura; if (!fac) return;
   try {
-    const lock = LockService.getScriptLock(); lock.waitLock(10000);
+    const soltar = candadoTomar_(10000, { lanzar: true });
     try {
       const ss = ssWebapp_();
       let sh = ss.getSheets().find(x => /^facturas?$/i.test(String(x.getName()).trim()));
@@ -2174,7 +2174,7 @@ function registrarFactura_(c) {
       put('estado', pend); put('origen', 'ALMA · ' + (c.canal === 'whatsapp' ? 'WhatsApp' : 'Hospitable'));
       sh.appendRow(fila);
       log_(c, '', 'FACTURA registrada como pendiente · NIT ' + String(fac.nit).trim());
-    } finally { lock.releaseLock(); }
+    } finally { soltar(); }
   } catch (e) { console.error('registrarFactura_: ' + e); }
 }
 function extraerSeguimiento_(txt) {
@@ -5673,7 +5673,7 @@ function opWaProcesar_() {
 function opEjecutar_(adm, acciones, cfg, props) {
   const out = [], hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), ymd = x => /^\d{4}-\d{2}-\d{2}$/.test(String(x || '')) ? String(x) : '';
   let tareas = cfg.tareas.slice(), schedules = cfg.schedules.slice(), cambT = false, cambS = false;
-  const lock = LockService.getScriptLock(); try { lock.waitLock(20000); } catch (e) {}
+  const soltar = candadoTomar_(20000) || function () {};
   try {
     acciones.slice(0, 8).forEach(a => {
       const t = String(a && a.tipo || '');
@@ -5706,7 +5706,7 @@ function opEjecutar_(adm, acciones, cfg, props) {
       if (cambS) { const nuevos = schedules.filter(x => !cfg.schedules.some(y => y && y.id === x.id));
         try { epiPost_('saveConfig', { key: 'schedules', value: fresco.schedules.concat(nuevos) }); } catch (e) { out.forEach(o => { if (o.tipo === 'epi') o.error = String(e.message || e); }); } }
     }
-  } finally { try { lock.releaseLock(); } catch (e) {} }
+  } finally { soltar(); }
   return out;
 }
 /* opHilo, opEnviar y opLista viven en chat.js (chatHilo_, chatEnviar_, chatLista_): toman a la persona de la sesión. */
@@ -5770,7 +5770,7 @@ function dsPropuestas_() {
 function dsDecidir_(id, decision, nota, quien) {
   decision = String(decision || '').toLowerCase().trim();
   if (DS_DECISIONES_.indexOf(decision) < 0) return { ok: false, error: 'decision' };
-  const lock = LockService.getScriptLock(); lock.waitLock(10000);
+  const soltar = candadoTomar_(10000, { lanzar: true });
   try {
     const h = dsHoja_(), f = dsFilas_().find(r => String(r.id) === String(id));
     if (!f) return { ok: false, error: 'no existe' };
@@ -5779,7 +5779,7 @@ function dsDecidir_(id, decision, nota, quien) {
     set('estado', 'decidida'); set('decision', decision); set('nota', String(nota || '').slice(0, 2000));
     set('quien', String(quien || '').slice(0, 200)); set('decidido_en', new Date());
     return { ok: true };
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
 }
 
 /* Tarea programada · publicar propuestas, leer decisiones y marcarlas como aplicadas. */
@@ -5906,7 +5906,7 @@ function dsBotApi_(body) {
   }
 }
 function dsPublicar_(lista) {
-  const lock = LockService.getScriptLock(); lock.waitLock(10000);
+  const soltar = candadoTomar_(10000, { lanzar: true });
   try {
     const h = dsHoja_(), ya = {};
     dsFilas_().forEach(r => ya[String(r.id)] = r);
@@ -5929,7 +5929,7 @@ function dsPublicar_(lista) {
     });
     if (nuevas.length) h.sh.getRange(h.sh.getLastRow() + 1, 1, nuevas.length, DS_CAB_.length).setValues(nuevas);
     return { ok: true, nuevas: nuevas.length, errores: errores };
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
 }
 function dsAplicada_(id, resultado) {
   const h = dsHoja_(), f = dsFilas_().find(r => String(r.id) === String(id));
@@ -5976,8 +5976,8 @@ function vGet_(k) {
 function vSet_(k, v) {
   k = String(k || ''); v = String(v === undefined || v === null ? '' : v); if (!k) return;
   if (VINC_.mapa && VINC_.mapa[k] === v) return;
-  const lock = LockService.getScriptLock(), yaTenia = lock.hasLock();   // si quien llama ya tiene el lock, no se suelta aquí
-  if (!yaTenia) { try { lock.waitLock(10000); } catch (e) { console.warn('vSet_ sin lock: ' + k); return; } }
+  const soltar = candadoTomar_(10000);   // si quien llama ya tiene el candado, no se toma ni se suelta aquí (candado.js)
+  if (!soltar) { console.warn('vSet_ sin lock: ' + k); return; }
   try {
     VINC_.mapa = null; vincCargar_();                     // relee dentro del lock por si otra ejecución escribió
     if (VINC_.mapa[k] === v) return;
@@ -5985,7 +5985,7 @@ function vSet_(k, v) {
     if (VINC_.filas[k]) sh.getRange(VINC_.filas[k], 2, 1, 2).setValues([[v, new Date()]]);
     else { sh.appendRow([k, v, new Date()]); VINC_.filas[k] = sh.getLastRow(); }
     VINC_.mapa[k] = v;
-  } finally { if (!yaTenia) lock.releaseLock(); }
+  } finally { soltar(); }
   try { CacheService.getScriptCache().put('v_' + k, v, 21600); } catch (e) {}
 }
 
@@ -5994,7 +5994,7 @@ function vSet_(k, v) {
 function migrarVinculos() {
   const props = PropertiesService.getScriptProperties(), todas = props.getProperties();
   const claves = Object.keys(todas).filter(k => VINC_PREFIJOS_.some(p => k.indexOf(p) === 0));
-  const lock = LockService.getScriptLock(); lock.waitLock(30000);
+  const soltar = candadoTomar_(30000, { lanzar: true });
   let nuevas = 0;
   try {
     VINC_.mapa = null; vincCargar_();
@@ -6002,7 +6002,7 @@ function migrarVinculos() {
     claves.forEach(k => { if (!(k in VINC_.mapa)) { filas.push([k, String(todas[k]), new Date()]); VINC_.mapa[k] = String(todas[k]); } });
     if (filas.length) sh.getRange(sh.getLastRow() + 1, 1, filas.length, 3).setValues(filas);
     nuevas = filas.length;
-  } finally { lock.releaseLock(); }
+  } finally { soltar(); }
   SpreadsheetApp.flush();
   claves.forEach(k => { try { props.deleteProperty(k); } catch (e) {} });
   const resto = Object.keys(props.getProperties()), quedan = resto.length;
@@ -6025,14 +6025,14 @@ function sesionLogin_(session) {
   let hit = cache.get(k);
   if (hit) { try { return hit === '-' ? null : JSON.parse(hit); } catch (e) {} }
   /* Al abrir el Hub salen muchas llamadas a la vez: solo la primera consulta al login, las demás esperan su resultado. */
-  const lock = LockService.getUserLock(), conLock = !lock.hasLock() && lock.tryLock(15000);   // lock aparte: no bloquea a ALMA
+  const soltar = candadoTomar_(15000, { usuario: true }) || function () {};   // candado aparte (del usuario): no bloquea a ALMA
   try {
     hit = cache.get(k);
     if (hit) { try { return hit === '-' ? null : JSON.parse(hit); } catch (e) {} }
     /* Google ya cortó las llamadas a internet por hoy (cupo.js): primero la firma aquí, sin gastar una llamada que va a fallar. */
     if (typeof cupoAgotado_ === 'function' && cupoAgotado_()) { const loc = sesionLocal_(session); if (loc) { cache.put(k, JSON.stringify(loc), 600); return loc; } }
     return sesionLoginRemota_(session, k);
-  } finally { if (conLock) lock.releaseLock(); }
+  } finally { soltar(); }
 }
 function sesionLoginRemota_(session, k) {
   const cache = CacheService.getScriptCache();

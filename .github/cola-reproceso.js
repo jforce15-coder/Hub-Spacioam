@@ -6,7 +6,8 @@
    2. lee por bloques (nunca más de 500 filas por lectura) y la fila completa solo de las que sirven;
    3. cola_reprocesar encuentra una fila vieja por número o por message_id, rechaza un message_id que no coincide y deja
       dicho a procesarColaNucleo_ desde qué fila leer (COLA_REPROCESO_DESDE); la cola la lee y luego lo borra;
-   4. un 400 de Hospitable sin «message» trae su cuerpo crudo en la nota y va a «error» al primer intento.
+   4. un 400 de Hospitable sin «message» trae su cuerpo crudo en la nota; en una consulta (inq:) queda en revisión y el
+      borrador va a Pendientes para responder desde la plataforma; en una reserva va a «error» al primer intento.
    node .github/cola-reproceso.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -82,13 +83,13 @@ ok(/COLA_REPROCESO_DESDE/.test(nucleo) && /deleteProperty\('COLA_REPROCESO_DESDE
 ok(/hoja_\(CFG\.TAB_COLA\)/.test(sacar(COLA, 'colaFilasError_')) && !/n - 499\), lim/.test(COLA), '3. ya no hay un tope fijo de 500 al buscar');
 
 /* 4. el 400 de Hospitable. */
-const k = { avisos: [] }, filasSet = [];
+const k = { avisos: [], pend: [] }, filasSet = [];
 const c2 = {
   console: { log() {}, warn() {}, error() {} }, JSON, Date, Math, String, Number, Object, Array, RegExp, isNaN, Error,
   CFG: { HOSPITABLE_API: 'https://hosp.test/v2', MAX_INTENTOS: 3 }, C: {},
   PropertiesService: { getScriptProperties: () => ({ getProperty: () => 'tok' }) },
   CacheService: { getScriptCache: () => ({ get: () => null, put() {} }) }, Utilities: { sleep() {} },
-  avisarAdmins_() {}, acortarEnTexto_: t => t, cacheEnvio_() {}, registrarEnvioInq_() {}, s_: x => (x == null ? '' : String(x)),
+  avisarAdmins_: (a, t) => k.pend.push(t), acortarEnTexto_: t => t, cacheEnvio_() {}, registrarEnvioInq_() {}, s_: x => (x == null ? '' : String(x)),
   uf_: () => ({ getResponseCode: () => 400, getContentText: () => 'Bad Request: inquiry is closed', getHeaders: () => ({}) }),
   hiloConv_: () => ({ code: 200, hilo: [{ tipo: 'guest', created: 'T1' }] }), turnoPendiente_: () => ({ pendiente: true, turno: [{ created: 'T1' }] }),
   observar_() {}, avisarSeguimiento_() {}, earlyRegistrar_() {}, log_() {}, notificar_: () => k.avisos.push(1), ahora_: () => new Date(),
@@ -104,7 +105,12 @@ const fila = { fila: 9, v: [] }; fila.v[c2.C.datos] = JSON.stringify({ resId: 'i
 fila.v[c2.C.intentos] = 0;
 c2.enviarPendiente_({ getRange: () => ({ setValue() {} }) }, fila, { toggle: 'ON', modo: 'AUTO' }, [fila]);
 const ult = filasSet[filasSet.length - 1] || {};
-ok(ult.estado === 'error' && /HTTP 400 · Bad Request: inquiry is closed/.test(ult.nota) && k.avisos.length === 1, '4. el 400 va a «error» al primer intento, con el motivo de Hospitable y un aviso');
+ok(ult.estado === 'borrador' && /HTTP 400 · Bad Request: inquiry is closed/.test(ult.nota) && /plataforma/.test(ult.nota) && k.pend.length === 1 && /borrador de Alma/.test(k.pend[0]), '4. una consulta que Hospitable rechaza queda en revisión con el motivo y el borrador va a Pendientes, sin reintentar');
+filasSet.length = 0;
+const fila2 = { fila: 10, v: [] }; fila2.v[c2.C.datos] = JSON.stringify({ resId: 'r-77', borrador: 'Hola, con gusto te ayudo con tu consulta de hoy.', ultimoGuestAt: 'T1', nivel: 'VERDE' }); fila2.v[c2.C.intentos] = 0;
+c2.enviarPendiente_({ getRange: () => ({ setValue() {} }) }, fila2, { toggle: 'ON', modo: 'AUTO' }, [fila2]);
+const ult2 = filasSet[filasSet.length - 1] || {};
+ok(ult2.estado === 'error' && /HTTP 400 · Bad Request: inquiry is closed/.test(ult2.nota) && k.avisos.length === 1, '4. en una reserva, el 400 va a «error» al primer intento, con el motivo de Hospitable y un aviso');
 
 if (fallo) process.exit(1);
 console.log('OK cola en error');

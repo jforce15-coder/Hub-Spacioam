@@ -370,6 +370,12 @@ jobs:
       - name: Escritura clara, marca frase larga, pasiva y palabra Evitar, lo claro pasa sin tocar, la reescritura que pierde un dato se descarta y la voz no pasa (dobles)
         # 20-nov-2026: Juan pidió el truco del video de Andrej Karpathy (ASD-STE100 al 80 % en lo que Alma escribe), sin tocar los prompts.
         run: node .github/escritura-clara.js apps-script
+      - name: Salida al huésped, el razonamiento interno de Alma se recorta o no sale, por Hospitable, WhatsApp y redes (dobles)
+        # 18-nov-2026: un huésped de una consulta recibió el análisis interno de Alma antes de la respuesta (caso anonimizado).
+        run: node .github/salida-huesped.js apps-script
+      - name: Cola en error, cola_errores y cola_reprocesar buscan en toda la hoja por bloques y un 400 de Hospitable trae su motivo (dobles)
+        # 21-nov-2026: solo se miraban las últimas 500 filas y las del 16-17 nov no se podían ver ni reprocesar.
+        run: node .github/cola-reproceso.js apps-script
       - name: Página explicativa, solo administradores, token de una vez, vence a los 7 días, tope diario y HTML sin scripts de fuera (dobles)
         # 20-nov-2026: Juan pidió «Explícamelo en una página» (diagrama o calculadora por enlace), truco del mismo video.
         run: node .github/pagina-explicativa.js apps-script

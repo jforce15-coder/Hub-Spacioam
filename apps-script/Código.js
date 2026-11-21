@@ -854,9 +854,12 @@ function procesarColaNucleo_() {
     const sh = hoja_(CFG.TAB_COLA);
     const ultima = sh.getLastRow();
     if (ultima < 2) { props.setProperty('ALMA_ACTIVO', '0'); return; }
-    const primera = Math.max(2, ultima - 499);
+    /* Las últimas 500 filas, o desde la fila más vieja que se mandó a reprocesar (colareproceso.js) hasta que termine. */
+    const desdeRep = Number(props.getProperty('COLA_REPROCESO_DESDE') || 0);
+    const primera = Math.max(2, desdeRep && desdeRep < ultima - 499 ? desdeRep : ultima - 499);
     const filas = sh.getRange(primera, 1, ultima - primera + 1, COLA_HEADERS.length).getValues()
       .map((v, i) => ({ fila: primera + i, v: v }));
+    if (desdeRep && !filas.some(f => f.fila < ultima - 499 && FINALES.indexOf(f.v[C.estado]) === -1)) props.deleteProperty('COLA_REPROCESO_DESDE');
     const ahora = ahora_();
     const ctrl = leerControl_();
     let trabajos = 0;
@@ -1140,7 +1143,13 @@ function enviarPendiente_(sh, f, ctrl, filas) {
     return log_(d, '', 'no enviado: marcador interno bloqueado');
   }
   const env = enviarCanal_(d, d.borrador);
-  if (env.code < 200 || env.code >= 300) return reintentar_(sh, f, 'envío ' + (d.canal === 'whatsapp' ? 'WhatsApp ' + (env.error || env.code) : 'HTTP ' + env.code + (env.error ? ' · ' + env.error : (env.code >= 400 && env.json && (env.json.message || env.json.error) ? ' · ' + String(env.json.message || env.json.error).slice(0, 120) : ''))), 'esperando_envio');
+  if (env.bloqueado === 'razonamiento') {   // traía el análisis interno de Alma y no se pudo separar: no se reintenta, queda en revisión (salidahuesped.js)
+    set_(sh, f, { estado: 'borrador', nota: 'retenido: el borrador traía razonamiento interno · revisar en Pendientes' });
+    return log_(d, d.borrador, 'RETENIDO (no enviado): razonamiento interno en el borrador');
+  }
+  /* Un rechazo de Hospitable (400, 404, 409, 410, 422) no cambia con reintentar: va a «error» y al aviso ya, con su motivo. */
+  if ([400, 404, 409, 410, 422].indexOf(env.code) >= 0 && d.canal !== 'whatsapp') f.v[C.intentos] = Math.max(Number(f.v[C.intentos] || 0), CFG.MAX_INTENTOS - 1);
+  if (env.code < 200 || env.code >= 300) return reintentar_(sh, f, 'envío ' + (d.canal === 'whatsapp' ? 'WhatsApp ' + (env.error || env.code) : 'HTTP ' + env.code + (env.error ? ' · ' + env.error : (env.code >= 400 && env.json && (env.json.message || env.json.error || env.json.errors) ? ' · ' + String(env.json.message || env.json.error || JSON.stringify(env.json.errors)).slice(0, 160) : ''))), 'esperando_envio');
   set_(sh, f, { estado: 'respondido', nota: d.nivel + ' · enviado' });
   log_(d, d.borrador, 'ENVIADO al huésped' + (d.seguimiento ? ' · seguimiento avisado' : ''));
   avisarSeguimiento_(d);
@@ -2400,8 +2409,12 @@ function hosp_(metodo, ruta, payload, o) {
   const opt = { method: metodo, muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' } };
   /* Todo mensaje a un huésped o a una consulta sale por aquí (también los programados que se mandan ya): los enlaces largos
      van cortos (enlaces.js). Las reseñas no llevan enlaces y no se tocan. */
-  if (payload && typeof payload.body === 'string' && /^(post|patch)$/i.test(metodo) && /^\/(reservations|inquiries)\/[^\/?]+\/messages|^\/scheduled-messages\//.test(String(ruta)))
-    payload = Object.assign({}, payload, { body: acortarEnTexto_(payload.body, 'hospitable') });
+  if (payload && typeof payload.body === 'string' && /^(post|patch)$/i.test(metodo) && /^\/(reservations|inquiries)\/[^\/?]+\/messages|^\/scheduled-messages\//.test(String(ruta))) {
+    /* El razonamiento interno de Alma nunca sale: se recorta limpio o no se manda (salidahuesped.js). */
+    const sal = salidaHuesped_(payload.body);
+    if (!sal.ok) return salidaHuespedBloqueo_(sal.motivo, String(ruta).replace(/^\/reservations\/inq:/, '/inquiries/'), payload.body);
+    payload = Object.assign({}, payload, { body: acortarEnTexto_(sal.texto, 'hospitable') });
+  }
   if (payload) { opt.contentType = 'application/json'; opt.payload = JSON.stringify(payload); }
   try {
     // Consultas previas a la reserva (Pre-approved / Inquiry): Hospitable las expone en /inquiries/{uuid}.
@@ -2420,6 +2433,8 @@ function hosp_(metodo, ruta, payload, o) {
     if (mr && payload && payload.body) { try { cacheEnvio_(mr[1], payload.body); } catch (e) {} }
     const mi = String(metodo).toLowerCase() === 'post' && code < 300 && ruta.match(/^\/inquiries\/([^\/?]+)\/messages/);
     if (mi && payload && payload.body) { try { registrarEnvioInq_('inq:' + mi[1], payload.body, s_(json && (json.sent_reference_id || (json.data && json.data.sent_reference_id)))); } catch (e) {} }
+    /* Un rechazo (4xx) sin «message» ni «errors» legibles trae su cuerpo crudo: la nota dice el motivo, no solo «HTTP 400». */
+    if (code >= 400 && !(json && (json.message || json.error || json.errors))) return { code: code, json: json, error: String(r.getContentText() || '').replace(/\s+/g, ' ').trim().slice(0, 160) || undefined };
     return { code: code, json: json };
   } catch (err) {
     /* code 0 = la llamada ni salió (sin cupo de Google, red caída): el motivo viaja para que la nota no diga solo «HTTP 0». */
@@ -4083,6 +4098,7 @@ function inquiryResponder_(convInq, pregunta, huesped, ctrl, desdeMs) {
   const motivo = prog && !esBooking ? ' · PRE-APROBAR a mano: Hospitable no dejó editar el automático' : preaprobar;
   return Object.assign(base, env.code < 300
     ? { estado: 'respondido', nota: 'respuesta directa' + (motivo ? ' · falta pre-aprobar' : ''), nivel: motivo ? 'AMARILLO' : 'VERDE', razon: 'Inquiry: se respondió la pregunta con un mensaje normal' + motivo, texto: s_(ev.respuesta), accion: 'ENVIADO · respuesta a la consulta · falta pre-aprobar' }
+    : env.bloqueado ? { estado: 'borrador', nota: 'retenido: razonamiento interno · revisar en Pendientes', nivel: 'AMARILLO', razon: 'La respuesta traía el análisis interno de Alma y no salió' + motivo, accion: 'RETENIDO (no enviado) · revisar manualmente' }
     : { estado: 'error', nota: 'Hospitable ' + env.code, nivel: 'AMARILLO', razon: 'No se pudo enviar la respuesta a la consulta' + motivo, accion: 'revisar manualmente' });
 }
 function hubProgramados_(resId) {
@@ -5068,7 +5084,8 @@ function hubResponderWa_(resId, texto, quien, wa, adj) {
   return { ok: true, wa: num, plantilla: !!w.plantilla };
 }
 function waResponder_(wa, texto, convId, autor, idioma, nombre) {
-  texto = acortarEnTexto_(texto, 'whatsapp');   // los enlaces largos salen cortos (enlaces.js)
+  const sal = salidaHuesped_(texto); if (!sal.ok) return salidaHuespedBloqueo_(sal.motivo, String(convId || 'wa:' + wa), texto);   // sin razonamiento interno (salidahuesped.js)
+  texto = acortarEnTexto_(sal.texto, 'whatsapp');   // los enlaces largos salen cortos (enlaces.js)
   const W = waCfg_(); if (!W.token || !W.phoneId) return { ok: false, error: 'falta WA_TOKEN o WA_PHONE_ID' };
   const abierta = waVentana_(wa), soc = abierta ? null : socioSeguro_(wa);
   let payload, guardado = String(texto);
@@ -5098,8 +5115,8 @@ function waResponder_(wa, texto, convId, autor, idioma, nombre) {
 function enviarCanal_(d, texto, autor) {
   texto = limpiarSalida_(texto).texto;
   if (!textoEnviable_(texto)) { console.error('enviarCanal_ bloqueó un texto no enviable: ' + String(texto).slice(0, 80)); return { code: 422, error: 'texto bloqueado (marcador interno o vacío)', bloqueado: true }; }
-  if (d.canal === 'whatsapp' && d.wa) { const w = waResponder_(d.wa, texto, d.resId, autor || 'alma', d.idioma, d.huesped); return { code: w.ok ? 200 : (w.code || 500), error: w.error }; }
-  if (/^(ig|fb):/.test(String(d.resId))) { const rr = redesEnviar_(d.resId, texto, autor || 'alma'); return { code: rr.ok ? 200 : (rr.code || 500), error: rr.error }; }   // Instagram y Messenger (redesmeta.js)
+  if (d.canal === 'whatsapp' && d.wa) { const w = waResponder_(d.wa, texto, d.resId, autor || 'alma', d.idioma, d.huesped); return { code: w.ok ? 200 : (w.code || 500), error: w.error, bloqueado: w.bloqueado }; }
+  if (/^(ig|fb):/.test(String(d.resId))) { const rr = redesEnviar_(d.resId, texto, autor || 'alma'); return { code: rr.ok ? 200 : (rr.code || 500), error: rr.error, bloqueado: rr.bloqueado }; }   // Instagram y Messenger (redesmeta.js)
   return hosp_('post', '/reservations/' + d.resId + '/messages', { body: texto });
 }
 /* Ejecuta una vez desde el editor para revisar la conexión con Meta. */

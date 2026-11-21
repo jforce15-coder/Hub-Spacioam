@@ -52,7 +52,7 @@ function caja() {
     hojaWA_: () => ({ appendRow() {} }), inboxUpsert_() {}, s_: x => String(x || '')
   };
   vm.createContext(ctx);
-  ['correohilo.js', 'adjuntos.js'].forEach(f => vm.runInContext(leer(f), ctx, { filename: f }));
+  ['correohilo.js', 'adjuntos.js', 'salidahuesped.js'].forEach(f => vm.runInContext(leer(f), ctx, { filename: f }));
   return { ctx, drive, meta, hosp, wa, ia, props };
 }
 const b64 = t => Buffer.from(t).toString('base64');

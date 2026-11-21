@@ -94,6 +94,7 @@ function caja(o) {
   vm.runInContext(['s_', 'celdaTexto_', 'json_'].map(n => linea(COD, n)).join('\n') + '\n' + ['doPost', 'doGet', 'waEnviar_', 'hosp_'].map(n => sacar(COD, n)).join('\n'), ctx, { filename: 'Código.js (extracto)' });
   vm.runInContext(sacar(leer('agente.js'), 'correoSimple_'), ctx, { filename: 'agente.js (extracto)' });
   vm.runInContext(leer('enlaces.js'), ctx, { filename: 'enlaces.js' });
+  vm.runInContext(leer('salidahuesped.js'), ctx, { filename: 'salidahuesped.js' });
   const post = body => JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify(body) }, parameter: {} }).getContent());
   const get = q => JSON.parse(ctx.doGet({ parameter: q }).getContent());
   return { ctx, hojas, cache, enviados, correos, grow, growCodigos, apps, appCodigos, post, get, filas: () => (hojas.ENLACES ? hojas.ENLACES.filas : null) };
@@ -245,7 +246,7 @@ function caja(o) {
     });
   });
   ok(vistas.length >= 12 && !sinAcortar.length, 'cada función que manda un WhatsApp o un correo llama a acortarEnTexto_ (' + vistas.length + ' revisadas)' + (sinAcortar.length ? '; faltan: ' + sinAcortar.join(', ') : ''));
-  ok(/acortarEnTexto_\(payload\.body/.test(sacar(COD, 'hosp_')), 'hosp_ acorta todo mensaje a un huésped o a una consulta (Hospitable)');
+  ok(/acortarEnTexto_\((payload\.body|sal\.texto)/.test(sacar(COD, 'hosp_')), 'hosp_ acorta todo mensaje a un huésped o a una consulta (Hospitable)');
   ok(/correoEnviarConEncabezados_\(b,/.test(sacar(leer('correohilo.js'), 'correoResponderEnviar_')) && /acortarEnTexto_\(String\(b\.texto/.test(sacar(leer('correohilo.js'), 'correoResponderEnviar_')), 'responder en el hilo acorta antes de cualquiera de sus tres formas de enviar'); }
 
 process.exit(fallo);

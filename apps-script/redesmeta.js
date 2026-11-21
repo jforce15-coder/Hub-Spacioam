@@ -149,7 +149,8 @@ function redesEnviar_(convId, texto, autor) {
   var canal = redesCanalDe_(convId), persona = String(convId || '').slice(3);
   if (!canal || !persona) return { ok: false, code: 400, error: 'conversación de redes inválida' };
   var L = redesLlave_(canal); if (!L) return { ok: false, code: 412, error: redesNombreCanal_(canal) + ' todavía no está conectado: falta su llave en Ajustes → Llaves' };
-  texto = acortarEnTexto_(String(texto || '').trim(), canal === 'instagram' ? 'instagram' : 'messenger');
+  var sal = salidaHuesped_(String(texto || '').trim()); if (!sal.ok) return salidaHuespedBloqueo_(sal.motivo, String(convId), texto);   // sin razonamiento interno (salidahuesped.js)
+  texto = acortarEnTexto_(sal.texto, canal === 'instagram' ? 'instagram' : 'messenger');
   if (!texto) return { ok: false, code: 400, error: 'sin texto' };
   var ms = redesDesdeUltimo_(convId), esAlma = !autor || autor === 'alma';
   if (ms == null) return { ok: false, code: 409, error: 'Meta no deja escribir primero: la persona tiene que escribir antes' };

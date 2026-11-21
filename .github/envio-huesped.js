@@ -75,7 +75,7 @@ function caja(opc) {
     vozWebTel_: () => '', adminPorTel_: () => null
   };
   vm.createContext(ctx);
-  ['buscar.js', 'enviohuesped.js', 'codigoaviso.js', 'agente.js'].forEach((f) => vm.runInContext(leer(f), ctx, { filename: f }));
+  ['buscar.js', 'enviohuesped.js', 'codigoaviso.js', 'agente.js', 'salidahuesped.js'].forEach((f) => vm.runInContext(leer(f), ctx, { filename: f }));
   vm.runInContext(['hosp_', 'hubResponder_'].map(sacar).join('\n'), ctx, { filename: 'Código.js (extracto)' });
   Object.assign(ctx, { avisos, filasSet, logs });
   return { X: ctx, cache, posts, gets, upserts, inbox };

@@ -118,3 +118,43 @@ function colaReprocesar_(body) {
     return { ok: true, filas: out };
   } finally { lock.releaseLock(); }
 }
+
+/* ═══ Candado por fila al enviar (21-nov-2026, mensaje doble) ═══════════════════════════════════════════════════════════
+   Antes de mandar, la fila se relee de la hoja (no de la foto que la pasada leyó al empezar) y solo sigue si sigue en
+   «esperando_envio»; enviarPendiente_ la marca «enviando» justo antes del envío. Una fila que otra pasada ya tomó o
+   mandó no sale otra vez. */
+function colaTomarFila_(sh, f) {
+  var actual = f.v[C.estado];
+  try { actual = sh.getRange(f.fila, C.estado + 1).getValue(); } catch (e) {}
+  if (actual !== 'esperando_envio') { f.v[C.estado] = actual; console.error('colaTomarFila_: la fila ' + f.fila + ' ya está en «' + actual + '»; no se manda'); return false; }
+  return true;
+}
+
+/* ═══ cola_descartar (robot): cerrar filas en «error» sin mandar nada ═══════════════════════════════════════════════════
+   21-nov-2026: la fila 1532 quedó en «error» y no había forma de cerrarla (Juan: el huésped buscaba otra fecha).
+   { filas: [n…], motivo } → cada fila que siga en «error» pasa a «descartado» (final, nunca se procesa ni se manda) con
+   el motivo y la fecha en su nota, y queda una línea en ALMA_LOG. Sin motivo no hace nada. Nunca manda nada. */
+function colaDescartar_(body) {
+  body = body || {};
+  var nums = (body.filas || []).map(function (x) { return Number(x && x.fila != null ? x.fila : x); }).filter(function (x) { return x >= 2; });
+  var motivo = s_(body.motivo).trim().slice(0, 200);
+  if (!nums.length) return { ok: false, error: 'faltan filas [n…]' };
+  if (!motivo) return { ok: false, error: 'falta motivo' };
+  var lock = LockService.getScriptLock(); try { lock.waitLock(20000); } catch (e) { return { ok: false, error: 'cola ocupada, repite' }; }
+  try {
+    var sh = hoja_(CFG.TAB_COLA), todas = colaFilasError_({ filas: nums, cualquier_estado: true }), out = [], ts = new Date().toISOString();
+    nums.forEach(function (n) {
+      var f = todas.filter(function (x) { return x.fila === n; })[0];
+      if (!f) return out.push({ fila: n, hecho: false, motivo: 'no encontré esa fila' });
+      if (f.v[C.estado] !== 'error') return out.push({ fila: n, hecho: false, motivo: 'no está en error (está en «' + s_(f.v[C.estado]) + '»)' });
+      set_(sh, f, { estado: 'descartado', nota: ('descartada por el robot ' + ts.slice(0, 16) + ': ' + motivo + ' · antes: ' + s_(f.v[C.nota])).slice(0, 480) });
+      try {
+        var d = {}; try { d = JSON.parse(f.v[C.datos] || '{}') || {}; } catch (e) {}
+        hoja_(CFG.TAB_LOG).appendRow([Utilities.formatDate(new Date(), CFG.TZ, 'yyyy-MM-dd HH:mm:ss'), s_(d.codigo), s_(d.propiedad), 'DESCARTADO',
+          'Fila ' + n + ' de ALMA_COLA descartada: ' + motivo, s_(f.v[C.texto]).slice(0, 300), '', '', '', 'descartada por el robot (no se mandó nada)']);
+      } catch (e) { console.error('colaDescartar_ registro: ' + e); }
+      out.push({ fila: n, hecho: true });
+    });
+    return { ok: true, filas: out };
+  } finally { lock.releaseLock(); }
+}

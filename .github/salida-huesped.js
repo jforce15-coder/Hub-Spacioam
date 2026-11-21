@@ -38,7 +38,7 @@ function caja() {
     reintentar_: (sh, f, motivo) => filas.push({ fila: f.fila, reintento: motivo })
   };
   vm.createContext(ctx);
-  vm.runInContext(SAL + '\n' + ['hosp_', 'limpiarSalida_', 'textoEnviable_', 'enviarCanal_', 'enviarPendiente_'].map(n => sacar(COD, n)).join('\n') +
+  vm.runInContext(SAL + '\n' + fs.readFileSync(path.join(DIR, 'colareproceso.js'), 'utf8') + '\n' + ['hosp_', 'limpiarSalida_', 'textoEnviable_', 'enviarCanal_', 'enviarPendiente_'].map(n => sacar(COD, n)).join('\n') +
     '\nvar TOKEN_SILENCIO_ = /\\[?\\s*\\b(SIN[\\s_-]*RESPUESTA|NO[\\s_-]*RESPONDER|NO[\\s_-]*REPLY|NO[\\s_-]*RESPONSE|SILENCIO)\\b\\s*\\]?\\.?/ig;', ctx);
   return { ctx, avisos, llamadas, filas, logs };
 }
@@ -92,8 +92,9 @@ ok(k.llamadas.length === 3, '4. las lecturas no pasan por la revisión');
 
 /* 5. la cola: la fila queda en revisión, sin reintento. */
 k = caja();
-const fila = { fila: 77, v: [] }; fila.v[10] = JSON.stringify({ resId: 'inq:abc-123', borrador: SIN_CORTE, ultimoGuestAt: 'T1', nivel: 'VERDE', codigo: '' });
+const fila = { fila: 77, v: [] }; fila.v[6] = 'esperando_envio'; fila.v[10] = JSON.stringify({ resId: 'inq:abc-123', borrador: SIN_CORTE, ultimoGuestAt: 'T1', nivel: 'VERDE', codigo: '' });
 k.ctx.enviarPendiente_({}, fila, { toggle: 'ON', modo: 'AUTO' }, [fila]);
+k.filas = k.filas.filter(x => x.estado !== 'enviando');   // la marca de antes de mandar (consultas-atrasadas.js)
 ok(k.filas.length === 1 && k.filas[0].estado === 'borrador' && !k.filas[0].reintento && !k.llamadas.length, '5. la cola deja la fila en «borrador» sin reintentar y sin mandar');
 ok(/RETENIDO/.test(k.logs[0] || ''), '5. el log dice RETENIDO');
 

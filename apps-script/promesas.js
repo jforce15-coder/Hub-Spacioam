@@ -113,15 +113,17 @@ function promEsInterna_(c) {
 }
 
 /* ¿El texto promete un contacto o acción futura del equipo? Filtro barato (regex) y luego confirmación con el modelo pequeño. */
-function promesaDetectar_(texto, contexto) {
-  texto = String(texto || ''); if (!PROM_RX_.test(texto)) return null;
+function promesaDetectar_(texto, contexto) { return promesaDetectarDetalle_(texto, contexto).p; }
+/* { p } si promete; { no: true } si el modelo dijo que no; { error } si no se pudo saber (sin respuesta o sin JSON). */
+function promesaDetectarDetalle_(texto, contexto) {
+  texto = String(texto || ''); if (!PROM_RX_.test(texto)) return { p: null, no: true };
   var sys = 'Analizas un mensaje que ALMA (asistente de Spacio AM, alojamientos) le dijo a un huésped o contacto. Decide si ALMA PROMETIÓ una acción futura del equipo o un contacto posterior ' +
     '(escribirle, llamarle, confirmarle algo, enviarle algo, revisar algo y avisarle). No es promesa: dar información, pedir un dato, decir que algo llega automáticamente por la plataforma, ' +
     'o recordar algo ya enviado. Devuelve SOLO JSON: {"promesa":true|false,"que":"qué se prometió, en una frase corta en español","canal":"whatsapp|plataforma|llamada|correo|sin_definir","horas":número de horas en que debería cumplirse (usa 1 si dice «en unos minutos», 2 si no dice plazo, 24 si dice «mañana»)}';
   var r = '';
-  try { r = String(claude_(CFG.MODELO_CLASIFICADOR, 200, sys, (contexto ? 'CONTEXTO: ' + String(contexto).slice(0, 600) + '\n\n' : '') + 'MENSAJE DE ALMA:\n' + texto.slice(0, 2500), 0) || ''); } catch (e) { console.error('promesaDetectar_: ' + e); return null; }
-  var m = r.match(/\{[\s\S]*\}/); if (!m) return null;
-  try { var j = JSON.parse(m[0]); return j && j.promesa ? { que: String(j.que || '').slice(0, 300), canal: String(j.canal || 'sin_definir'), horas: Math.max(0.25, Math.min(72, Number(j.horas) || 2)) } : null; } catch (e) { return null; }
+  try { r = String(claude_(CFG.MODELO_CLASIFICADOR, 200, sys, (contexto ? 'CONTEXTO: ' + String(contexto).slice(0, 600) + '\n\n' : '') + 'MENSAJE DE ALMA:\n' + texto.slice(0, 2500), 0) || ''); } catch (e) { console.error('promesaDetectar_: ' + e); return { p: null, error: String(e) }; }
+  var m = r.match(/\{[\s\S]*\}/); if (!m) return { p: null, error: 'sin JSON' };
+  try { var j = JSON.parse(m[0]); return j && j.promesa ? { p: { que: String(j.que || '').slice(0, 300), canal: String(j.canal || 'sin_definir'), horas: Math.max(0.25, Math.min(72, Number(j.horas) || 2)) } } : { p: null, no: true }; } catch (e) { return { p: null, error: 'JSON inválido' }; }
 }
 
 /* La misma promesa ya está viva en esa conversación (mismo tipo y el mismo tema): cuenta una sola vez. */
@@ -137,14 +139,16 @@ function promRepetidaDe_(convId, tipo, que, filas, antesDe) {
 }
 
 /* Registra la promesa (una por conversación y tema), la marca en el inbox y abre la decisión del equipo. */
-function promesaRegistrar_(c, texto, origen) {
+function promesaRegistrar_(c, texto, origen, pYa) {
   c = c || {}; var convId = String(c.resId || c.conv_id || ''); if (!convId || /^op:/.test(convId)) return null;
   if (promEsInterna_({ conv_id: convId, huesped: c.huesped, propiedad: c.propiedad })) return null;
-  var p = promesaDetectar_(texto, c.texto || c.pregunta || ''); if (!p) return null;
-  var lock = LockService.getScriptLock(); try { lock.waitLock(10000); } catch (e) {}
+  var p = pYa || promesaDetectar_(texto, c.texto || c.pregunta || ''); if (!p) return null;
+  var lock = LockService.getScriptLock(), yaTenia = false; try { yaTenia = !!lock.hasLock(); } catch (e) {} try { if (!yaTenia) lock.waitLock(10000); } catch (e) {}   // dentro de la cola el candado ya es de esta ejecución: no se suelta aquí
   try {
     var d = promFilas_(), ahora = Date.now(), tipo = promTipo_(p.que);
-    if (d.filas.some(function (f) { return f.conv_id === convId && f.estado === 'abierta' && ahora - promTs_(f.creada) < 30 * 60000; })) return null;
+    /* Ya hay una abierta en esta conversación de hace menos de 30 min: esa es la del equipo (cuenta una vez). */
+    var reciente = d.filas.filter(function (f) { return f.conv_id === convId && f.estado === 'abierta' && ahora - promTs_(f.creada) < 30 * 60000; })[0];
+    if (reciente) return { id: reciente.id, que: reciente.que, vence: reciente.vence, repetida: true };
     var ya = promRepetidaDe_(convId, tipo, p.que, d.filas, 0);
     if (ya) return { id: ya.id, que: ya.que, vence: ya.vence, repetida: true };
     var vence = new Date(ahora + p.horas * 3600000).toISOString(), id = 'pr' + ahora + Math.floor(Math.random() * 1000);
@@ -153,7 +157,44 @@ function promesaRegistrar_(c, texto, origen) {
     try { decisionCrear_(Object.assign({}, c, { resId: convId }), 'promesa', p.que); } catch (e) { console.error('decisionCrear_ promesa: ' + e); }   // opciones A/B/C para el equipo (decisiones.js)
     /* Sin aviso al crearla: el seguimiento queda en el Hub y, si vence, entra en el resumen periódico (promesasRevisar_). */
     return { id: id, que: p.que, vence: vence };
-  } finally { try { lock.releaseLock(); } catch (e) {} }
+  } finally { try { if (!yaTenia) lock.releaseLock(); } catch (e) {} }
+}
+
+/* ═══ Toda promesa al huésped tiene dueño (21-nov-2026) ═══════════════════════════════════════════════════════════════
+   Alma escribió «el precio exacto lo confirmo con el equipo y te escribimos» y nadie quedó encargado. Antes de que salga
+   un mensaje al huésped (enviarPendiente_, la consulta directa): si promete algo, la Promesa al huésped (con su decisión
+   para el equipo en Pendientes) se crea ANTES de mandarlo. Si el modelo no contesta, se registra con la frase misma.
+   Si no se puede crear, las frases que prometen se quitan y el resto sale; si no queda nada, no sale.
+   Devuelve { texto, ok, promesa?, quitada? }. */
+function promFrase_(texto) {
+  var fr = String(texto || '').replace(/\s+/g, ' ').split(/(?<=[.!?])\s+/).filter(function (x) { return PROM_RX_.test(x); })[0] || '';
+  return fr.replace(/^[^\p{L}]+/u, '').slice(0, 200);
+}
+function promesaQuitar_(texto) {
+  return String(texto || '').split(/\n\s*\n/).map(function (par) {
+    return par.split(/(?<=[.!?])\s+/).filter(function (fr) { return !PROM_RX_.test(fr); }).join(' ').trim();
+  }).filter(Boolean).join('\n\n').trim();
+}
+function promesaAsegurar_(c, texto) {
+  c = c || {}; texto = String(texto || '');
+  if (!PROM_RX_.test(texto)) return { texto: texto, ok: true };
+  var convId = String(c.resId || c.conv_id || '');
+  if (convId && promEsInterna_({ conv_id: convId, huesped: c.huesped, propiedad: c.propiedad })) return { texto: texto, ok: true };
+  var det = promesaDetectarDetalle_(texto, c.texto || c.pregunta || '');
+  if (det.no) return { texto: texto, ok: true };   // el modelo vio que no promete nada
+  var p = det.p || { que: promFrase_(texto) || 'responderle lo que quedó pendiente', canal: 'plataforma', horas: 2 };
+  var r = null; try { r = promesaRegistrar_(c, texto, 'texto', p); } catch (e) { console.error('promesaAsegurar_: ' + e); }
+  if (r && r.id) return { texto: texto, ok: true, promesa: r };
+  console.error('promesaAsegurar_: la promesa no quedó registrada; se quita la frase · ' + convId);
+  return { texto: promesaQuitar_(texto), ok: false, quitada: true };
+}
+/* El mensaje con la promesa no salió: la promesa ya no aplica (el reintento la vuelve a crear). */
+function promesaAnular_(id, motivo) {
+  if (!id) return false;
+  var d = promFilas_(), f = d.filas.filter(function (x) { return x.id === id; })[0]; if (!f || !promViva_(f)) return false;
+  promCerrar_(d.sh, f, PROM_NO_APLICA_, motivo || 'el mensaje no salió', '', 'Alma');
+  promInboxSync_(f.conv_id, d.filas);
+  return true;
 }
 
 /* El equipo le escribió a esa conversación desde el Hub (o la marcó resuelta): se cumplen sus promesas vivas. */

@@ -483,7 +483,7 @@ const INBOX = [{ conv_id: 'r-1', codigo: 'HM4K2Q9XAB', huesped: 'Mariana López'
     ok(!/hosp_\(|UrlFetchApp|uf_\(|ufAll_\(/.test(tj), '11 · tarjeta.js no llama a internet por su cuenta (ni hosp_, ni UrlFetchApp, ni uf_)');
     ok((tj.match(/fuentesPedirFotos_\(/g) || []).length === 1 && /fuentesPedirFotos_\(id, \{ sinReintentos: true \}\)/.test(fn), '11 · un único lugar pide fotos: tvPedirFotos_, con el pedido de fuentes.js y sin reintentos');
     ok((tj.match(/tvPedirFotos_\(/g) || []).length === 4, '11 · solo lo usan la reserva, el apartamento y el edificio (y su definición)');
-    const cod = fs.readFileSync(path.join(DIR, 'Código.js'), 'utf8'), h = cod.slice(cod.indexOf('function hosp_('), cod.indexOf('function hosp_(') + 1600);
+    const cod = fs.readFileSync(path.join(DIR, 'Código.js'), 'utf8'), h = cod.slice(cod.indexOf('function hosp_('), cod.indexOf('function hosp_(') + 2600);
     ok(/function hosp_\(metodo, ruta, payload, o\)/.test(h) && /o && o\.sinReintentos \? 0 : 2/.test(h) && /uf_\(CFG\.HOSPITABLE_API/.test(h), '11 · hosp_ cuenta en el cupo (uf_) y, sin reintentos, no espera un 429');
   }
   const IMGS = [{ url: 'https://fotos.example/g1.jpg', thumbnail_url: 'https://fotos.example/g1-t.jpg', order: 1 }, { url: 'https://fotos.example/g2.jpg', order: 2 },

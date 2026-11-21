@@ -8,6 +8,7 @@
       buscarEscritorio existe y cuenta en el canal «inicio».
    5. Chat con Alma estilo messenger: cabecera con estado «Escribiendo…», llamar y «⋯», lo fijado, la caja en píldora con
       cámara, micrófono, emoji e imagen; el hilo con separadores de hora, «Visto» y tres puntos.
+   6. El panel que la app abre encima de una página (alma/index.html) con lo mismo: llamar, «⋯» y la píldora completa.
    node .github/escritorio.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const RAIZ = path.join(__dirname, '..'), AS = process.argv[2] ? path.resolve(process.argv[2]) : path.join(RAIZ, 'apps-script');
@@ -82,5 +83,18 @@ ok(/sa-chat-sep/.test(chat) && /sa-chat-visto/.test(chat) && /sa-chat-puntos/.te
 const S = require(path.join(RAIZ, 'js/sa-chat.js')), hoy = new Date();
 ok(/^Hoy a las /.test(S.separador(hoy.getTime(), hoy.getTime())) && /^Ayer a las /.test(S.separador(hoy.getTime() - 86400000, hoy.getTime())), 'Separador «Hoy a las…» y «Ayer a las…»');
 ok(/\.sa-chat-hilo--msn \.sa-chat-burbuja--mia\{[^}]*background:var\(--msn-tuya\)/.test(css.replace(/\s+/g, '')) || /sa-chat-hilo--msn .sa-chat-burbuja--mia\{ background:var\(--msn-tuya\)/.test(css), 'Tus burbujas azules con letra blanca');
+
+/* 6. El panel que la app abre encima de una página (alma/index.html) tiene lo mismo que el chat del inicio, con las piezas
+   compartidas de js/sa-chat.js y ds/chat.css (no una copia). */
+const pan = leer('alma/index.html');
+ok(/id="llamar"[^>]*aria-label="Llamar a Alma"/.test(pan) && /id="mas3"[^>]*aria-haspopup="menu"/.test(pan), 'Panel: cabecera con llamar y «⋯»');
+ok(['historial', 'fijar', 'desfijar', 'cerrar'].every((m) => new RegExp('data-m="' + m + '"').test(pan)) && />Cargar historial</.test(pan) && />Fijar este tema</.test(pan) && />Quitar lo fijado</.test(pan) && />Cerrar</.test(pan), 'Panel: «⋯» con Cargar historial, Fijar este tema, Quitar lo fijado y Cerrar');
+const pil = (pan.match(/<div class="caja sa-chat-pil"[\s\S]*?<\/div>\s*<\/div>/) || [''])[0], orden = ['id="cam"', 'id="txt"', 'id="mic"', 'id="emo"', 'id="mas"'].map((x) => pil.indexOf(x));
+ok(orden.every((n) => n > 0) && orden.every((n, k) => !k || n > orden[k - 1]), 'Panel: píldora con la cámara a la izquierda y micrófono, emoji e imagen a la derecha');
+ok(/id="mas"[^>]*aria-label="Foto, archivo y plantillas"/.test(pan) && /SAComp\.mas\(\{[\s\S]*?txt: "Foto"[\s\S]*?txt: "Archivo"/.test(pan), 'Panel: la imagen abre foto, archivo y plantillas (lo que abría el «+»)');
+ok(/SAChat\.emojis\(/.test(pan) && /SAChat\.desplegable\(/.test(pan) && /SAChat\.fijado\.(leer|poner)/.test(pan) && /SAChat\.leerAdjunto\(/.test(pan) && /id="fijado"/.test(pan), 'Panel: emojis, «⋯», lo fijado y los adjuntos con las piezas de js/sa-chat.js');
+ok(JSON.stringify(S.EMOJIS) === JSON.stringify(['👍', '🙏', '😊', '😂', '❤️', '🙌', '👌', '✅', '🎉', '🔥', '🤔', '😅', '👀', '💪', '🏠', '🧹', '🔑', '📅']) && /sa_chat_fijado:/.test(nav) && S.fijado.clave('Juan@Ejemplo.com') === 'sa_chat_fijado:juan@ejemplo.com', 'Lo fijado se guarda con la misma clave que el chat del inicio');
+ok(S.tipoAdjunto('casa.jpg', 'image/jpeg').foto && S.tipoAdjunto('libro.xlsx', '').mime.indexOf('spreadsheet') > 0 && S.tipoAdjunto('x.exe', '') === null, 'Adjuntos: foto, documento o nada');
+ok(/\.sa-chat-pil\{/.test(css.replace(/\s+/g, '')) && /\.sa-chat-menu3\{/.test(css.replace(/\s+/g, '')) && /\.sa-chat-fijado\{/.test(css.replace(/\s+/g, '')), 'ds/chat.css: píldora, menú «⋯» y barra de lo fijado');
 
 if (fallo) process.exit(1);
